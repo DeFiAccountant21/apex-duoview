@@ -653,13 +653,20 @@ def main():
     if content_id is None:
         parser.error("couldn't find a contentId in %r" % args.content)
 
-    print("Paste your F1 TV login-session cookie value (or a bare subscription token).")
-    print("Input is hidden and is not stored or printed.")
-    try:
-        raw = getpass.getpass("login-session / token: ")
-    except (EOFError, KeyboardInterrupt):
-        print("\nCancelled.")
-        return 1
+    # The cookie is longer than the 1024 characters a macOS terminal accepts on one typed
+    # line, so the normal way in is the clipboard:  pbpaste | python3 stream_check.py <url>
+    if not sys.stdin.isatty():
+        raw = sys.stdin.read()
+    else:
+        print("Paste your F1 TV login-session cookie value (or a bare subscription token).")
+        print("Input is hidden and is not stored or printed.")
+        print("(If the terminal beeps or flashes, the value is too long to paste: press Ctrl+C,")
+        print(" copy the cookie, and run:  pbpaste | python3 stream_check.py <url>)")
+        try:
+            raw = getpass.getpass("login-session / token: ")
+        except (EOFError, KeyboardInterrupt):
+            print("\nCancelled.")
+            return 1
     try:
         token, kind = decode_signin(raw)
     except ValueError as e:
