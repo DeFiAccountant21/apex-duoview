@@ -91,6 +91,11 @@ VARIANTS = [
     ("TABLET_HLS", "TABLET_HLS", ANDROID_UA, None),
     ("BIG_SCREEN_HLS", "BIG_SCREEN_HLS", ANDROID_UA, None),
 ]
+# Premium multiview (player_tm): every feed of a session in one play session, as multiPlay() asks.
+MULTIVIEW_VARIANTS = [
+    ("MULTIVIEW WEB_DASH (app default, control)", "WEB_DASH", ANDROID_UA, android_device_info),
+    ("MULTIVIEW WEB_HLS (macOS Safari UA/device-info)", "WEB_HLS", SAFARI_UA, safari_device_info),
+]
 
 MULTIVIEW_TIERS = ("OPS", "VIP", "PREMIUM")
 
@@ -486,7 +491,7 @@ def sign_in(token, platform, ua, verbose):
 CALLOUT_KEYS = ("streamType", "drmType", "laURL")
 
 
-def run_variant(label, platform, ua, devinfo, token, content_id, play_v):
+def run_variant(label, platform, ua, devinfo, token, content_id, play_v, player="player_bm"):
     """Returns dict with verdict info. Never raises."""
     r = {"label": label, "verdict": "refused", "detail": ""}
     out("")
@@ -507,7 +512,7 @@ def run_variant(label, platform, ua, devinfo, token, content_id, play_v):
         out("  x-f1-device-info: %s" % headers["x-f1-device-info"])
     else:
         out("  x-f1-device-info: (not sent, as the app does for non-WEB platforms)")
-    url = api_url(play_v, platform, "CONTENT/PLAY") + "?contentId=%d&player=player_bm" % content_id
+    url = api_url(play_v, platform, "CONTENT/PLAY") + "?contentId=%d&player=%s" % (content_id, player)
     out("  GET %s" % mask_url(url))
     try:
         status, body = f1_get(url, ua, headers)
@@ -542,6 +547,18 @@ def run_variant(label, platform, ua, devinfo, token, content_id, play_v):
     wv_hint = "widevine" in hint_text or bool(result.get("laURL"))
 
     stream_url = result.get("url")
+    tme = result.get("tme")
+    feeds = tme.get("feeds") if isinstance(tme, dict) else None
+    if isinstance(feeds, list):
+        out("  Multiview feeds: %d" % len(feeds))
+        for f in feeds[:30]:
+            if isinstance(f, dict):
+                meta = f.get("metadata") if isinstance(f.get("metadata"), dict) else {}
+                out("    channel_id=%s url=%s" % (meta.get("channel_id"), show_value(f.get("url", ""))))
+        first = next((f.get("url") for f in feeds if isinstance(f, dict) and f.get("url")), None)
+        if first and not stream_url:
+            stream_url = first
+            out("  Inspecting the first feed's manifest.")
     found = set()
     manifest_read = False
     if not isinstance(stream_url, str) or not stream_url:
@@ -705,6 +722,15 @@ def main():
             except Exception as e:  # one variant must never stop the others
                 out("  Unexpected error in this variant: %s: %s" % (type(e).__name__, e))
                 results.append({"label": label, "verdict": "refused", "detail": "script error"})
+        out("")
+        out("== 4. CONTENT/PLAY multiview (player=player_tm) ==")
+        for label, platform, ua, devinfo in MULTIVIEW_VARIANTS:
+            time.sleep(2)
+            try:
+                results.append(run_variant(label, platform, ua, devinfo, token, content_id, play_v, "player_tm"))
+            except Exception as e:
+                out("  Unexpected error in this variant: %s: %s" % (type(e).__name__, e))
+                results.append({"label": label, "verdict": "refused", "detail": "script error"})
     except KeyboardInterrupt:
         out("")
         out("Interrupted.")
@@ -712,7 +738,7 @@ def main():
     out("")
     out("== Verdict ==")
     for r in results:
-        out("  %-40s %s  (%s)" % (r["label"], r["verdict"], r["detail"]))
+        out("  %-48s %s  (%s)" % (r["label"], r["verdict"], r["detail"]))
     fp = [r["label"] for r in results if r["verdict"] == "FairPlay offered"]
     plain = [r["label"] for r in results if r["verdict"] == "unprotected"]
     if fp:
