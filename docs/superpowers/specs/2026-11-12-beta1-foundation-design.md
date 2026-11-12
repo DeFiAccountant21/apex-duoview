@@ -265,6 +265,29 @@ comes from a `BETA_LABEL` build setting in the same file.
 - **O3 — Duo API declarations (owner, once Xcode 27.1 is installed).** One Terminal command,
   supplied in the plan, prints the SDK's declarations of `onHingeChange`, `reservedRegions` and
   `ArrangementView` for the agents to code against.
+  **Answered 2026-11-12** from the owner's Xcode (iPhoneOS 27.2 SDK; everything below is
+  available from iOS 27.1). In SwiftUI the types live in the SwiftUICore module:
+  - `View.onHingeChange(isEnabled: Bool = true, _ action: (_ oldContext: DeviceHingeContext,
+    _ newContext: DeviceHingeContext) -> Void)`.
+  - `DeviceHingeContext { var hinge: DeviceHinge? }` (Equatable, Sendable). `nil` means no hinge.
+  - `DeviceHinge { var status: DeviceHinge.Status }` (Hashable, Sendable); `Status` has
+    `.closed`, `.partiallyOpen`, `.fullyOpen`. Whether `DeviceHinge` also carries an angle is
+    still to be confirmed (the search only matched lines naming the hinge).
+  - `GeometryProxy.reservedRegions(kind: ReservedRegion.Kind, options: ReservedRegion.QueryOptions
+    = [], layoutDirectionBehavior: LayoutDirectionBehavior = .mirrors) -> [ReservedRegion]`.
+    `ReservedRegion` has `id` and `kind` (`.occlusion`, `.division`); its other fields are still
+    to be confirmed, expected to match UIKit's. `QueryOptions.includeInactive`.
+  - `ArrangementView<Primary, Secondary>` with `.arrangementViewStyle(_:)` and the styles
+    `.automatic`, `.split` (with `.axes(_:)`) and `.overlay` (with `.axes(_:)`).
+  - UIKit: `UIView.reservedRegions(kind:options:) -> [UIView.ReservedRegion]`, where a region has
+    `id`, `kind`, `frame: CGRect`, `margins: UIEdgeInsets` and `isActive: Bool`.
+    `UIHingeInteraction(updateHandler: (UIHingeInteraction, UIHingeInteraction.Update) -> Void)`,
+    with `isEnabled`; `Update.hinge: UIHinge?` (`nil` when the view leaves a hierarchy with hinge
+    updates). `UIHinge` has `status: UIHinge.Status` (`.unknown`, `.closed`, `.partiallyOpen`,
+    `.fullyOpen`) and `angle: CGFloat` in radians; Apple advises using `status` unless the angle
+    is really needed, and says the angle's update rate isn't guaranteed.
+    `UIArrangementViewController` with `UISplitArrangement` and `UIOverlayArrangement`.
+  - Nothing in the SDK tells "standing on its edges" apart, so `standing` is not added in beta.1.
 - **O4 — the app's name** is **Apex DuoView** wherever people see it (home screen, About,
   README); `apexduoview` in identifiers such as the bundle ID; `ApexDuoView` only where code can't
   have a space (owner's choice, 2026-11-12). It avoids "F1" and "Formula 1", which are trademarks.
