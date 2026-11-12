@@ -107,7 +107,8 @@ Release titles: "v1.0-beta.1 — Foundation", "v1.0-rc.1 — Release candidate",
 
 Chosen for now (2026-11-12): an "A" made of two hinged panels with a red racing line across it
 (Higgsfield concept 2, job d4bab3fd-d33a-4f9b-8d4b-8334b3b9ba8a). A clean vector version and the
-icon sizes come later, before the App Store; for the betas the generated image is enough.
+icon sizes come later, before the App Store; for the betas the generated image is enough. It is
+kept at `Design/AppIcon-1024.png` (1024 × 1024, opaque) and becomes the app icon in Task 8.
 
 ## Screenshots
 
