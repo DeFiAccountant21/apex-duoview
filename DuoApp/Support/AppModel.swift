@@ -36,14 +36,16 @@ final class AppModel {
 
     /// Launch: load the anonymous catalogue config, then sign in with the saved token.
     func restore() async {
+        let saved = Keychain.loadToken()
+        // With a saved token the sign-in screen must not show (or accept taps) while we prepare.
+        if saved != nil { auth = .signingIn }
         // Browsing before sign-in needs the anonymous location; a failure here is retried by callers.
         try? await session.prepare()
-        guard let token = Keychain.loadToken() else {
+        guard let token = saved else {
             auth = .signedOut
             message = Self.signInPrompt
             return
         }
-        auth = .signingIn
         do {
             let account = try await session.signIn(token: token)
             auth = .signedIn(account)
