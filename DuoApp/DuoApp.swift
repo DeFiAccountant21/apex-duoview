@@ -1,3 +1,4 @@
+import F1TV
 import SwiftUI
 
 @main
@@ -17,33 +18,45 @@ struct DuoApp: App {
     }
 }
 
-/// Placeholder shell; the real screens replace it in later tasks.
+/// Root shell: sign-in while signed out; the placeholder content (replaced by the rooms later) once in.
 struct RootView: View {
     let model: AppModel
+    @State private var planDismissed = false
 
     var body: some View {
         VStack(spacing: 12) {
-            Text(authText)
-                .font(.headline)
-            if let message = model.message {
-                Text(message)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
+            switch model.auth {
+            case .signedOut:
+                SignInView(model: model)
+            case .signingIn:
+                ProgressView("Signing in")
+            case .signedIn(let account):
+                Text("Signed in (\(account.tier))")
+                    .font(.headline)
+                Button("Sign out") { signOutAndClearWebData(model) }
+                    .buttonStyle(.bordered)
             }
             Text(versionText)
                 .font(.footnote)
                 .foregroundStyle(.secondary)
         }
         .padding()
+        .sheet(isPresented: planSheetBinding) {
+            PlanSheet { signOutAndClearWebData(model) }
+        }
+        .onChange(of: model.auth) { _, auth in
+            if case .signedIn = auth { return }
+            planDismissed = false
+        }
     }
 
-    private var authText: String {
-        switch model.auth {
-        case .signedOut: return "Signed out"
-        case .signingIn: return "Signing in"
-        case .signedIn(let account): return "Signed in (\(account.tier))"
-        }
+    private var planSheetBinding: Binding<Bool> {
+        Binding(
+            get: {
+                guard case .signedIn(let account) = model.auth else { return false }
+                return !account.hasVideoPlan && !planDismissed
+            },
+            set: { if !$0 { planDismissed = true } })
     }
 
     private var versionText: String {
