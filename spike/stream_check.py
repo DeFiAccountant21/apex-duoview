@@ -20,6 +20,17 @@ How to run (on the Mac, with your own F1 TV subscription)
        (or just the numeric contentId). Paste the cookie/token at the hidden prompt.
     4. Send back stream_check_result.txt (written next to this script). Tokens are masked.
 
+Also reported: per HLS media playlist, whether it carries #EXT-X-PROGRAM-DATE-TIME (a sync
+clock), PLAYLIST-TYPE, TARGETDURATION, ENDLIST (absent = live) and the segment count; the
+master's alternate audio renditions; and, in the multiview sections, the first feed plus one
+feed whose URL has a query string (onboards) plus the last feed, with each feed's non-URL
+metadata fields.
+
+Optional: add --save-urls to also write stream_urls_PRIVATE.txt next to the script with the
+UNMASKED signed URLs, so the owner can test playback locally (open the first URL in Safari on
+the Mac; Safari plays HLS natively). That file is never printed and never goes into
+stream_check_result.txt. Do NOT send it to anyone; the links expire.
+
 Python 3.9+, standard library only.
 """
 
@@ -103,6 +114,7 @@ MULTIVIEW_TIERS = ("OPS", "VIP", "PREMIUM")
 
 SECRETS = []  # exact strings never to print (subscription and entitlement tokens)
 LINES = []
+PRIVATE_URLS = []  # (label, unmasked url): only ever written to stream_urls_PRIVATE.txt with --save-urls
 
 JWT = re.compile(r"eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]*")
 URL_RE = re.compile(r"(?:https?|skd)://[^\s\"'<>,\[\]{}]+")
@@ -165,6 +177,29 @@ def write_result_file():
     try:
         with open(path, "w", encoding="utf-8") as f:
             f.write("\n".join(LINES) + "\n")
+        return path
+    except OSError as e:
+        print("Could not write %s: %s" % (path, e))
+        return None
+
+
+def record_private_url(label, url):
+    """Remember an unmasked URL for --save-urls. Never printed and never added to LINES."""
+    PRIVATE_URLS.append((" ".join(str(label).split()), url))
+
+
+def write_private_file():
+    """Writes stream_urls_PRIVATE.txt (owner-only permissions). Returns the path or None."""
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "stream_urls_PRIVATE.txt")
+    lines = ["# PRIVATE: contains signed F1 TV links tied to your account. Do NOT share or post this "
+             "file. The links expire soon, so test promptly."]
+    for label, url in PRIVATE_URLS:
+        lines.append("# " + label)
+        lines.append(url)
+    try:
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write("\n".join(lines) + "\n")
         return path
     except OSError as e:
         print("Could not write %s: %s" % (path, e))
@@ -242,8 +277,8 @@ def short_uri(uri):
 
 
 def parse_hls(text):
-    """Returns dict: keys [(tag, attrs)], variants [(attrs, uri)], is_master."""
-    keys, variants = [], []
+    """Returns dict: keys [(tag, attrs)], variants [(attrs, uri)], audio [attrs], is_master."""
+    keys, variants, audio = [], [], []
     lines = [l.strip() for l in text.splitlines()]
     pending = None
     for line in lines:
@@ -252,12 +287,89 @@ def parse_hls(text):
         if line.startswith("#EXT-X-KEY:") or line.startswith("#EXT-X-SESSION-KEY:"):
             tag, rest = line[1:].split(":", 1)
             keys.append((tag, parse_attributes(rest)))
+        elif line.startswith("#EXT-X-MEDIA:"):
+            a = parse_attributes(line.split(":", 1)[1])
+            if a.get("TYPE", "").upper() == "AUDIO":
+                audio.append(a)
         elif line.startswith("#EXT-X-STREAM-INF:"):
             pending = parse_attributes(line.split(":", 1)[1])
         elif not line.startswith("#") and pending is not None:
             variants.append((pending, line))
             pending = None
-    return {"keys": keys, "variants": variants, "is_master": bool(variants)}
+    return {"keys": keys, "variants": variants, "audio": audio, "is_master": bool(variants)}
+
+
+def parse_media_playlist(text):
+    """Sync-relevant facts of an HLS media (variant) playlist."""
+    pdt, ptype, target = [], None, None
+    endlist, segments = False, 0
+    for line in (l.strip() for l in text.splitlines()):
+        if line.startswith("#EXT-X-PROGRAM-DATE-TIME:"):
+            pdt.append(line.split(":", 1)[1].strip())
+        elif line.startswith("#EXT-X-PLAYLIST-TYPE:"):
+            ptype = line.split(":", 1)[1].strip()
+        elif line.startswith("#EXT-X-TARGETDURATION:"):
+            target = line.split(":", 1)[1].strip()
+        elif line.startswith("#EXT-X-ENDLIST"):
+            endlist = True
+        elif line.startswith("#EXTINF:"):
+            segments += 1
+    return {"pdt": pdt, "playlist_type": ptype, "target_duration": target,
+            "endlist": endlist, "segments": segments}
+
+
+def report_media_playlist(text, truncated, pad):
+    """Prints the sync/shape facts of a media playlist. Returns True if it has PROGRAM-DATE-TIME."""
+    mp = parse_media_playlist(text)
+    out(pad + "Sync/shape of this media playlist%s:" % (" (truncated at 2 MB, counts are lower bounds)" if truncated else ""))
+    out(pad + "  Segments listed (#EXTINF): %d" % mp["segments"])
+    out(pad + "  #EXT-X-TARGETDURATION: %s" % (mp["target_duration"] if mp["target_duration"] is not None else "(absent)"))
+    out(pad + "  #EXT-X-PLAYLIST-TYPE: %s" % (mp["playlist_type"] if mp["playlist_type"] is not None else "(absent)"))
+    out(pad + "  #EXT-X-ENDLIST: %s" % ("present (finished / VOD-style)" if mp["endlist"]
+                                         else "absent (live-style: playlist still growing)"))
+    if mp["pdt"]:
+        out(pad + "  #EXT-X-PROGRAM-DATE-TIME: %d tag(s), first = %s" % (len(mp["pdt"]), mp["pdt"][0][:40]))
+    else:
+        out(pad + "  #EXT-X-PROGRAM-DATE-TIME: none")
+    return bool(mp["pdt"])
+
+
+def has_query(url):
+    try:
+        return bool(urllib.parse.urlsplit(url).query)
+    except ValueError:
+        return False
+
+
+def scalar_fields(obj, path=""):
+    """[(path, scalar)] found recursively, leaving out URL values (they are never printed here)."""
+    acc = []
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            acc.extend(scalar_fields(v, "%s.%s" % (path, k) if path else str(k)))
+    elif isinstance(obj, list):
+        for i, v in enumerate(obj):
+            acc.extend(scalar_fields(v, "%s[%d]" % (path, i)))
+    elif not (isinstance(obj, str) and re.match(r"^(https?|skd)://", obj.strip())):
+        acc.append((path, obj))
+    return acc
+
+
+def feed_fields_line(feed, limit=60):
+    fields = scalar_fields(feed)
+    parts = ["%s=%s" % (p, show_value(v, 80)) for p, v in fields[:limit]]
+    if len(fields) > limit:
+        parts.append("(+%d more fields)" % (len(fields) - limit))
+    return "; ".join(parts) if parts else "(no scalar fields)"
+
+
+def sync_clock_text(flags):
+    if not flags:
+        return "n/a (no HLS media playlist was fetched for this variant)"
+    yes = sum(1 for f in flags if f)
+    if yes == len(flags):
+        return "yes (%d of %d inspected media playlists carry #EXT-X-PROGRAM-DATE-TIME)" % (yes, len(flags))
+    return "no (%d of %d inspected media playlists carry #EXT-X-PROGRAM-DATE-TIME)" % (yes, len(flags))
 
 
 def describe_key(tag, attrs):
@@ -493,7 +605,7 @@ CALLOUT_KEYS = ("streamType", "drmType", "laURL")
 
 def run_variant(label, platform, ua, devinfo, token, content_id, play_v, player="player_bm"):
     """Returns dict with verdict info. Never raises."""
-    r = {"label": label, "verdict": "refused", "detail": ""}
+    r = {"label": label, "verdict": "refused", "detail": "", "sync": []}
     out("")
     out("== %s ==" % label)
     out("  platform=%s  UA=%s" % (platform, "macOS Safari %s" % SAFARI_VERSION if ua == SAFARI_UA else "Android WebView (app default)"))
@@ -549,82 +661,151 @@ def run_variant(label, platform, ua, devinfo, token, content_id, play_v, player=
     stream_url = result.get("url")
     tme = result.get("tme")
     feeds = tme.get("feeds") if isinstance(tme, dict) else None
+    main_idx = None  # index of the feed used as the main manifest, when it came from the feed list
+    usable = []
     if isinstance(feeds, list):
+        usable = [i for i, f in enumerate(feeds) if isinstance(f, dict) and isinstance(f.get("url"), str) and f.get("url")]
         out("  Multiview feeds: %d" % len(feeds))
-        for f in feeds[:30]:
+        shown = list(range(min(30, len(feeds))))
+        if len(feeds) > 30:
+            shown.append(len(feeds) - 1)  # the last feed is always described
+        for i in shown:
+            f = feeds[i]
             if isinstance(f, dict):
                 meta = f.get("metadata") if isinstance(f.get("metadata"), dict) else {}
                 out("    channel_id=%s url=%s" % (meta.get("channel_id"), show_value(f.get("url", ""))))
-        first = next((f.get("url") for f in feeds if isinstance(f, dict) and f.get("url")), None)
-        if first and not stream_url:
-            stream_url = first
+                out("      feed #%d fields: %s" % (i + 1, feed_fields_line(f)))
+        if usable and not stream_url:
+            main_idx = usable[0]
+            stream_url = feeds[main_idx]["url"]
             out("  Inspecting the first feed's manifest.")
     found = set()
     manifest_read = False
+    sync = []
     if not isinstance(stream_url, str) or not stream_url:
         out("  No url in resultObj.")
     else:
-        path = urllib.parse.urlsplit(stream_url).path.lower()
-        if path.endswith(".m3u8") or path.endswith(".mpd"):
-            manifest_read, found = inspect_manifest(stream_url, ua, path.endswith(".m3u8"))
-        else:
-            out("  Manifest not fetched: url path is not .m3u8 or .mpd (%s)" % mask_url(stream_url))
+        if platform == "WEB_DASH" and player == "player_bm":
+            ext = urllib.parse.urlsplit(stream_url).path.lower().rsplit(".", 1)[-1][:5]
+            record_private_url("single-feed WEB_DASH play response url (.%s)" % ext, stream_url)
+        elif main_idx is not None:
+            record_private_url("%s feed #%d of %d (first)" % (label, main_idx + 1, len(feeds)), stream_url)
+        manifest_read, found, sync = fetch_and_inspect(stream_url, ua, "", main_idx is not None)
+    if usable:
+        sync = sync + inspect_onboard_feeds(feeds, usable, main_idx, label, ua)
+    r["sync"] = sync
 
     r.update(classify(found, manifest_read, fp_hint, wv_hint, bool(stream_url)))
     return r
 
 
-def inspect_manifest(url, ua, is_hls):
-    """Returns (read_ok, set of drm names)."""
-    out("  Manifest (%s, text only, cap 2 MB): %s" % ("HLS" if is_hls else "DASH", mask_url(url)))
+def fetch_and_inspect(stream_url, ua, pad="", always_variant=False):
+    """Returns (read_ok, drm names, [has PROGRAM-DATE-TIME per media playlist inspected])."""
+    path = urllib.parse.urlsplit(stream_url).path.lower()
+    if path.endswith(".m3u8") or path.endswith(".mpd"):
+        return inspect_manifest(stream_url, ua, path.endswith(".m3u8"), pad, always_variant)
+    out(pad + "  Manifest not fetched: url path is not .m3u8 or .mpd (%s)" % mask_url(stream_url))
+    return False, set(), []
+
+
+def inspect_onboard_feeds(feeds, usable, main_idx, label, ua):
+    """Inspects the first feed, one feed whose URL has a query string (onboards) and the last feed.
+    Returns the PROGRAM-DATE-TIME flags of the media playlists inspected here."""
+    roles = {}
+    order = []
+
+    def add(i, role):
+        if i not in roles:
+            roles[i] = []
+            order.append(i)
+        roles[i].append(role)
+
+    add(usable[0], "first")
+    q = next((i for i in usable[1:] if has_query(feeds[i]["url"])), None)
+    if q is not None:
+        add(q, "URL has a query string")
+    else:
+        out("  Onboard check: no other feed URL carries a query string.")
+    add(usable[-1], "last")
+    out("  Onboard check: feeds %s of %d (first / has query string / last)." % (
+        ", ".join("#%d" % (i + 1) for i in order), len(feeds)))
+    sync = []
+    for i in order:
+        f = feeds[i]
+        meta = f.get("metadata") if isinstance(f.get("metadata"), dict) else {}
+        out("  Feed #%d of %d (%s) channel_id=%s" % (i + 1, len(feeds), ", ".join(roles[i]), meta.get("channel_id")))
+        if i == main_idx:
+            out("    Already inspected above as the main manifest.")
+            continue
+        record_private_url("%s feed #%d of %d (%s)" % (label, i + 1, len(feeds), ", ".join(roles[i])), f["url"])
+        _, _, s = fetch_and_inspect(f["url"], ua, "  ", True)
+        sync.extend(s)
+    return sync
+
+
+def inspect_manifest(url, ua, is_hls, pad="", always_variant=False):
+    """Returns (read_ok, set of drm names, [has PROGRAM-DATE-TIME per media playlist inspected]).
+    always_variant fetches the first variant playlist even when the master already shows key tags."""
+    sync = []
+    out(pad + "  Manifest (%s, text only, cap 2 MB): %s" % ("HLS" if is_hls else "DASH", mask_url(url)))
     try:
         status, text, truncated = http_get(url, {"User-Agent": ua}, cap=MANIFEST_CAP)
     except HttpError as e:
-        print_http_error(e, "    ")
-        return False, set()
-    out("    HTTP %d, %d chars%s" % (status, len(text), " (truncated at 2 MB)" if truncated else ""))
+        print_http_error(e, pad + "    ")
+        return False, set(), sync
+    out(pad + "    HTTP %d, %d chars%s" % (status, len(text), " (truncated at 2 MB)" if truncated else ""))
     if is_hls:
         if "#EXTM3U" not in text[:1024]:
-            out("    Not an HLS playlist (no #EXTM3U).")
-            return False, set()
+            out(pad + "    Not an HLS playlist (no #EXTM3U).")
+            return False, set(), sync
         info = parse_hls(text)
-        out("    Key tags in master: %d" % len(info["keys"]))
+        out(pad + "    Key tags in master: %d" % len(info["keys"]))
         for tag, a in info["keys"]:
-            out("      " + describe_key(tag, a))
-        out("    Variant streams: %d" % len(info["variants"]))
+            out(pad + "      " + describe_key(tag, a))
+        out(pad + "    Variant streams: %d" % len(info["variants"]))
         res = [a.get("RESOLUTION", "?") for a, _ in info["variants"]]
         if res:
-            out("      RESOLUTION values: " + ", ".join(res))
+            out(pad + "      RESOLUTION values: " + ", ".join(res))
+        out(pad + "    Alternate audio renditions in master (#EXT-X-MEDIA:TYPE=AUDIO): %d" % len(info["audio"]))
+        for a in info["audio"]:
+            out(pad + "      NAME=%s LANGUAGE=%s" % (a.get("NAME", "(none)"), a.get("LANGUAGE", "(none)")))
         found = classify_hls_keys(info["keys"])
-        if not info["keys"] and info["variants"]:
+        if info["variants"] and (not info["keys"] or always_variant):
             variant_url = urllib.parse.urljoin(url, info["variants"][0][1])
-            out("    No key tags in master; fetching first variant playlist: %s" % mask_url(variant_url))
+            if info["keys"]:
+                out(pad + "    Fetching first variant playlist: %s" % mask_url(variant_url))
+            else:
+                out(pad + "    No key tags in master; fetching first variant playlist: %s" % mask_url(variant_url))
             try:
-                vstatus, vtext, _ = http_get(variant_url, {"User-Agent": ua}, cap=MANIFEST_CAP)
+                vstatus, vtext, vtrunc = http_get(variant_url, {"User-Agent": ua}, cap=MANIFEST_CAP)
                 vinfo = parse_hls(vtext)
-                out("      HTTP %d, key tags: %d" % (vstatus, len(vinfo["keys"])))
+                out(pad + "      HTTP %d, key tags: %d" % (vstatus, len(vinfo["keys"])))
                 seen = set()
                 for tag, a in vinfo["keys"]:
                     d = describe_key(tag, a)
                     if d not in seen:  # rotation repeats the same tag shape
                         seen.add(d)
-                        out("        " + d)
+                        out(pad + "        " + d)
                 if len(vinfo["keys"]) > len(seen):
-                    out("        (%d repeats of the above not shown)" % (len(vinfo["keys"]) - len(seen)))
+                    out(pad + "        (%d repeats of the above not shown)" % (len(vinfo["keys"]) - len(seen)))
                 found |= classify_hls_keys(vinfo["keys"])
+                if "#EXTM3U" in vtext[:1024]:
+                    sync.append(report_media_playlist(vtext, vtrunc, pad + "      "))
+                else:
+                    out(pad + "      Not an HLS playlist (no #EXTM3U); sync not checked.")
             except HttpError as e:
-                print_http_error(e, "      ")
-                return False, found
-        return True, found
+                print_http_error(e, pad + "      ")
+                return False, found, sync
+        return True, found, sync
     prot = parse_dash_protection(text)
-    out("    ContentProtection elements: %d" % len(prot))
+    out(pad + "    ContentProtection elements: %d" % len(prot))
     seen = set()
     found = set()
     for scheme, value in prot:
         name = dash_drm_name(scheme)
         if (scheme, value) not in seen:
             seen.add((scheme, value))
-            out("      schemeIdUri=%s%s  -> %s" % (scheme, (" value=%s" % value) if value else "", name))
+            out(pad + "      schemeIdUri=%s%s  -> %s" % (scheme, (" value=%s" % value) if value else "", name))
         if name == "Widevine":
             found.add("widevine")
         elif name == "PlayReady":
@@ -633,7 +814,7 @@ def inspect_manifest(url, ua, is_hls):
             found.add("fairplay")
         elif name == "CENC marker":
             found.add("cenc")
-    return True, found
+    return True, found, sync
 
 
 def classify(found, manifest_read, fp_hint, wv_hint, has_url):
@@ -662,8 +843,12 @@ def main():
     parser = argparse.ArgumentParser(
         description="Throwaway spike: ask F1 TV for one replay on several platform strings and "
                     "report whether a FairPlay HLS stream is offered. Reads JSON and manifest text only.",
-        usage="python3 stream_check.py <F1 TV page URL or numeric contentId>")
+        usage="python3 stream_check.py [--save-urls] <F1 TV page URL or numeric contentId>")
     parser.add_argument("content", help="e.g. https://f1tv.formula1.com/detail/1000009999/some-title or 1000009999")
+    parser.add_argument("--save-urls", action="store_true",
+                        help="also write the UNMASKED signed stream URLs to stream_urls_PRIVATE.txt next to "
+                             "this script, for a local playback test. Never printed, never in the result file; "
+                             "do not share it.")
     args = parser.parse_args()
 
     content_id = extract_content_id(args.content)
@@ -739,7 +924,8 @@ def main():
     out("== Verdict ==")
     for r in results:
         out("  %-48s %s  (%s)" % (r["label"], r["verdict"], r["detail"]))
-    fp = [r["label"] for r in results if r["verdict"] == "FairPlay offered"]
+        out("      sync clock: %s" % sync_clock_text(r.get("sync", [])))
+    fp =[r["label"] for r in results if r["verdict"] == "FairPlay offered"]
     plain = [r["label"] for r in results if r["verdict"] == "unprotected"]
     if fp:
         overall = "FairPlay IS offered on: %s. An AVPlayer-based iOS port looks feasible with that platform string." % "; ".join(fp)
@@ -755,12 +941,31 @@ def main():
     else:
         overall = "No variants completed."
     out("  OVERALL: " + overall)
+    all_sync = [flag for r in results for flag in r.get("sync", [])]
+    if not all_sync:
+        out("  OVERALL sync clock: unknown (no HLS media playlist was inspected)")
+    elif all(all_sync):
+        out("  OVERALL sync clock: all %d inspected media playlists/feeds carried #EXT-X-PROGRAM-DATE-TIME" % len(all_sync))
+    else:
+        out("  OVERALL sync clock: NOT all inspected media playlists/feeds carried #EXT-X-PROGRAM-DATE-TIME "
+            "(%d of %d did)" % (sum(1 for f in all_sync if f), len(all_sync)))
 
     path = write_result_file()
     if path:
         msg = "The same output was saved to %s - please paste that file back." % path
         print("")
         print(msg)
+    if args.save_urls:
+        ppath = write_private_file() if PRIVATE_URLS else None
+        print("")
+        if ppath:
+            print("PRIVATE test links (%d, signed, tied to your account, expire soon) were saved to %s" % (
+                len(PRIVATE_URLS), ppath))
+            print("Do NOT share that file; it is not part of the result file. To test playback: open the "
+                  "FIRST URL in it in Safari on this Mac (Safari plays HLS natively; an .mpd URL is DASH "
+                  "and will not play there).")
+        else:
+            print("--save-urls: no stream URLs were captured, so no private file was written.")
     return 0
 
 
