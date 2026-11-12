@@ -270,13 +270,13 @@ comes from a `BETA_LABEL` build setting in the same file.
   - `View.onHingeChange(isEnabled: Bool = true, _ action: (_ oldContext: DeviceHingeContext,
     _ newContext: DeviceHingeContext) -> Void)`.
   - `DeviceHingeContext { var hinge: DeviceHinge? }` (Equatable, Sendable). `nil` means no hinge.
-  - `DeviceHinge { var status: DeviceHinge.Status }` (Hashable, Sendable); `Status` has
-    `.closed`, `.partiallyOpen`, `.fullyOpen`. Whether `DeviceHinge` also carries an angle is
-    still to be confirmed (the search only matched lines naming the hinge).
+  - `DeviceHinge { var status: DeviceHinge.Status; var angle: Angle }` (Hashable, Sendable);
+    `Status` has `.closed`, `.partiallyOpen`, `.fullyOpen`. So SwiftUI alone gives both the
+    status and the angle, and `UIHingeInteraction` isn't needed.
   - `GeometryProxy.reservedRegions(kind: ReservedRegion.Kind, options: ReservedRegion.QueryOptions
     = [], layoutDirectionBehavior: LayoutDirectionBehavior = .mirrors) -> [ReservedRegion]`.
-    `ReservedRegion` has `id` and `kind` (`.occlusion`, `.division`); its other fields are still
-    to be confirmed, expected to match UIKit's. `QueryOptions.includeInactive`.
+    `ReservedRegion` (Sendable) has `id`, `kind` (`.occlusion`, `.division`), `frame: CGRect`,
+    `margins: EdgeInsets` and `isActive: Bool`. `QueryOptions.includeInactive`.
   - `ArrangementView<Primary, Secondary>` with `.arrangementViewStyle(_:)` and the styles
     `.automatic`, `.split` (with `.axes(_:)`) and `.overlay` (with `.axes(_:)`).
   - UIKit: `UIView.reservedRegions(kind:options:) -> [UIView.ReservedRegion]`, where a region has
