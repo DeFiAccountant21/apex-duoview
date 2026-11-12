@@ -90,3 +90,12 @@ Release titles: "v1.0-beta.1 — Foundation", "v1.0-rc.1 — Release candidate",
 - Single feed and all 26 multiview feeds came back as HLS with no DRM key tags (first feed's
   playlists checked only). Not yet verified: actual playback in AVPlayer, live sessions.
 - F1 TV's config publishes a FairPlay certificate, so protected content may exist elsewhere.
+
+## Screenshots
+
+README screenshots (and later App Store screenshots) are made with the
+[app-store-screenshots](https://github.com/ParthJadhav/app-store-screenshots) skill, which has
+iPhone Duo outer and inner display frames. It is installed and used once the UI is ready to show,
+starting with the first beta whose screens are worth presenting, from simulator captures taken on
+the owner's Mac. The skill's project file (`app-store-screenshots.json`) is kept in the repo so
+the deck can be updated each beta.
