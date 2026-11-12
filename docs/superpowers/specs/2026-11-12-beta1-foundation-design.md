@@ -34,11 +34,15 @@ Calendar reminders, Driver of the Day, the "what to watch next" carousel (beta.6
 
 From the stream checks (see roadmap "Verified so far"):
 
-- **Request style.** Single feed: `WEB_HLS` with Safari-style `x-f1-device-info`
-  (`os=mac os` is not right for an iPhone; use `os=ios;browser=safari`, see open item O1). It
-  returns HLS for both new (pipeline 6) and older (pipeline 1) content, whereas `WEB_DASH` returns
-  DASH for older content, which iOS can't play. Multiview (`player_tm`) is beta.2's question:
-  `WEB_DASH` returned all 26 feeds as HLS for the race; the Safari-style `WEB_HLS` returned one.
+- **Request style.** Single feed: `WEB_HLS` with the Safari-on-Mac `x-f1-device-info` values that
+  worked. It returned HLS for both new (pipeline 6) and older (pipeline 1) content, whereas
+  `WEB_DASH` returned DASH for older content, which iOS can't play. Multiview (`player_tm`) is
+  beta.2's question: `WEB_DASH` returned all 26 feeds as HLS for the race; `WEB_HLS` returned one.
+  So the platform is a per-request parameter, with the entitlement token cached per platform, not
+  one app-wide setting.
+- **Not yet run:** `CONTENT/VIDEO` (the feed list) on either platform, and `player_bm` with an
+  onboard `channelId`. The fixture recording run (see Testing) covers both before the parsers are
+  written.
 - **No DRM** on any replay checked, so AVPlayer plays the stream URL directly. The code still
   checks `laURL`: if a response ever carries one, show "This session is protected and can't play in
   this app yet" instead of failing silently. FairPlay is not built in beta.1.
@@ -54,7 +58,7 @@ Packages/DuoCore/            Swift package: the logic library (Foundation only)
   Sources/F1TV/              API client, sign-in exchange, catalogue, play
   Sources/Library/           resume store, watch history (pure Swift, storage behind a protocol)
   Tests/                     Swift Testing suites with JSON fixtures
-App/                         the iPhone app (SwiftUI, AVKit)
+DuoApp/                      the iPhone app (SwiftUI, AVKit)
   Rooms/                     Race Weekend, Paddock, Archive
   Player/                    single-feed player screen
   SignIn/                    web sign-in, token paste
@@ -62,6 +66,9 @@ App/                         the iPhone app (SwiftUI, AVKit)
   Support/                   Keychain, app state, settings
 .github/workflows/ci.yml     CI
 ```
+
+The iPhone app's folder is `DuoApp/`, not `App/`: the Mac's file system ignores letter case, so
+`App/` would collide with Android's `app/`.
 
 The Android source stays where it is (`app/`, Gradle files) until beta.3 has ported it, then it is
 deleted from `ios`. It is not moved: moving it would make merging `og-android` updates unreliable.
@@ -72,7 +79,10 @@ builds it from `project.yml`, which agents can edit and review. The owner instal
 
 **Rules for the logic library.** Imports Foundation only (no SwiftUI, AVFoundation, Combine, UIKit),
 so it compiles and tests on Linux in the cloud session and in CI. Networking goes through a small
-`HTTPClient` protocol so tests use canned responses. Swift 6 language mode, strict concurrency.
+`HTTPClient` protocol so tests use canned responses; the `URLSession` implementation lives in the
+app (on Linux `URLSession` is in `FoundationNetworking`, which the library doesn't import). Swift 6
+language mode, strict concurrency, and a `swift-tools-version` accepted by both the Linux toolchain
+here (6.4.1) and Xcode 27.1.
 
 **Deployment target:** iOS 27.1. Swift 6.
 
@@ -90,8 +100,8 @@ app's About screen and LICENSE).
     (`entitlementtoken` header) → `userLocation[0].entitlement` (tier) and `groupId`.
   - `prepare()`: config and anonymous location so browsing works signed out (`A` paths).
   - `hasVideoPlan = tier ∉ {ANONYMOUS, REG}`; `hasMultiview = tier ∈ {OPS, VIP, PREMIUM}`.
-- URL pattern `{BASE}/{version}/{A|R}/ENG/{platform}/ALL/{path}`; every request sends the Safari
-  user agent; 15 s timeout.
+- URL pattern `{BASE}/{version}/{A|R}/ENG/{platform}/ALL/{path}`, platform per request (see
+  above); every request sends the Safari user agent; 15 s timeout.
 - Catalogue calls, with the exact filters from the Kotlin:
   - `liveNow()`: `1.0/…/EVENTS/LIVENOW/{tier}/{groupId}`.
   - `calendar(season)`: search, `filter_objectSubtype=Meeting`, skips
@@ -130,7 +140,11 @@ app's About screen and LICENSE).
   user agent. Polls `WKHTTPCookieStore` once a second for `login-session` and reads
   `data.subscriptionToken` from it (raw or URL-encoded JSON). The screen says to use email and
   password, because Google sign-in refuses embedded browsers.
-- **Token paste fallback:** "Use a token instead", as on Android.
+- **Token paste fallback:** "Use a token instead", as on Android. It accepts the whole
+  `login-session` cookie value (about 3,000 characters) as well as a bare token, decoded the same
+  way as the stream check.
+- Web sign-in has never been run in an iPhone web view, so it is the first thing tried on the
+  phone; the paste fallback is the way through if it fails.
 - Token stored in the Keychain, this device only, never synced to iCloud or backups.
 - Sign-in exchange re-runs on launch and whenever the app comes back to the foreground; a 401/403
   from ENTITLEMENT signs the user out with "Your F1 TV sign-in has expired. Sign in again."
@@ -185,7 +199,8 @@ worse than one tap. Revisit on the Duo in beta.2, where unfolding is the natural
 The only code that touches the iPhone Duo APIs. In beta.1 it exists, compiles and reports; nothing
 uses it for layout yet.
 
-- `enum Posture { closed, flat, book, laptop, standing, unknown }`, `foldFrame: CGRect?`,
+- `enum Posture { closed, flat, book, laptop, unknown }` (`standing` is added only if the SDK
+  shows it can be told apart), `foldFrame: CGRect?`,
   `hingeAngle: Double?`, published as an `@Observable` `FoldState`.
 - `SystemFoldProvider`: `onHingeChange` and `GeometryProxy.reservedRegions(kind: .division)`.
   Exact declarations are taken from the iOS 27.1 SDK on the owner's Mac (open item O3), because
@@ -195,6 +210,13 @@ uses it for layout yet.
   simulator.
 - Settings shows a live posture / fold / hinge readout, which checks the API names against the real
   simulator early.
+
+### Multiview probe (app, debug only)
+
+A hidden screen that starts four players on four feeds of one session at once, with each feed's
+own PLAY request (single-session multiview is beta.2). It reports start time, stalls and dropped
+frames per player. It exists so the "can a phone play four F1 feeds at once" risk shows up in
+beta.1 testing rather than late in beta.2. Not part of the exit test.
 
 ## Version and build numbers
 
@@ -208,14 +230,19 @@ comes from a `BETA_LABEL` build setting in the same file.
 - **Logic library (cloud and CI, every push):** Swift Testing suites for URL building, the
   sign-in exchange, every catalogue parser, play response parsing, error mapping, `RecentsStore`
   and `WatchHistory` rules. Parsers are tested against JSON fixtures.
-- **Fixtures:** recorded from F1 TV on the owner's Mac by extending the stream check with a
-  `--dump-catalogue` option that saves the home, weekend, archive, video and play responses with
-  tokens and signed URL queries removed. Until then, agents write fixtures from the field lists in
-  this spec and replace them once real ones exist.
+- **Fixtures first:** before the parsers are written, the owner records real responses by running
+  the stream check with a new `--dump-catalogue` option. It saves the config, home, a weekend page,
+  the archive search, `CONTENT/VIDEO` on both `WEB_HLS` and `WEB_DASH`, a `player_bm` play with an
+  onboard `channelId` on `WEB_HLS`, and one play with `os=ios` in the device header. Tokens, signed
+  URL queries and account fields are stripped, and samples are trimmed small (the repo is public).
+  Hand-written fixtures would only test the agents' reading of the Kotlin.
 - **Ported Android tests:** `ScheduleTest` (weekend and session ordering) is the only one that
   applies to beta.1; the rest arrive with their features.
-- **App (owner's Mac):** builds with no warnings; a short checklist per build (sign in, browse each
-  room, play, change commentary, resume after closing).
+- **App:** nothing in the cloud session can build SwiftUI, AVKit or WebKit code. The app is built
+  by a Claude session running on the owner's Mac (`xcodegen` then `xcodebuild` for the simulator),
+  which reports errors back, and by CI once GitHub's macOS runners carry Xcode 27.1. Then a short
+  checklist per build on the phone: sign in, browse each room, play, change commentary, resume
+  after closing.
 - **CI** (`.github/workflows/ci.yml`): a Linux job runs `swift test` on the logic library on every
   push to `ios`. A macOS job builds the app only once GitHub's runners carry Xcode 27.1; until then
   it's left out rather than failing.
@@ -230,9 +257,8 @@ comes from a `BETA_LABEL` build setting in the same file.
 
 ## Open items
 
-- **O1 — device header for iPhone.** The request style was proven with Safari-on-Mac values.
-  Use `os=ios;browser=safari;browserVersion=<iOS major>` and confirm on the first device run; if
-  F1 refuses it, fall back to the Mac values that worked.
+- **O1 — device header for iPhone.** Default to the Safari-on-Mac values that worked. The fixture
+  run also tries `os=ios;browser=safari`; switch only if that is accepted.
 - **O2 — bundle ID (owner).** A reverse-domain ID such as `com.<yourname>.apexviewduo`. It can't be
   changed after an App Store or TestFlight upload, so it should not depend on the final app name.
   The owner's Apple ID is enough for builds on their own phone; the paid developer account is

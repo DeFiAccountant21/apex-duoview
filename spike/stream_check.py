@@ -31,6 +31,16 @@ UNMASKED signed URLs, so the owner can test playback locally (open the first URL
 the Mac; Safari plays HLS natively). That file is never printed and never goes into
 stream_check_result.txt. Do NOT send it to anyone; the links expire.
 
+LIVE MODE (--live): for a live session's F1 TV page URL / contentId. Makes the WEB_DASH single-feed
+and multiview play requests as above, then for the world feed, F1 Live and one onboard fetches the
+media playlist 4 times, 15 seconds apart, and reports per fetch: segment count, MEDIA-SEQUENCE,
+ENDLIST, PLAYLIST-TYPE, first/last PROGRAM-DATE-TIME and the "live edge delay" (this Mac's UTC now
+minus last PDT plus that segment's duration), plus the rewind window, whether the three feeds are in
+step and whether any DRM tag shows up. Playlist text only: no segments, no licence requests.
+    pbpaste | python3 stream_check.py --live https://f1tv.formula1.com/detail/1000009999/some-title
+Output goes to stream_check_live_result.txt (also safe to share). Keep this Mac's clock on
+"set automatically": the delay figure includes any error in it.
+
 Python 3.9+, standard library only.
 """
 
@@ -46,6 +56,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from datetime import datetime, timedelta, timezone
 
 # --- Mirrors of F1TvApi.kt -------------------------------------------------------------------
 
@@ -172,8 +183,8 @@ def out(line=""):
     print(line)
 
 
-def write_result_file():
-    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "stream_check_result.txt")
+def write_result_file(name="stream_check_result.txt"):
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), name)
     try:
         with open(path, "w", encoding="utf-8") as f:
             f.write("\n".join(LINES) + "\n")
@@ -694,6 +705,11 @@ def run_variant(label, platform, ua, devinfo, token, content_id, play_v, player=
     if usable:
         sync = sync + inspect_onboard_feeds(feeds, usable, main_idx, label, ua)
     r["sync"] = sync
+    # Kept in memory only for --live (never printed here): signed URLs and the feed list.
+    r["_stream_url"] = stream_url if isinstance(stream_url, str) and stream_url else None
+    r["_feeds"] = feeds if isinstance(feeds, list) else None
+    r["_drm_hint"] = {"drmType": show_value(result.get("drmType", "")) if result.get("drmType") else "",
+                      "laURL": bool(result.get("laURL")), "fairplay_hint": fp_hint}
 
     r.update(classify(found, manifest_read, fp_hint, wv_hint, bool(stream_url)))
     return r
@@ -837,18 +853,389 @@ def classify(found, manifest_read, fp_hint, wv_hint, has_url):
     return {"verdict": "unprotected", "detail": "no key tags / ContentProtection"}
 
 
+# --- Live mode (--live) ----------------------------------------------------------------------
+
+LIVE_ROUNDS = 4
+LIVE_INTERVAL_S = 15
+
+PDT_RE = re.compile(r"^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?\s*(Z|[+-]\d{2}:?\d{2})?$")
+
+
+def parse_pdt(text):
+    """#EXT-X-PROGRAM-DATE-TIME value to an aware UTC datetime (no zone = UTC). None if unparseable."""
+    m = PDT_RE.match((text or "").strip())
+    if not m:
+        return None
+    y, mo, d, h, mi, sec, frac, zone = m.groups()
+    micro = int(((frac or "0") + "000000")[:6])
+    try:
+        dt = datetime(int(y), int(mo), int(d), int(h), int(mi), int(sec), micro, tzinfo=timezone.utc)
+    except ValueError:
+        return None
+    if zone and zone != "Z":
+        sign = 1 if zone[0] == "+" else -1
+        digits = zone[1:].replace(":", "")
+        dt -= sign * timedelta(hours=int(digits[:2]), minutes=int(digits[2:]))
+    return dt
+
+
+def utc_now():
+    return datetime.now(timezone.utc)
+
+
+def fmt_utc(dt):
+    return dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.") + "%03dZ" % (dt.microsecond // 1000)
+
+
+def parse_live_playlist(text):
+    """Live-relevant facts of an HLS media playlist, including each segment's start time.
+    A segment's start is its own #EXT-X-PROGRAM-DATE-TIME if it has one, else the previous
+    segment's end (flagged as derived)."""
+    media_seq = ptype = target = None
+    endlist = False
+    discontinuities = 0
+    segs = []
+    pdt_raw = []
+    pending = None  # parsed PDT waiting for the next #EXTINF
+    prev_end = None
+    for line in (l.strip() for l in text.splitlines()):
+        if line.startswith("#EXT-X-MEDIA-SEQUENCE:"):
+            try:
+                media_seq = int(line.split(":", 1)[1].strip())
+            except ValueError:
+                media_seq = None
+        elif line.startswith("#EXT-X-PLAYLIST-TYPE:"):
+            ptype = line.split(":", 1)[1].strip()
+        elif line.startswith("#EXT-X-TARGETDURATION:"):
+            target = line.split(":", 1)[1].strip()
+        elif line.startswith("#EXT-X-ENDLIST"):
+            endlist = True
+        elif line == "#EXT-X-DISCONTINUITY":
+            discontinuities += 1
+        elif line.startswith("#EXT-X-PROGRAM-DATE-TIME:"):
+            raw = line.split(":", 1)[1].strip()
+            pdt_raw.append(raw)
+            pending = parse_pdt(raw)
+        elif line.startswith("#EXTINF:"):
+            try:
+                dur = float(line[len("#EXTINF:"):].split(",", 1)[0])
+            except ValueError:
+                dur = 0.0
+            if pending is not None:
+                start, tagged = pending, True
+            else:
+                start, tagged = prev_end, False
+            pending = None
+            segs.append({"start": start, "dur": dur, "tagged": tagged})
+            prev_end = start + timedelta(seconds=dur) if start is not None else None
+    return {"media_sequence": media_seq, "playlist_type": ptype, "target_duration": target,
+            "endlist": endlist, "segments": len(segs), "segs": segs, "pdt_raw": pdt_raw,
+            "discontinuities": discontinuities}
+
+
+def analyse_live_playlist(parsed, t_recv):
+    """Adds first/last start, live edge delay and rewind (seconds) when segment times are known."""
+    a = {"first_start": None, "last_start": None, "last_dur": None, "last_derived": False,
+         "delay": None, "rewind": None, "rewind_full": None}
+    segs = parsed["segs"]
+    if not segs or segs[0]["start"] is None or segs[-1]["start"] is None:
+        return a
+    first, last = segs[0], segs[-1]
+    last_end = last["start"] + timedelta(seconds=last["dur"])
+    a.update(first_start=first["start"], last_start=last["start"], last_dur=last["dur"],
+             last_derived=not last["tagged"],
+             delay=(t_recv - last_end).total_seconds(),
+             rewind=(last["start"] - first["start"]).total_seconds(),
+             rewind_full=(last_end - first["start"]).total_seconds())
+    return a
+
+
+def fmt_s(v, digits=1):
+    return "n/a" if v is None else ("%+.*f s" % (digits, v))
+
+
+def resolve_media_playlist(master_url, ua):
+    """Fetches the master (text only) and returns (media playlist url, drm names found, note).
+    A url that is already a media playlist is returned as is."""
+    path = urllib.parse.urlsplit(master_url).path.lower()
+    if not path.endswith(".m3u8"):
+        return None, set(), "not an HLS (.m3u8) url, so not polled"
+    try:
+        _, text, _ = http_get(master_url, {"User-Agent": ua}, cap=MANIFEST_CAP)
+    except HttpError as e:
+        return None, set(), "master playlist fetch failed: %s" % e
+    if "#EXTM3U" not in text[:1024]:
+        return None, set(), "master url did not return an HLS playlist"
+    info = parse_hls(text)
+    found = classify_hls_keys(info["keys"])
+    if info["variants"]:
+        return urllib.parse.urljoin(master_url, info["variants"][0][1]), found, "first variant of the master"
+    if "#EXTINF:" in text:
+        return master_url, found, "url is itself a media playlist"
+    return None, found, "master had no variant streams"
+
+
+def feed_text(feed):
+    """Lower-case text of every non-URL scalar in a multiview feed, to recognise it by name."""
+    return " | ".join("%s=%s" % (p, v) for p, v in scalar_fields(feed) if isinstance(v, (str, int, float))).lower()
+
+
+def pick_live_feeds(feeds, f1live_channel=None, onboard_channel=None):
+    """Returns {'F1 Live': (idx, how), 'onboard': (idx, how)} from the multiview feed list (any may be missing)."""
+    picked = {}
+    usable = [i for i, f in enumerate(feeds or []) if isinstance(f, dict) and isinstance(f.get("url"), str) and f.get("url")]
+
+    def channel(i):
+        meta = feeds[i].get("metadata") if isinstance(feeds[i].get("metadata"), dict) else {}
+        return meta.get("channel_id")
+
+    def is_onboard(i):
+        return any(v not in (None, "", 0) for _, v in find_keys(feeds[i], ("racing_number",)))
+
+    if f1live_channel is not None:
+        for i in usable:
+            if str(channel(i)) == str(f1live_channel):
+                picked["F1 Live"] = (i, "--f1live-channel")
+    if "F1 Live" not in picked:
+        for i in usable:
+            txt = feed_text(feeds[i])
+            if not is_onboard(i) and ("f1 live" in txt or "f1_live" in txt or "f1live" in txt):
+                picked["F1 Live"] = (i, "metadata mentions F1 Live")
+                break
+    if onboard_channel is not None:
+        for i in usable:
+            if str(channel(i)) == str(onboard_channel):
+                picked["onboard"] = (i, "--onboard-channel")
+    if "onboard" not in picked:
+        for i in usable:
+            if is_onboard(i):
+                picked["onboard"] = (i, "metadata has racing_number")
+                break
+    return picked
+
+
+def fetch_live_snapshot(spec, ua):
+    """One media playlist fetch for a feed spec. Appends to spec['snaps'] and returns the snapshot."""
+    snap = {"error": None}
+    try:
+        _, text, truncated = http_get(spec["media_url"], {"User-Agent": ua}, cap=MANIFEST_CAP)
+        snap["t_recv"] = utc_now()  # taken as soon as the body is in
+    except HttpError as e:
+        snap["error"] = str(e)
+        spec["snaps"].append(snap)
+        return snap
+    if "#EXTM3U" not in text[:1024]:
+        snap["error"] = "not an HLS playlist (no #EXTM3U)"
+        spec["snaps"].append(snap)
+        return snap
+    parsed = parse_live_playlist(text)
+    snap["parsed"] = parsed
+    snap["a"] = analyse_live_playlist(parsed, snap["t_recv"])
+    snap["truncated"] = truncated
+    spec["keys"] |= classify_hls_keys(parse_hls(text)["keys"])
+    spec["snaps"].append(snap)
+    return snap
+
+
+def report_snapshot(spec, n, total, snap):
+    pad = "    "
+    if snap["error"]:
+        out("  [%s] fetch %d/%d FAILED: %s" % (spec["name"], n, total, snap["error"]))
+        return
+    p, a = snap["parsed"], snap["a"]
+    out("  [%s] fetch %d/%d at %s (local UTC)" % (spec["name"], n, total, snap["t_recv"].strftime("%H:%M:%S")))
+    out(pad + "segments=%d  #EXT-X-MEDIA-SEQUENCE=%s  ENDLIST=%s  #EXT-X-PLAYLIST-TYPE=%s" % (
+        p["segments"], p["media_sequence"] if p["media_sequence"] is not None else "(absent)",
+        "PRESENT" if p["endlist"] else "absent",
+        p["playlist_type"] if p["playlist_type"] is not None else "(absent)"))
+    if p["pdt_raw"]:
+        out(pad + "first PDT = %s   last PDT = %s   (%d PDT tags)" % (p["pdt_raw"][0], p["pdt_raw"][-1], len(p["pdt_raw"])))
+    else:
+        out(pad + "no #EXT-X-PROGRAM-DATE-TIME tags")
+    if a["delay"] is None:
+        out(pad + "live edge delay: n/a (no usable PROGRAM-DATE-TIME)")
+        return
+    out(pad + "last segment %.3f s%s   live edge delay = %s   rewind (first->last PDT) = %.1f s (%.1f s to the live edge)" % (
+        a["last_dur"], " (start derived, not tagged)" if a["last_derived"] else "",
+        fmt_s(a["delay"]), a["rewind"], a["rewind_full"]))
+    if p["discontinuities"]:
+        out(pad + "note: %d #EXT-X-DISCONTINUITY tag(s) in this window" % p["discontinuities"])
+    if snap.get("truncated"):
+        out(pad + "note: playlist truncated at 2 MB")
+
+
+def live_poll(specs, ua, rounds=LIVE_ROUNDS, interval=LIVE_INTERVAL_S):
+    """Fetches every feed's media playlist once per round, `interval` seconds between rounds."""
+    for r in range(rounds):
+        if r:
+            out("  ... waiting %d s ..." % interval)
+            time.sleep(interval)
+        for spec in specs:
+            if spec.get("media_url"):
+                snap = fetch_live_snapshot(spec, ua)
+                report_snapshot(spec, r + 1, rounds, snap)
+
+
+def _median(vals):
+    v = sorted(vals)
+    n = len(v)
+    return None if not n else (v[n // 2] if n % 2 else (v[n // 2 - 1] + v[n // 2]) / 2.0)
+
+
+def live_summary(specs, drm_hints=None):
+    """Prints the closing block. Returns a dict of the headline answers (for tests)."""
+    out("")
+    out("== LIVE SUMMARY ==")
+    res = {"delay": {}, "rewind": {}, "in_step": None, "drm": None}
+    out("  Live edge delay (this Mac's UTC now - (last PDT + that segment's duration)):")
+    for spec in specs:
+        good = [s for s in spec["snaps"] if not s["error"] and s["a"]["delay"] is not None]
+        if not spec.get("media_url"):
+            out("    %-10s not measured (%s)" % (spec["name"], spec.get("note", "no playlist")))
+            continue
+        if not good:
+            out("    %-10s not measured (no usable fetch)" % spec["name"])
+            continue
+        ds = [s["a"]["delay"] for s in good]
+        res["delay"][spec["name"]] = _median(ds)
+        out("    %-10s median %s   range %s to %s   over %d fetch(es): %s" % (
+            spec["name"], fmt_s(_median(ds)), fmt_s(min(ds)), fmt_s(max(ds)), len(ds),
+            ", ".join("%.1f" % d for d in ds)))
+    out("  Rewind window (first -> last PDT in the playlist):")
+    for spec in specs:
+        good = [s for s in spec["snaps"] if not s["error"] and s["a"]["rewind"] is not None]
+        if not good:
+            out("    %-10s n/a" % spec["name"])
+            continue
+        rw = [s["a"]["rewind"] for s in good]
+        res["rewind"][spec["name"]] = rw[-1]
+        out("    %-10s %.0f s (%.1f min) at the last fetch; range %.0f to %.0f s; segments listed %d" % (
+            spec["name"], rw[-1], rw[-1] / 60.0, min(rw), max(rw), good[-1]["parsed"]["segments"]))
+
+    # Feeds in step: compare the last segment start of every feed, round by round.
+    rounds = max((len(s["snaps"]) for s in specs), default=0)
+    spreads, exact = [], 0
+    tol = 0.0
+    for r in range(rounds):
+        lasts = []
+        for spec in specs:
+            if r < len(spec["snaps"]) and not spec["snaps"][r]["error"] and spec["snaps"][r]["a"]["last_start"] is not None:
+                lasts.append(spec["snaps"][r]["a"]["last_start"])
+                tol = max(tol, spec["snaps"][r]["a"]["last_dur"] or 0.0)
+        if len(lasts) >= 2:
+            sp = (max(lasts) - min(lasts)).total_seconds()
+            spreads.append(sp)
+            if sp == 0:
+                exact += 1
+    if spreads:
+        res["in_step"] = max(spreads) <= tol
+        out("  Last PDT per round, spread between feeds (s): %s" % ", ".join("%.3f" % s for s in spreads))
+        out("  Feeds in step: %s   (yes = last PDTs within one segment, %.1f s, in every round; identical in %d of %d rounds)" % (
+            "YES" if res["in_step"] else "NO", tol, exact, len(spreads)))
+    else:
+        out("  Feeds in step: unknown (fewer than two feeds had usable PROGRAM-DATE-TIME)")
+
+    # Live, advancing.
+    for spec in specs:
+        seqs = [s["parsed"]["media_sequence"] for s in spec["snaps"] if not s["error"] and s["parsed"]["media_sequence"] is not None]
+        ended = any(s["parsed"]["endlist"] for s in spec["snaps"] if not s["error"])
+        if seqs:
+            out("    %-10s media sequence %s -> %s (%s), ENDLIST %s" % (
+                spec["name"], seqs[0], seqs[-1], "advancing" if seqs[-1] > seqs[0] else "NOT advancing",
+                "seen" if ended else "never seen"))
+
+    # DRM
+    fetched = [s for s in specs if any(not x["error"] for x in s["snaps"])]
+    found = set()
+    for s in fetched:
+        found |= s["keys"]
+    drm_found = found & {"fairplay", "widevine", "playready", "other"}
+    hints = drm_hints or {}
+    if not fetched:
+        res["drm"] = None
+        out("  DRM: unknown (no playlist was fetched)")
+    else:
+        res["drm"] = bool(drm_found)
+        extra = ""
+        if hints:
+            extra = "; play response drmType=%s laURL=%s" % (hints.get("drmType") or "(none)", "present" if hints.get("laURL") else "absent")
+        if drm_found:
+            out("  DRM: YES (%s key tags seen)%s" % (", ".join(sorted(drm_found)), extra))
+        elif "aes128" in found:
+            out("  DRM: NO (only AES-128 clear-key tags seen)%s" % extra)
+        else:
+            out("  DRM: NO (no #EXT-X-KEY / session key tags in the master or media playlists of %d feed(s))%s" % (len(fetched), extra))
+    out("  (The delay figure includes any error in this Mac's clock; keep Date & Time on automatic.)")
+    return res
+
+
+def run_live_section(single, multi, ua, f1live_channel, onboard_channel, box):
+    """single/multi: run_variant() results for the WEB_DASH single-feed and multiview requests."""
+    out("")
+    out("== 5. LIVE EDGE: media playlists, %d fetches %d s apart ==" % (LIVE_ROUNDS, LIVE_INTERVAL_S))
+    specs = []
+    drm_hints = {}
+    for r in (single, multi):
+        if r and r.get("_drm_hint"):
+            h = r["_drm_hint"]
+            drm_hints = {"drmType": drm_hints.get("drmType") or h["drmType"], "laURL": drm_hints.get("laURL") or h["laURL"]}
+
+    world_url = single.get("_stream_url") if single else None
+    candidates = [("World feed", world_url, "single-feed play response url")]
+    feeds = multi.get("_feeds") if multi else None
+    picked = pick_live_feeds(feeds, f1live_channel, onboard_channel) if feeds else {}
+    for name in ("F1 Live", "onboard"):
+        if name in picked:
+            i, how = picked[name]
+            meta = feeds[i].get("metadata") if isinstance(feeds[i].get("metadata"), dict) else {}
+            candidates.append(("F1 Live" if name == "F1 Live" else "Onboard",
+                               feeds[i]["url"], "multiview feed #%d of %d, channel_id=%s (%s)" % (i + 1, len(feeds), meta.get("channel_id"), how)))
+        else:
+            candidates.append(("F1 Live" if name == "F1 Live" else "Onboard", None,
+                               "not identified in the multiview feed list (try --%s-channel <channel_id>)" % ("f1live" if name == "F1 Live" else "onboard")))
+    if feeds:
+        out("  Multiview feeds available: %d" % len(feeds))
+    for name, url, note in candidates:
+        spec = {"name": name, "media_url": None, "keys": set(), "snaps": [], "note": note}
+        if url:
+            record_private_url("LIVE %s master" % name, url)
+            media_url, keys, how = resolve_media_playlist(url, ua)
+            spec["keys"] |= keys
+            spec["media_url"] = media_url
+            spec["note"] = note if media_url else "%s; %s" % (note, how)
+            out("  %-10s %s -> %s" % (name, note, ("polling the " + how) if media_url else how))
+        else:
+            out("  %-10s %s" % (name, note))
+        specs.append(spec)
+    box["state"] = (specs, drm_hints)  # so a Ctrl+C mid-poll still gets a summary of what was fetched
+    if not any(s["media_url"] for s in specs):
+        out("  No feed playlist could be resolved: nothing to poll.")
+    else:
+        out("")
+        live_poll(specs, ua)
+    return specs, drm_hints
+
+
 # --- Main ------------------------------------------------------------------------------------
 
 def main():
     parser = argparse.ArgumentParser(
         description="Throwaway spike: ask F1 TV for one replay on several platform strings and "
                     "report whether a FairPlay HLS stream is offered. Reads JSON and manifest text only.",
-        usage="python3 stream_check.py [--save-urls] <F1 TV page URL or numeric contentId>")
+        usage="python3 stream_check.py [--live] [--save-urls] <F1 TV page URL or numeric contentId>")
     parser.add_argument("content", help="e.g. https://f1tv.formula1.com/detail/1000009999/some-title or 1000009999")
     parser.add_argument("--save-urls", action="store_true",
                         help="also write the UNMASKED signed stream URLs to stream_urls_PRIVATE.txt next to "
                              "this script, for a local playback test. Never printed, never in the result file; "
                              "do not share it.")
+    parser.add_argument("--live", action="store_true",
+                        help="live-session mode: WEB_DASH single-feed + multiview play requests, then poll the "
+                             "world feed, F1 Live and one onboard's media playlist 4 times, 15 s apart, and "
+                             "report live edge delay, rewind window, feeds in step and DRM.")
+    parser.add_argument("--f1live-channel", metavar="CHANNEL_ID",
+                        help="--live: the multiview channel_id to use as F1 Live, if it isn't recognised by name")
+    parser.add_argument("--onboard-channel", metavar="CHANNEL_ID",
+                        help="--live: the multiview channel_id to use as the onboard, if none is recognised")
     args = parser.parse_args()
 
     content_id = extract_content_id(args.content)
@@ -877,7 +1264,7 @@ def main():
     add_secret(token)
     add_secret(raw.strip())
 
-    out("F1 TV stream check (throwaway spike for the iOS-port assessment)")
+    out("F1 TV stream check (throwaway spike for the iOS-port assessment)%s" % ("  [LIVE MODE]" if args.live else ""))
     out("This output is SAFE TO SHARE: subscription/entitlement tokens and URL query strings are masked.")
     out("No video is downloaded and no licence/key request is made.")
     out("Date: %s   Python: %s   contentId: %d   sign-in given as: %s" % (
@@ -885,6 +1272,7 @@ def main():
     out("")
 
     results = []
+    live_box = {}  # --live: {"state": (feed specs, DRM hints)}; the summary prints at the very end
     try:
         play_v = step_config()
         out("")
@@ -897,9 +1285,27 @@ def main():
             print_http_error(e)
             if e.status in (401, 403):
                 out("  The sign-in itself was refused; the play requests below will most likely fail too.")
-        out("")
-        out("== 3. CONTENT/PLAY per variant (player=player_bm, no channelId) ==")
-        for i, (label, platform, ua, devinfo) in enumerate(VARIANTS):
+        if args.live:
+            live_variants = [(VARIANTS[0], "player_bm"), (MULTIVIEW_VARIANTS[0], "player_tm")]
+            out("")
+            out("== 3. CONTENT/PLAY, WEB_DASH request style: single feed, then multiview ==")
+            for i, ((label, platform, ua, devinfo), player) in enumerate(live_variants):
+                if i:
+                    time.sleep(2)
+                try:
+                    results.append(run_variant(label, platform, ua, devinfo, token, content_id, play_v, player))
+                except Exception as e:
+                    out("  Unexpected error in this variant: %s: %s" % (type(e).__name__, e))
+                    results.append({"label": label, "verdict": "refused", "detail": "script error"})
+            try:
+                run_live_section(results[0], results[1] if len(results) > 1 else None,
+                                 ANDROID_UA, args.f1live_channel, args.onboard_channel, live_box)
+            except Exception as e:
+                out("  Unexpected error in the live section: %s: %s" % (type(e).__name__, e))
+        else:
+            out("")
+            out("== 3. CONTENT/PLAY per variant (player=player_bm, no channelId) ==")
+        for i, (label, platform, ua, devinfo) in enumerate([] if args.live else VARIANTS):
             if i:
                 time.sleep(2)
             try:
@@ -907,9 +1313,10 @@ def main():
             except Exception as e:  # one variant must never stop the others
                 out("  Unexpected error in this variant: %s: %s" % (type(e).__name__, e))
                 results.append({"label": label, "verdict": "refused", "detail": "script error"})
-        out("")
-        out("== 4. CONTENT/PLAY multiview (player=player_tm) ==")
-        for label, platform, ua, devinfo in MULTIVIEW_VARIANTS:
+        if not args.live:
+            out("")
+            out("== 4. CONTENT/PLAY multiview (player=player_tm) ==")
+        for label, platform, ua, devinfo in ([] if args.live else MULTIVIEW_VARIANTS):
             time.sleep(2)
             try:
                 results.append(run_variant(label, platform, ua, devinfo, token, content_id, play_v, "player_tm"))
@@ -921,7 +1328,7 @@ def main():
         out("Interrupted.")
 
     out("")
-    out("== Verdict ==")
+    out("== Verdict ==" if not args.live else "== Play request results (live mode) ==")
     for r in results:
         out("  %-48s %s  (%s)" % (r["label"], r["verdict"], r["detail"]))
         out("      sync clock: %s" % sync_clock_text(r.get("sync", [])))
@@ -950,7 +1357,15 @@ def main():
         out("  OVERALL sync clock: NOT all inspected media playlists/feeds carried #EXT-X-PROGRAM-DATE-TIME "
             "(%d of %d did)" % (sum(1 for f in all_sync if f), len(all_sync)))
 
-    path = write_result_file()
+    if args.live:
+        if live_box.get("state"):
+            live_summary(*live_box["state"])
+        else:
+            out("")
+            out("== LIVE SUMMARY ==")
+            out("  Not available: the live polling did not run (see the errors above).")
+
+    path = write_result_file("stream_check_live_result.txt" if args.live else "stream_check_result.txt")
     if path:
         msg = "The same output was saved to %s - please paste that file back." % path
         print("")
