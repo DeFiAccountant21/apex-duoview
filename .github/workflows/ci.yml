@@ -1,0 +1,12 @@
+name: CI
+on:
+  push:
+    branches: [ios]
+jobs:
+  duocore:
+    runs-on: ubuntu-24.04
+    container: swift:6.4
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test DuoCore
+        run: cd Packages/DuoCore && swift test
