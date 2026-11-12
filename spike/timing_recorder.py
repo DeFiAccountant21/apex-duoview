@@ -354,7 +354,7 @@ class WSConnection:
         self._send(OP_TEXT, text.encode("utf-8"))
 
     def ping(self):
-        self._send(OP_PING, b"apexview")
+        self._send(OP_PING, b"apexduoview")
 
     def close(self, code=1000):
         if not self.closed:
