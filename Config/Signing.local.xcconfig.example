@@ -1,0 +1,4 @@
+// Copy this file to Config/Signing.local.xcconfig (git-ignored) and fill in your own values.
+// Never commit the copy.
+PRODUCT_BUNDLE_IDENTIFIER = com.example.apexduoview
+DEVELOPMENT_TEAM = YOURTEAMID

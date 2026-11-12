@@ -10,3 +10,6 @@ build/
 # Signing keys never go in the repository.
 *.p12
 *.mobileprovision
+
+# Personal signing values (bundle identifier, team).
+Config/Signing.local.xcconfig
