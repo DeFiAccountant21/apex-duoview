@@ -3,7 +3,6 @@ import SwiftUI
 @main
 struct DuoApp: App {
     @State private var model = AppModel()
-    @State private var hasActivated = false
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
@@ -12,12 +11,7 @@ struct DuoApp: App {
                 .task { await model.restore() }
                 .onChange(of: scenePhase) { _, phase in
                     guard phase == .active else { return }
-                    // The first activation is covered by restore().
-                    if hasActivated {
-                        Task { await model.revalidate() }
-                    } else {
-                        hasActivated = true
-                    }
+                    Task { await model.revalidate() }
                 }
         }
     }

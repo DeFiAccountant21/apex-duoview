@@ -49,6 +49,7 @@ final class AppModel {
             auth = .signedIn(account)
             message = nil
         } catch is CancellationError {
+            if Task.isCancelled { auth = .signedOut }
             return
         } catch F1TVError.refused {
             await session.signOut()
@@ -69,6 +70,7 @@ final class AppModel {
             Keychain.saveToken(token)
             auth = .signedIn(account)
         } catch is CancellationError {
+            if Task.isCancelled { auth = .signedOut }
             return
         } catch F1TVError.refused {
             await session.signOut()

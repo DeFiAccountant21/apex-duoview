@@ -2,5 +2,8 @@
 
 CODE_SIGN_STYLE = Automatic
 
+// Fallback so a missing Signing.local.xcconfig still builds.
+PRODUCT_BUNDLE_IDENTIFIER = com.example.apexduoview
+
 // Your own bundle identifier and team live in the git-ignored Signing.local.xcconfig.
 #include? "Signing.local.xcconfig"
