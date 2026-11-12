@@ -1235,7 +1235,7 @@ FIXTURE_NAMES = [
     "season-1998", "video-1000010431-WEB_HLS", "video-1000010431-WEB_DASH", "play-1000010431-WEB_HLS",
     "play-1000010431-onboard-WEB_HLS", "play-1000010431-iosheader-WEB_HLS", "play-1000009999-WEB_HLS",
 ]
-SENSITIVE_KEY = re.compile(r"token|ascendon|subscriber|email|password|cookie", re.I)
+SENSITIVE_KEY = re.compile(r"token|ascendon|subscriber|email|password|cookie|sso|userid|accountid|profileid|secret|apikey", re.I)
 URL_KEY = re.compile(r"^(url|laurl)$", re.I)
 REMOVED = "<removed>"
 EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
@@ -1243,13 +1243,16 @@ EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
 
 def sanitize(obj):
     """Returns a sanitised copy: sensitive keys removed, URL strings masked (mask_url via scrub),
-    known tokens, JWTs and long blobs masked, and every list cut to its first 6 items."""
+    known tokens, JWTs masked (long blobs are kept), and every list cut to its first 6 items."""
     if isinstance(obj, dict):
         return {k: (REMOVED if SENSITIVE_KEY.search(str(k)) else sanitize(v)) for k, v in obj.items()}
     if isinstance(obj, list):
         return [sanitize(v) for v in obj[:FIXTURE_LIST_LIMIT]]
     if isinstance(obj, str):
-        return EMAIL_RE.sub(REMOVED, scrub(obj))
+        # Known secrets, JWTs and URLs are masked; LONG_BLOB is not applied, so long slugs and image
+        # paths stay intact in the fixtures.
+        text = URL_RE.sub(lambda m: mask_url(m.group(0)), scrub_plain(obj))
+        return EMAIL_RE.sub(REMOVED, text)
     return obj
 
 
