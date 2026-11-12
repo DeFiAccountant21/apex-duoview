@@ -265,5 +265,6 @@ comes from a `BETA_LABEL` build setting in the same file.
 - **O3 — Duo API declarations (owner, once Xcode 27.1 is installed).** One Terminal command,
   supplied in the plan, prints the SDK's declarations of `onHingeChange`, `reservedRegions` and
   `ArrangementView` for the agents to code against.
-- **O4 — the app's name** is ApexDuoView (owner's choice, 2026-11-12). It avoids "F1" and
-  "Formula 1", which are trademarks.
+- **O4 — the app's name** is **Apex DuoView** wherever people see it (home screen, About,
+  README); `apexduoview` in identifiers such as the bundle ID; `ApexDuoView` only where code can't
+  have a space (owner's choice, 2026-11-12). It avoids "F1" and "Formula 1", which are trademarks.

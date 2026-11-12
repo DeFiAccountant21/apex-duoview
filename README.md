@@ -1,4 +1,4 @@
-# ApexDuoView
+# Apex DuoView
 
 An iPhone app for watching F1 TV that is built around the iPhone Duo's fold. The official F1 TV
 app looks the same on every phone. This one changes with the way you hold the phone: closed,
@@ -62,7 +62,7 @@ listed in [CHANGELOG.md](CHANGELOG.md).
 
 ## Branches
 
-- **`ios`:** this app. All iOS work happens here.
+- **`ios`:** this app, Apex DuoView. All iOS work happens here.
 - **`og-android`:** a copy of the original Android app, kept in step with its author's repository.
   It's the reference for porting and isn't changed here. The two branches are never merged.
 
