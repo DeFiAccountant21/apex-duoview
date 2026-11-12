@@ -115,12 +115,11 @@ the deck can be updated each beta.
 ## Keeping up with the Android app
 
 `og-android` is a copy of the original Android app, kept current with GitHub's Sync fork. It is
-never edited here.
+never edited here, and its code is not on `ios`; the two branches are never merged.
 
-- Until the Android source is removed from `ios` (after beta.3), updates are merged from
-  `og-android` into `ios`, so the reference code stays current.
-- After that, they are not merged. Instead, each update is read on `og-android` and anything worth
-  having is rebuilt in Swift as part of a beta, or listed for a later one.
-- The last Android version already reviewed is recorded here, so it's always clear what is new.
+When `og-android` gets an update, its changes are read there (agents fetch the branch and read
+the files directly) and anything worth having is rebuilt in Swift as part of a beta, or listed for
+a later one. The last Android version already reviewed is recorded here, so it's always clear what
+is new.
 
 Last Android version reviewed: **0.94**.

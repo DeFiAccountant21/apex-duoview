@@ -65,11 +65,8 @@ listed in [CHANGELOG.md](CHANGELOG.md).
 ## Branches
 
 - **`ios`:** this app. All iOS work happens here.
-- **`main`:** a copy of the original Android app, kept in step with its author's repository. It's
-  used as the reference for porting and isn't changed here.
-
-The Android source is also on `ios` until its logic has been carried over to Swift, then it's
-removed from that branch.
+- **`og-android`:** a copy of the original Android app, kept in step with its author's repository.
+  It's the reference for porting and isn't changed here. The two branches are never merged.
 
 ## Privacy
 

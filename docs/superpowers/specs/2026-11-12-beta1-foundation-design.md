@@ -1,6 +1,6 @@
 # v1.0-beta.1 — Foundation: design
 
-Status: draft for the owner's review. Roadmap, versioning and the full idea list are in
+Status: approved by the owner on 2026-11-12. Roadmap, versioning and the full idea list are in
 [docs/roadmap.md](../../roadmap.md); this spec covers beta.1 only.
 
 ## Goal and exit test
@@ -67,11 +67,9 @@ DuoApp/                      the iPhone app (SwiftUI, AVKit)
 .github/workflows/ci.yml     CI
 ```
 
-The iPhone app's folder is `DuoApp/`, not `App/`: the Mac's file system ignores letter case, so
-`App/` would collide with Android's `app/`.
-
-The Android source stays where it is (`app/`, Gradle files) until beta.3 has ported it, then it is
-deleted from `ios`. It is not moved: moving it would make merging `og-android` updates unreliable.
+The Android source is not on `ios`. Agents read it from the `og-android` branch
+(`git fetch origin og-android`, then `git show origin/og-android:<path>`), and the two branches are
+never merged.
 
 **Why XcodeGen.** An Xcode project file can't be written reliably by hand or by agents. XcodeGen
 builds it from `project.yml`, which agents can edit and review. The owner installs it once
@@ -190,7 +188,8 @@ The top level is three rooms, as a tab bar on the outer screen and a sidebar on 
   position. Live sessions resume at the live edge.
 - Continue watching shows the last four, with a progress bar and "Xh Ym left" or "Live".
 
-Opening straight into the player on launch was considered and not chosen: a cold start needs a
+The owner accepted one tap as meeting the exit test. Opening straight into the player on launch
+was considered and not chosen: a cold start needs a
 fresh PLAY request and the network, and dropping the user into a loading video with no context is
 worse than one tap. Revisit on the Duo in beta.2, where unfolding is the natural "resume" gesture.
 
