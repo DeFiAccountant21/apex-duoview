@@ -227,9 +227,12 @@ public enum Parsers {
     // MARK: Video and play
 
     /// A video's feeds. F1 lists none for a session with a single feed: then one default "Main feed".
-    public static func video(_ json: JSONValue) -> VideoDetail {
+    /// Throws `.badResponse` when the response has no container at all (F1 TV has no such video).
+    public static func video(_ json: JSONValue) throws -> VideoDetail {
         let container = json["resultObj"]["containers"][0]
-        let meta = container["metadata"]
+        guard let meta = metadata(container) else {
+            throw F1TVError.badResponse("F1 TV has no video for this content")
+        }
         let contentId = meta["contentId"].int ?? 0
         let channels: [Channel] = meta["additionalStreams"].array.compactMap { stream in
             guard let id = stream["channelId"].int else { return nil }

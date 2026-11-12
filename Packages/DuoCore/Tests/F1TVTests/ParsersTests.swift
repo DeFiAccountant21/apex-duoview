@@ -21,7 +21,7 @@ private let now = Date(timeIntervalSince1970: 1_794_526_278)  // 2026-11-12, the
     // MARK: Video
 
     @Test func videoHasDefaultAndOnboardChannels() throws {
-        let v = Parsers.video(try fixture("video-1000010431-WEB_DASH"))
+        let v = try Parsers.video(try fixture("video-1000010431-WEB_DASH"))
         #expect(v.contentId == 1000010431)
         #expect(v.title == "2026 São Paulo Grand Prix")
         #expect(v.channels.count == 6)
@@ -38,8 +38,14 @@ private let now = Date(timeIntervalSince1970: 1_794_526_278)  // 2026-11-12, the
         #expect(nor.displayTitle == "1 Norris")
     }
 
-    @Test func videoWithNoStreamsGetsMainFeed() {
-        let v = Parsers.video(json(#"{"resultObj":{"containers":[{"metadata":{"contentId":7,"title":"X"}}]}}"#))
+    @Test func videoWithNoContainerThrows() {
+        for body in [#"{"resultObj":{"containers":[]}}"#, #"{"resultObj":{}}"#, #"{"resultObj":{"containers":[{}]}}"#] {
+            #expect(throws: F1TVError.self) { try Parsers.video(json(body)) }
+        }
+    }
+
+    @Test func videoWithNoStreamsGetsMainFeed() throws {
+        let v = try Parsers.video(json(#"{"resultObj":{"containers":[{"metadata":{"contentId":7,"title":"X"}}]}}"#))
         #expect(v.channels == [Channel(id: nil, isDefault: true, title: "Main feed")])
         #expect(v.channels[0].displayTitle == "Main feed")
     }

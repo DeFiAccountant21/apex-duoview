@@ -109,6 +109,8 @@ public actor F1TVSession {
             guard epoch == startEpoch, ascendon == token else { throw F1TVError.notSignedIn }
             headers["ascendontoken"] = token
             headers["entitlementtoken"] = ent
+            // The web player's device header goes on authorized PLAY requests, as in the web app.
+            if case .play = version { headers["x-f1-device-info"] = Endpoints.deviceInfo(multiview: false) }
         }
         let resolved: String
         switch version {
