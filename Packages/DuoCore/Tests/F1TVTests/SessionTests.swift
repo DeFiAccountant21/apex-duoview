@@ -161,13 +161,109 @@ import Testing
         let s = F1TVSession(http: f)
         do { _ = try await s.getJSON(path: "E500", version: .fixed("1.0"), platform: .webHLS); Issue.record("no throw") }
         catch let e as F1TVError { #expect(e == .server(status: 500, message: String(repeating: "z", count: 200))) }
-        await #expect(throws: F1TVError.self) { _ = try await s.getJSON(path: "BAD", version: .fixed("1.0"), platform: .webHLS) }
-        do { _ = try await s.getJSON(path: "BAD", version: .fixed("1.0"), platform: .webHLS) }
+        do { _ = try await s.getJSON(path: "BAD", version: .fixed("1.0"), platform: .webHLS); Issue.record("no throw") }
         catch let e as F1TVError { if case .badResponse = e {} else { Issue.record("expected badResponse") } }
-        do { _ = try await s.getJSON(path: "NET", version: .fixed("1.0"), platform: .webHLS) }
+        do { _ = try await s.getJSON(path: "NET", version: .fixed("1.0"), platform: .webHLS); Issue.record("no throw") }
         catch let e as F1TVError { if case .network = e {} else { Issue.record("expected network") } }
         do { _ = try await s.getJSON(path: "NOPE", version: .fixed("1.0"), platform: .webHLS); Issue.record("no throw") }
         catch let e as F1TVError { #expect(e == .server(status: 404, message: "")) }
     }
+
+    @Test func authorizedGet401And403MapToRefused() async throws {
+        let f = await Self.fake()
+        await f.respond(pathSuffix: "/1.0/R/ENG/WEB_HLS/ALL/P401", status: 401, json: "{}")
+        await f.respond(pathSuffix: "/1.0/R/ENG/WEB_HLS/ALL/P403", status: 403, json: "{}")
+        let s = F1TVSession(http: f)
+        _ = try await s.signIn(token: "TOK")
+        await #expect(throws: F1TVError.refused(status: 401)) {
+            _ = try await s.getJSON(path: "P401", version: .fixed("1.0"), platform: .webHLS, authorized: true)
+        }
+        await #expect(throws: F1TVError.refused(status: 403)) {
+            _ = try await s.getJSON(path: "P403", version: .fixed("1.0"), platform: .webHLS, authorized: true)
+        }
+    }
+
+    @Test func concurrentGetsShareOneEntitlementRequest() async throws {
+        let f = await Self.fake()
+        await f.respond(pathSuffix: "/3.5/R/ENG/WEB_DASH/ALL/P", json: "{}")
+        let gate = GatedHTTPClient(f, gatedSuffix: "/WEB_DASH/ALL/USER/ENTITLEMENT")
+        let s = F1TVSession(http: gate)
+        _ = try await s.signIn(token: "TOK")
+        async let a = s.getJSON(path: "P", version: .play, platform: .webDASH, authorized: true)
+        async let b = s.getJSON(path: "P", version: .play, platform: .webDASH, authorized: true)
+        await gate.waitUntilHeld()
+        try await Task.sleep(for: .milliseconds(50))
+        await gate.release()
+        _ = try await (a, b)
+        let n = await f.requests.filter { $0.url.path.hasSuffix("/WEB_DASH/ALL/USER/ENTITLEMENT") }.count
+        #expect(n == 1)
+    }
+
+    @Test func signOutDuringSignInIsNotUndone() async throws {
+        let f = await Self.fake()
+        let gate = GatedHTTPClient(f, gatedSuffix: "/WEB_HLS/ALL/USER/ENTITLEMENT")
+        let s = F1TVSession(http: gate)
+        let signIn = Task { try await s.signIn(token: "TOK") }
+        await gate.waitUntilHeld()
+        await s.signOut()
+        await gate.release()
+        _ = await signIn.result
+        #expect(await s.isSignedIn == false)
+        #expect(await s.account == nil)
+        await #expect(throws: F1TVError.notSignedIn) {
+            _ = try await s.getJSON(path: "X", version: .fixed("1.0"), platform: .webHLS, authorized: true)
+        }
+    }
+
+    @Test func signOutDuringAuthorizedGetSendsNothing() async throws {
+        let f = await Self.fake()
+        await f.respond(pathSuffix: "/3.5/R/ENG/WEB_DASH/ALL/P", json: "{}")
+        let gate = GatedHTTPClient(f, gatedSuffix: "/WEB_DASH/ALL/USER/ENTITLEMENT")
+        let s = F1TVSession(http: gate)
+        _ = try await s.signIn(token: "TOK")
+        let get = Task { try await s.getJSON(path: "P", version: .play, platform: .webDASH, authorized: true) }
+        await gate.waitUntilHeld()
+        await s.signOut()
+        await gate.release()
+        let result = await get.result
+        #expect({ if case .failure(let e) = result, e as? F1TVError == .notSignedIn { return true } else { return false } }())
+        let sent = await f.requests.contains { $0.url.path.hasSuffix("/WEB_DASH/ALL/P") }
+        #expect(!sent)
+    }
 }
 
+/// Holds responses for one path suffix until released, so tests can interleave calls.
+actor GatedHTTPClient: HTTPClient {
+    private let inner: FakeHTTPClient
+    private let gatedSuffix: String
+    private var held = false
+    private var open = false
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+    private var heldWaiters: [CheckedContinuation<Void, Never>] = []
+
+    init(_ inner: FakeHTTPClient, gatedSuffix: String) {
+        self.inner = inner
+        self.gatedSuffix = gatedSuffix
+    }
+
+    func send(_ request: HTTPRequest) async throws -> HTTPResponse {
+        if request.url.path.hasSuffix(gatedSuffix), !open {
+            held = true
+            heldWaiters.forEach { $0.resume() }
+            heldWaiters = []
+            await withCheckedContinuation { waiters.append($0) }
+        }
+        return try await inner.send(request)
+    }
+
+    func waitUntilHeld() async {
+        if held { return }
+        await withCheckedContinuation { heldWaiters.append($0) }
+    }
+
+    func release() {
+        open = true
+        waiters.forEach { $0.resume() }
+        waiters = []
+    }
+}

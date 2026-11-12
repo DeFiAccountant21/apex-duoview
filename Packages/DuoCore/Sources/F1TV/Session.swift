@@ -44,6 +44,8 @@ public actor F1TVSession {
     public private(set) var account: Account?
     public private(set) var location: Location?
     private var anonymousLocation: Location?
+    /// Bumped by every sign-in commit and sign-out, so work that suspended across one can tell.
+    private var epoch = 0
 
     public var isSignedIn: Bool { ascendon != nil && account != nil }
 
@@ -63,14 +65,18 @@ public actor F1TVSession {
     }
 
     public func signIn(token: String) async throws -> Account {
+        let startEpoch = epoch
         try await loadConfig()
         let entitlement = try await fetchEntitlement(token: token, platform: .webHLS)
         let loc = try await fetchLocation(signedIn: true, entitlement: entitlement)
+        // A sign-out (or another sign-in) landed while we were waiting: don't undo it.
+        guard epoch == startEpoch else { throw CancellationError() }
         let account = Account(
             tier: loc.tier,
             groupId: loc.groupId,
             hasVideoPlan: !["", "ANONYMOUS", "REG"].contains(loc.tier),
             hasMultiview: ["OPS", "VIP", "PREMIUM"].contains(loc.tier))
+        epoch += 1
         entitlementTasks = [:]
         entitlements = [.webHLS: entitlement]
         ascendon = token
@@ -80,6 +86,7 @@ public actor F1TVSession {
     }
 
     public func signOut() {
+        epoch += 1
         ascendon = nil
         account = nil
         location = anonymousLocation
@@ -95,10 +102,13 @@ public actor F1TVSession {
         authorized: Bool = false
     ) async throws -> JSONValue {
         var headers: [String: String] = [:]
+        let startEpoch = epoch
         if authorized {
             guard let token = ascendon else { throw F1TVError.notSignedIn }
+            let ent = try await entitlement(for: platform)
+            guard epoch == startEpoch, ascendon == token else { throw F1TVError.notSignedIn }
             headers["ascendontoken"] = token
-            headers["entitlementtoken"] = try await entitlement(for: platform)
+            headers["entitlementtoken"] = ent
         }
         let resolved: String
         switch version {
@@ -149,22 +159,24 @@ public actor F1TVSession {
     private func entitlement(for platform: Platform) async throws -> String {
         guard let token = ascendon else { throw F1TVError.notSignedIn }
         if let cached = entitlements[platform] { return cached }
+        let startEpoch = epoch
         let task: Task<String, Error>
         if let running = entitlementTasks[platform] {
             task = running
         } else {
-            let t = Task { try await self.fetchEntitlement(token: token, platform: platform) }
-            entitlementTasks[platform] = t
-            task = t
+            task = Task { try await self.fetchEntitlement(token: token, platform: platform) }
+            entitlementTasks[platform] = task
         }
         do {
             let value = try await task.value
-            entitlementTasks[platform] = nil
-            if ascendon == token { entitlements[platform] = value }
+            if entitlementTasks[platform] == task { entitlementTasks[platform] = nil }
+            // Signed out (or in again) while waiting: this value belongs to the old session.
+            guard epoch == startEpoch, ascendon == token else { throw F1TVError.notSignedIn }
+            entitlements[platform] = value
             return value
         } catch {
-            entitlementTasks[platform] = nil
-            if case F1TVError.refused = error, ascendon == token { signOut() }
+            if entitlementTasks[platform] == task { entitlementTasks[platform] = nil }
+            if case F1TVError.refused = error, epoch == startEpoch, ascendon == token { signOut() }
             throw error
         }
     }
