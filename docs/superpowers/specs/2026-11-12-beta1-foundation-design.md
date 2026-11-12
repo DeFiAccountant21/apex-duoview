@@ -258,12 +258,12 @@ comes from a `BETA_LABEL` build setting in the same file.
 
 - **O1 — device header for iPhone.** Default to the Safari-on-Mac values that worked. The fixture
   run also tries `os=ios;browser=safari`; switch only if that is accepted.
-- **O2 — bundle ID (owner).** A reverse-domain ID such as `com.<yourname>.apexviewduo`. It can't be
+- **O2 — bundle ID (owner).** A reverse-domain ID such as `com.<yourname>.apexduoview`. It can't be
   changed after an App Store or TestFlight upload, so it should not depend on the final app name.
   The owner's Apple ID is enough for builds on their own phone; the paid developer account is
   needed only for TestFlight.
 - **O3 — Duo API declarations (owner, once Xcode 27.1 is installed).** One Terminal command,
   supplied in the plan, prints the SDK's declarations of `onHingeChange`, `reservedRegions` and
   `ArrangementView` for the agents to code against.
-- **O4 — the app's name** is still the working name "Apexview Duo". "F1" and "Formula 1" are
-  trademarks, so the final name should be F1-flavoured without using either.
+- **O4 — the app's name** is ApexDuoView (owner's choice, 2026-11-12). It avoids "F1" and
+  "Formula 1", which are trademarks.

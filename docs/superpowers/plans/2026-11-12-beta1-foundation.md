@@ -323,7 +323,7 @@ These are done by the owner, guided by Claude. Tasks that need them say so.
 - [ ] **Step 1:** Write `project.yml`:
   - One iOS app target, `DuoApp`, with iOS 27.1 as the deployment target. The local package `Packages/DuoCore` provides the products `F1TV` and `Library`.
   - Config files: `Config/Version.xcconfig` and `Config/Signing.xcconfig`. The latter `#include?`s the git-ignored `Config/Signing.local.xcconfig`, which holds `PRODUCT_BUNDLE_IDENTIFIER` and `DEVELOPMENT_TEAM`.
-  - Display name "Apexview Duo".
+  - Display name "ApexDuoView".
   - `INFOPLIST_KEY_UIBackgroundModes = audio`, so audio keeps playing when the app is backgrounded.
 - [ ] **Step 2:** Write `Config/Version.xcconfig` with `MARKETING_VERSION = 1.0`, `CURRENT_PROJECT_VERSION = 1` and `BETA_LABEL = beta.1`. Expose `BETA_LABEL` to the app through an Info.plist key `DuoBetaLabel = $(BETA_LABEL)`.
 - [ ] **Step 3:** Implement `AppModel`, `Keychain`, `URLSessionHTTPClient` and `UserDefaultsStore: KeyValueStore`. `DuoApp.swift` shows a placeholder root view bound to `AppModel.auth`.
@@ -459,7 +459,7 @@ SDK=$(xcrun --sdk iphoneos --show-sdk-path); for m in SwiftUI UIKit; do f=$(find
 - [ ] **Step 4:** Build `SettingsView`. It contains:
   - Account: tier, and "Sign out".
   - A live readout of `FoldState`.
-  - About: "Apexview Duo v1.0-beta.1 (build N)", from the bundle version and `DuoBetaLabel`.
+  - About: "ApexDuoView v1.0-beta.1 (build N)", from the bundle version and `DuoBetaLabel`.
   - Credits and licences for Apexview, eXhumer/f1tv-api, eXhumer/eXViewer, FastF1 and MultiViewer.
   - The debug section.
 - [ ] **Step 5:** Owner's Mac session builds it. In the Duo simulator, folding, half-opening and rotating change the readout.
