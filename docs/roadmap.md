@@ -91,6 +91,14 @@ Release titles: "v1.0-beta.1 — Foundation", "v1.0-rc.1 — Release candidate",
   playlists checked only). Not yet verified: live sessions.
 - 2026-11-12: the São Paulo race stream (world feed, signed link from the play API) played in
   Safari on the owner's Mac, which uses the same Apple video engine as the app.
+  Seeking to a later point also worked.
+- The race's streams (pipeline 6, 6-second segments) carry #EXT-X-PROGRAM-DATE-TIME on every
+  feed checked (world feed, F1 Live, an onboard, the last onboard), all starting at the same
+  instant, so feeds can be kept in step with each other and with live timing.
+- Multiview feeds are labelled: onboards carry `metadata.racing_number` and a team-radio audio
+  track named with the driver's three-letter code (`audio_track_names.tea`). The world feed has
+  seven commentary languages plus "Track FX" (race sound without commentary); F1 Live has English
+  and Spanish. Onboards are marked `optionality=optional-on-stream-failure`.
 - An older pipeline-1 video carried six commentary languages plus an "FX" track (race sound
   without commentary) and no #EXT-X-PROGRAM-DATE-TIME.
 - F1 TV's config publishes a FairPlay certificate, so protected content may exist elsewhere.
