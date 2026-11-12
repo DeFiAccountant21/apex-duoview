@@ -111,3 +111,16 @@ iPhone Duo outer and inner display frames. It is installed and used once the UI 
 starting with the first beta whose screens are worth presenting, from simulator captures taken on
 the owner's Mac. The skill's project file (`app-store-screenshots.json`) is kept in the repo so
 the deck can be updated each beta.
+
+## Keeping up with the Android app
+
+`og-android` is a copy of the original Android app, kept current with GitHub's Sync fork. It is
+never edited here.
+
+- Until the Android source is removed from `ios` (after beta.3), updates are merged from
+  `og-android` into `ios`, so the reference code stays current.
+- After that, they are not merged. Instead, each update is read on `og-android` and anything worth
+  having is rebuilt in Swift as part of a beta, or listed for a later one.
+- The last Android version already reviewed is recorded here, so it's always clear what is new.
+
+Last Android version reviewed: **0.94**.
