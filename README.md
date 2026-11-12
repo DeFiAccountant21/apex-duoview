@@ -1,112 +1,92 @@
-# Apexview
+# Apexview Duo
 
-An Android app for watching F1 TV the way a foldable deserves: several feeds at once, placed and
-sized however you like, with a live track map, broadcast-style timing cards on the onboards and
-team radio, all kept in sync with the picture.
+*Working name.*
 
-Made for the Pixel Fold's inner screen, and works on other Android phones and tablets too.
+An iPhone app for watching F1 TV that is built around the iPhone Duo's fold. The official F1 TV
+app looks the same on every phone. This one changes with the way you hold the phone: closed,
+open flat, half-open like a book, propped like a laptop, or standing on its edges. Several feeds
+at once, a live track map, timing and team radio, all kept in sync with the picture.
 
-> **Unofficial.** Apexview isn't made, endorsed or supported by Formula 1, Formula One
-> Management or F1 TV. You need your own F1 TV subscription (Pro for live sessions and
-> onboards). Video plays through F1 TV's own DRM with your account; nothing is downloaded or
-> unlocked. F1 TV's terms don't cover third-party apps, so use it at your own risk.
+> **Unofficial.** This app isn't made, endorsed or supported by Formula 1, Formula One
+> Management or F1 TV. You need your own F1 TV subscription (Premium for several feeds at once).
+> Video plays through F1 TV with your own account; nothing is downloaded or unlocked. F1 TV's
+> terms don't cover third-party apps, so use it at your own risk.
 
-## What it does
+## Status
 
-- **Multiview, your way.** Up to four feeds (broadcast, F1 Live, onboards, data and tracker
-  channels), with F1 TV Premium. Main + strip, grid, or drag and resize freely with magnetic snapping. Save a layout
-  as your default.
-- **Track map.** Every car on track, as a map you can move, turn and resize, or as a ribbon
-  round the edge of the screen. Turn numbers, start and finish lines. Works on replays and live.
-- **Flags on the map:** yellow sectors, safety car and VSC, red flags, and a countdown to an
-  announced restart.
-- **Tap a car, get its onboard.** Tap a feed first to choose which one it replaces.
-- **Timing cards** on onboards: position, sectors (yellow, green, purple), running lap time,
-  lap time and gap, like the broadcast's.
-- **Team radio** as it's published, by lap, transcribed on the phone, tap to listen.
-- **Chequered marks** on the scrubber at lights out and the flag, and a scrubber for live
-  streams too.
-- **Pick up where you left off** across your last four sessions, layout included.
-- **Pop-out** picture-in-picture when you leave the app.
-- **Driver of the Day.** With 6 laps to go in a live Grand Prix, a note offers F1's vote, and the
-  race keeps playing beside it while you vote. It can be turned off in Settings.
-- **Foldable aware:** re-lays out on fold and unfold; on the cover screen, double-tap a feed to
-  fill the screen. Laptop mode: half-open with the hinge across, the stream goes up top and a
-  timing tower and the track map fill the bottom.
-- **What to watch next** on home: what's live, what follows a session you watched (post-race
-  show, press conference, highlights), the build-up before a weekend, and last year's race there.
-- **All of F1 TV's catalog:** shows, documentaries, press conferences and full races from every
-  season back to 1981.
-- **Android TV remote:** arrows and select move through everything. While watching, left and right
-  skip 10 seconds, the other arrows and select bring up the controls, and Back hides them. Feeds
-  can't be dragged by hand on a TV; pick a layout instead.
-- **Season calendar** in your local time, with optional reminders before each session.
+In planning; there is no app to install yet. The first beta is **v1.0-beta.1 — Foundation**:
+sign in, browse F1 TV and play a session, resuming where you left off.
 
-Tap the **?** in the viewer's top bar for a guide to every gesture.
+What has been checked so far, on a 2026 race replay with a Premium account: F1 TV returns all 26
+feeds of a race (world feed, F1 Live, every onboard, data channels) in a format the iPhone's own
+video player supports. Playing them in the app, and live sessions, are still to be tested.
 
-## Install
+## What it will do
 
-1. Download the latest `apexview-<version>.apk` from [Releases](../../releases).
-2. Open it on your phone and allow installing from that source when Android asks.
-3. Sign in with your F1 TV account.
+Each pose has its own way of watching:
 
-You need an F1 TV plan that includes video (Pro or Premium); a free F1 TV account can't play
-anything. Watching several feeds at once needs Premium: on Pro, F1 TV doesn't send the extra
-feeds. In the US, F1 TV Premium comes with Apple TV: link your Apple account to your F1 TV
-account on F1 TV's website or app (look for Activate), then sign in to Apexview with that F1 TV
-account.
+- **Laptop (half-open on a table):** the picture on the upright half and a race engineer's console
+  on the half lying flat. Or scrub through a replay on a touch timeline of flags, overtakes, pit
+  stops and radio.
+- **Book (half-open, fold upright):** two onboards side by side, kept level on track so both cars
+  reach each corner together, with the gap between them on the fold.
+- **Closed:** a glanceable companion with one driver's team radio and transcript, a gap meter,
+  and an alert that jumps you to the moment when you open the phone.
+- **Open flat:** a director's desk with the main picture, a tray of feeds, the timing tower and
+  the map. Or lay it between two people, with each half facing its viewer.
+- **Standing on its edges:** a large-type timing board you can read across the room, which turns
+  yellow or red on a flag.
 
-Android 10 or newer.
+Folding and unfolding moves you between them without losing your place. Closing the phone
+bookmarks the moment.
 
-Apexview checks for a new release each time it opens and offers to update itself (Android asks you to confirm the install, and the first time, to allow Apexview to install updates). Settings has a Check for updates button too. A fork can point its updates at its own releases with `UPDATE_REPO` in `app/build.gradle.kts`.
+It also carries over everything from the Android app it started from:
 
-## Build it yourself
+- Multiview of up to four feeds.
+- A track map with flags, timing cards on onboards, and a pit circle.
+- Team radio, picking up where you left off, and picture in picture.
+- The full catalogue back to 1981, and the season calendar with reminders.
 
-You need JDK 17 and the Android SDK (Android Studio brings both).
+The full list and the order it's built in are in [docs/roadmap.md](docs/roadmap.md).
 
-```bash
-./gradlew assembleDebug
-```
+## Roadmap
 
-The debug APK lands in `app/build/outputs/apk/debug/`. Release builds are signed with a key
-described in a `keystore.properties` file at the project root (not in the repository):
+Seven betas, one release candidate, then v1.0. Each beta ends with a test the owner checks on a
+real phone. Version numbers and releases follow the standard written in the roadmap. Changes are
+listed in [CHANGELOG.md](CHANGELOG.md).
 
-```properties
-storeFile=/path/to/your-release-key.jks
-storePassword=...
-keyAlias=...
-keyPassword=...
-```
+## Requirements
 
-`./gradlew testDebugUnitTest` runs the unit tests (layouts, snapping, timing, the grid and start
-line, the track ribbon).
+- An iPhone running iOS 27.1 or later (still to be confirmed). The fold features need an iPhone Duo; on other iPhones the
+  app works like the Duo's closed screen.
+- An F1 TV plan that includes video (Pro or Premium); several feeds at once needs Premium.
+- To build it yourself: a Mac with Xcode 27.1 or later.
 
-## How it works
+## Branches
 
-- **Playback:** F1 TV's own API and Widevine licence server, with your sign-in. All feeds of a
-  session share one multiview play session, as on F1 TV's website.
-- **Track map and timing:** F1's live timing (the SignalR Core feed, live) and its timing
-  archive (replays), with your F1 TV token. The map is lined up with the picture by the stream's
-  own clock, with a nudge in the map settings for anything left over.
-- **Team radio:** the clips F1 publishes, transcribed by Android's on-device speech recogniser.
+- **`ios`:** this app. All iOS work happens here.
+- **`main`:** a copy of the original Android app, kept in step with its author's repository. It's
+  used as the reference for porting and isn't changed here.
+
+The Android source is also on `ios` until its logic has been carried over to Swift, then it's
+removed from that branch.
 
 ## Privacy
 
-Apexview talks only to F1's servers (with your own sign-in), MultiViewer's public circuit data,
-and GitHub to check for updates. There are no analytics and nothing is uploaded in the background.
-Your F1 TV sign-in stays on your phone: it isn't included in Android backups or phone-to-phone
-transfers, and it's stripped from crash reports.
-If the app crashes, the next launch offers to open a GitHub issue with the error filled in; it's
-only sent if you submit it.
+The app talks only to F1's servers with your own sign-in, and to MultiViewer's public circuit
+data. There are no analytics, no accounts of its own and no servers in between. Your F1 TV
+sign-in stays on your phone.
 
 ## Credits
 
-- The F1 TV API and login flow were ported from [eXhumer/f1tv-api](https://github.com/eXhumer/f1tv-api)
+- Started from [Apexview](https://github.com/mikeyyy0/apexview), the Android app for foldables,
+  MIT licensed.
+- The F1 TV API and login flow come from [eXhumer/f1tv-api](https://github.com/eXhumer/f1tv-api)
   and [eXhumer/eXViewer](https://github.com/eXhumer/eXViewer), both MIT licensed.
 - How F1's timing archive and live feed are laid out follows [FastF1](https://github.com/theOehrly/Fast-F1).
-- Turn numbers, and the circuit outline before a live session has traced a lap, come from
-  [MultiViewer](https://multiviewer.app)'s public circuit data.
+- Turn numbers and circuit outlines come from [MultiViewer](https://multiviewer.app)'s public
+  circuit data.
 
 ## License
 
-MIT; see [LICENSE](LICENSE). Fork it, change it, share it.
+MIT; see [LICENSE](LICENSE).
