@@ -63,7 +63,33 @@ class Tile(val id: Int, val contentId: Long, channel: Channel, feed: FeedPlayer)
 enum class MapMode(val label: String) {
     TRACK("Track"),
     EDGE("Edge"),
-    OFF("Off"),
+    /** The lap as a circle, with where a pit stop would put a driver. */
+    PIT("Pit"),
+    OFF("Off");
+
+    /** Drawn in the map's own window, which the feeds can be kept clear of. */
+    val inWindow get() = this == TRACK || this == PIT
+}
+
+/**
+ * Where a panel over the feeds sits, in canvas pixels: first in the biggest space the feeds
+ * leave, and once dragged, kept (as fractions of the screen) for next time. Its size too, once
+ * resized by hand; until then its default.
+ */
+class FloatingSpot(private val prefs: android.content.SharedPreferences, private val key: String) {
+    var x by mutableFloatStateOf(-1f)
+    var y by mutableFloatStateOf(-1f)
+    var w by mutableFloatStateOf(-1f)
+    var h by mutableFloatStateOf(-1f)
+
+    /** The place, and size if it's been resized, as fractions of the screen: x, y and optionally w, h. */
+    fun saved(): List<Float>? =
+        prefs.getString(key, null)?.split(',')?.mapNotNull { it.toFloatOrNull() }?.takeIf { it.size >= 2 }
+
+    fun store(width: Float, height: Float) {
+        val size = if (w > 0f && h > 0f) ",${w / width},${h / height}" else ""
+        prefs.edit().putString(key, "${x / width},${y / height}$size").apply()
+    }
 }
 
 /** The track map's own window. Any shape; the track is fitted inside it. */
@@ -461,6 +487,22 @@ class AppState(
     /** Edge by default; the last style picked is remembered. */
     var mapMode by mutableStateOf(savedMapMode())
         private set
+
+    /** The driver the pit circle shows a stop for and measures gaps to; null for none. */
+    var pitDriver by mutableStateOf<String?>(null)
+    /** The pit circle's gaps: to the leader, or (false) to the car ahead on track. */
+    var pitGapsToLeader by mutableStateOf(false)
+    /** The pit circle runs the other way round from the circuit. */
+    var pitCircleFlipped by mutableStateOf(false)
+
+    /** What a stop cost last time it was measured at this circuit, for before anyone's stopped. */
+    fun savedPitLoss(circuitKey: Int?): Long? =
+        circuitKey?.let { key -> prefs.getLong(PREF_PIT_LOSS + key, 0L).takeIf { it > 0L } }
+
+    fun rememberPitLoss(circuitKey: Int?, lossMs: Long) {
+        val key = circuitKey ?: return
+        if (prefs.getLong(PREF_PIT_LOSS + key, 0L) != lossMs) prefs.edit().putLong(PREF_PIT_LOSS + key, lossMs).apply()
+    }
 
     private fun savedMapMode() =
         prefs.getString(PREF_MAP_MODE, null)?.let { runCatching { MapMode.valueOf(it) }.getOrNull() } ?: MapMode.EDGE
@@ -1147,34 +1189,58 @@ class AppState(
 
     // Track map.
 
+    /**
+     * The map for the session on screen: live timing for a live stream, else the archive. Any
+     * failure (no login yet, a dropped download, F1 not answering) tries again after a pause
+     * rather than leaving the map empty for the rest of the session, until it loads or the
+     * viewer moves on.
+     */
     private fun loadTiming(contentId: Long) {
         timingContentId = contentId
+        pitDriver = null
         timing = null
         speedsJob?.cancel()
-        val ref = sessionRefs[contentId]
-        val token = api.ascendon
-        if (ref == null || token == null) {
-            mapStatus = "Map unavailable: F1 TV didn't say which session this is"
-            return
-        }
         mapStatus = "Loading the track map..."
         liveFeed?.cancel()
         liveFeed = scope.launch {
-            // Live or replay is only known once the player has the stream.
-            if (isLiveStream()) {
-                followLive(contentId, ref, token)
-                return@launch
-            }
-            try {
-                // When the picture was broadcast: identifies the session if the title can't.
-                val watched = leaderTile()?.feed?.wallClockMs()
-                val loaded = LiveTimingArchive(token, userAgent).load(ref, watched)
-                if (timingContentId != contentId) return@launch
-                rememberOutline(loaded)
-                showTiming(loaded)
-                mapStatus = if (loaded.outline.isEmpty()) "Couldn't trace the track; showing cars only" else null
-            } catch (e: Exception) {
-                if (timingContentId == contentId) mapStatus = "Map unavailable: ${e.message}"
+            var attempt = 0
+            while (timingContentId == contentId) {
+                val ref = sessionRefs[contentId]
+                val token = api.ascendon
+                val problem = when {
+                    ref == null -> "F1 TV didn't say which session this is"
+                    token == null -> "not signed in to F1's timing yet"
+                    else -> null
+                }
+                if (problem == null) {
+                    // Live or replay is only known once the player has the stream.
+                    if (isLiveStream()) {
+                        // Runs until the viewer moves on, reconnecting itself; back here only
+                        // if it failed outright.
+                        followLive(contentId, ref!!, token!!)
+                        if (timingContentId != contentId) return@launch
+                        kotlinx.coroutines.delay(mapRetryDelayMs(attempt++))
+                        continue
+                    }
+                    try {
+                        // When the picture was broadcast: identifies the session if the title can't.
+                        val watched = leaderTile()?.feed?.wallClockMs()
+                        val loaded = LiveTimingArchive(token!!, userAgent).load(ref!!, watched)
+                        if (timingContentId != contentId) return@launch
+                        rememberOutline(loaded)
+                        showTiming(loaded)
+                        mapStatus = if (loaded.outline.isEmpty()) "Couldn't trace the track; showing cars only" else null
+                        return@launch
+                    } catch (e: kotlinx.coroutines.CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        if (timingContentId != contentId) return@launch
+                        mapStatus = "Map unavailable: ${e.message}. Trying again…"
+                    }
+                } else {
+                    mapStatus = "Map unavailable: $problem. Trying again…"
+                }
+                kotlinx.coroutines.delay(mapRetryDelayMs(attempt++))
             }
         }
     }
@@ -1202,10 +1268,15 @@ class AppState(
     /** The map's job for the session on screen: an archive load, or a live feed that runs on. */
     private var liveFeed: kotlinx.coroutines.Job? = null
 
+    /**
+     * Whether the stream on screen is live. Known once the player has read the stream's playlist,
+     * well before it's ready to play; a slow start used to be taken for a replay after 15 s, and
+     * a live session then looked for its map in the archive, where it isn't yet.
+     */
     private suspend fun isLiveStream(): Boolean {
-        repeat(60) {
+        repeat(LIVE_CHECK_TRIES) {
             val player = leaderTile()?.feed?.player ?: return false
-            if (player.playbackState == Player.STATE_READY) return player.isCurrentMediaItemLive
+            if (!player.currentTimeline.isEmpty || player.playbackState == Player.STATE_READY) return player.isCurrentMediaItemLive
             kotlinx.coroutines.delay(250)
         }
         return false
@@ -1233,7 +1304,7 @@ class AppState(
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (e: Exception) {
-            if (timingContentId == contentId) mapStatus = "Live map unavailable: ${e.message}"
+            if (timingContentId == contentId) mapStatus = "Live map unavailable: ${e.message}. Trying again…"
         }
     }
 
@@ -1244,7 +1315,7 @@ class AppState(
         if (!first) return
         // The map lies over the feeds; they only move for it when asked to keep it clear (and
         // nobody has arranged them by hand).
-        if (mapMode == MapMode.TRACK && mapReserve && !handPlaced) layoutRequest++
+        if (mapMode.inWindow && mapReserve && !handPlaced) layoutRequest++
         else if (canvasW > 0f) placeMapIfNeeded(canvasW, canvasH)
     }
 
@@ -1309,7 +1380,8 @@ class AppState(
      * glows for a few seconds; tapping it again lets it go.
      */
     fun targetForMap(tile: Tile) {
-        if (timing == null || mapMode == MapMode.OFF || isMainTile(tile)) return
+        // The pit circle's cars choose its driver rather than an onboard.
+        if (timing == null || mapMode == MapMode.OFF || mapMode == MapMode.PIT || isMainTile(tile)) return
         targetTile = if (targetTile === tile) null else tile
         targetCount++
     }
@@ -1344,8 +1416,10 @@ class AppState(
             return
         }
         if (laptopActive) rememberBroadcast()
+        // A car whose onboard is up already: tapping it again closes that feed, so the tower and
+        // the maps work as on/off switches. Laptop mode's one feed up top comes back instead.
         tiles.firstOrNull { it.channel == channel }?.let {
-            if (laptopActive) putOnTop(it) else raise(it)
+            if (laptopActive) putOnTop(it) else if (tiles.size > 1) remove(it) else raise(it)
             return
         }
         val now = mapTimeMs() ?: 0L
@@ -1366,6 +1440,11 @@ class AppState(
                 .filter { !it.audible && !it.pinned && !isMainTile(it) }
                 .minWithOrNull(compareBy<Tile>({ interest(it, now) }, { it.mapPickedAt }))
         targetTile = null
+        // Nothing to swap out, but room for another: the onboard joins as a feed of its own.
+        if (target == null && roomForFeeds > 0) {
+            addFeeds(leader.contentId, listOf(channel))
+            return
+        }
         if (target == null) {
             message = if (tiles.size == 1) "Add a feed with +, then tap a car to put its onboard there."
             else if (tiles.none { it.pinned }) "Tap a small feed, then a car, to swap it for the car's onboard."
@@ -1558,7 +1637,7 @@ class AppState(
         val custom = if (layoutMode == LayoutMode.CUSTOM) savedLayout(ordered.size)?.takeIf { it.fits(width, height) } else null
         val slots = when {
             custom != null -> custom.slots(width, height)
-            mapMode == MapMode.TRACK && mapReserve && timing != null -> {
+            mapMode.inWindow && mapReserve && timing != null -> {
                 val arrangement = Layouts.withMap(layoutMode, ordered.size, width, height)
                 val gap = arrangement.map
                 if (gap != null && minOf(gap.w, gap.h) >= minOf(width, height) * 0.22f) {
@@ -1718,27 +1797,17 @@ class AppState(
     /** The clip playing, if any. */
     var radioPlaying by mutableStateOf<RadioClip?>(null)
         private set
-    /**
-     * Where the radio panel sits, in canvas pixels. First shown in the biggest space the feeds
-     * leave; once dragged, kept (as fractions of the screen) for next time.
-     */
-    var radioX by mutableFloatStateOf(-1f)
-    var radioY by mutableFloatStateOf(-1f)
-    /** The panel's size once resized by hand, in canvas pixels; until then its default. */
-    var radioW by mutableFloatStateOf(-1f)
-    var radioH by mutableFloatStateOf(-1f)
+    /** Where the radio panel sits and how big it is. */
+    val radioSpot = FloatingSpot(prefs, PREF_RADIO_SPOT)
 
-    /**
-     * The panel's place, and size if it's been resized, as fractions of the screen: x, y and
-     * optionally w, h.
-     */
-    fun savedRadioSpot(): List<Float>? =
-        prefs.getString(PREF_RADIO_SPOT, null)?.split(',')?.mapNotNull { it.toFloatOrNull() }
-            ?.takeIf { it.size >= 2 }
+    /** The timing tower over the feeds; laptop mode has its own below the hinge. */
+    var towerOpen by mutableStateOf(prefs.getBoolean(PREF_TOWER, false))
+        private set
+    val towerSpot = FloatingSpot(prefs, PREF_TOWER_SPOT)
 
-    fun storeRadioSpot(width: Float, height: Float) {
-        val size = if (radioW > 0f && radioH > 0f) ",${radioW / width},${radioH / height}" else ""
-        prefs.edit().putString(PREF_RADIO_SPOT, "${radioX / width},${radioY / height}$size").apply()
+    fun toggleTower() {
+        towerOpen = !towerOpen
+        prefs.edit().putBoolean(PREF_TOWER, towerOpen).apply()
     }
 
     /** Feed rectangles, for finding open space. */
@@ -2538,12 +2607,20 @@ class AppState(
         private const val PREF_RADIO = "radioOpen"
         private const val PREF_HELP_SEEN = "helpSeen"
         private const val PREF_RADIO_SPOT = "radioSpot"
+        private const val PREF_TOWER = "towerOpen"
+        private const val PREF_TOWER_SPOT = "towerSpot"
         /** Clips this far ahead of the picture get transcribed early, so they're ready on time. */
         private const val TRANSCRIBE_AHEAD_MS = 120_000L
         const val NO_WORDS = "(no words recognised)"
         const val PERMISSION_NOTE =
             "Android's speech recogniser needs the microphone permission to transcribe. The app never records you."
         private const val TRANSCRIBE_RETRY_MS = 120_000L
+        /** A minute of waiting for a stream to say whether it's live. */
+        private const val LIVE_CHECK_TRIES = 240
+
+        /** How long the map waits before trying again, after its [attempt]th failure (from 0). */
+        internal fun mapRetryDelayMs(attempt: Int): Long = MAP_RETRY_MS.getOrElse(attempt) { MAP_RETRY_MS.last() }
+        private val MAP_RETRY_MS = listOf(3_000L, 10_000L, 30_000L, 60_000L)
         /** The feeds' volume while a radio clip plays: silent, so the radio is clear. */
         private const val RADIO_DUCK = 0f
         private const val PREF_RECENTS = "recents"
@@ -2565,6 +2642,7 @@ class AppState(
         private const val PREF_MAP_LOCKED = "mapLocked"
         private const val PREF_MAP_RESERVE = "mapReserve"
         private const val PREF_START_LINE = "startLine"
+        private const val PREF_PIT_LOSS = "pitLoss"
         // Snap mode: edges pull together inside 12dp; a push past 56dp goes through.
         private const val SNAP_DP = 12f
         private const val BREAK_DP = 56f

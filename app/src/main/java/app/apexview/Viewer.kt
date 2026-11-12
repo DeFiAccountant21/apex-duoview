@@ -58,6 +58,7 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Forward10
 import androidx.compose.material.icons.rounded.GridView
+import androidx.compose.material.icons.rounded.FormatListNumbered
 import androidx.compose.material.icons.rounded.Headset
 import androidx.compose.material.icons.rounded.HelpOutline
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
@@ -359,6 +360,7 @@ fun ViewerScreen(app: AppState) {
                 AnimatedVisibility(!laptop, Modifier.fillMaxSize().zIndex(1e9f), enter = fadeIn(swap), exit = fadeOut(swap)) {
                     when (app.mapMode) {
                         MapMode.TRACK -> Box(Modifier.fillMaxSize()) { MapPanelView(app, timing) }
+                        MapMode.PIT -> Box(Modifier.fillMaxSize()) { PitCircleView(app, timing) }
                         MapMode.EDGE -> Box(Modifier.fillMaxSize()) {
                             EdgeMap(app, timing, width, height, edgeInset, cornerRadius)
                         }
@@ -373,6 +375,10 @@ fun ViewerScreen(app: AppState) {
         // Over the feeds and the map, under the controls; it doesn't shrink with the feeds.
         if (app.radioOpen) app.timing?.let { timing ->
             Box(Modifier.zIndex(CHROME_Z - 1)) { RadioPanel(app, timing, width, height, feedScale = 1f - lift * band / height) }
+        }
+        // Laptop mode has the tower below the hinge already.
+        if (app.towerOpen && !app.laptopActive) app.timing?.takeIf { it.laps.isNotEmpty() }?.let { timing ->
+            Box(Modifier.zIndex(CHROME_Z - 1)) { TowerPanel(app, timing, width, height, feedScale = 1f - lift * band / height) }
         }
 
         // No feed on screen with F1's graphics: the time left goes up top, clear of the edge map
@@ -430,18 +436,22 @@ fun ViewerScreen(app: AppState) {
  */
 private fun Modifier.mapGestures(app: AppState, density: androidx.compose.ui.unit.Density): Modifier {
     val timing = app.timing
-    // The track map window: the regular one in Track style, or laptop mode's own.
-    val window = app.laptopActive || app.mapMode == MapMode.TRACK
+    // The map's window: the regular one in Track or Pit style, or laptop mode's own.
+    val circle = !app.laptopActive && app.mapMode == MapMode.PIT
+    val window = app.laptopActive || app.mapMode.inWindow
     if (!app.arranging || app.mapLocked || !window || timing == null) return this
     // Keyed on the circuit, not the timing: live timing is replaced every couple of seconds, and
     // restarting this mid-gesture used to leave the map "grabbed", so feeds wouldn't move again.
-    return pointerInput(timing.circuitKey, timing.outline.size, app.arranging, app.mapLocked, app.laptopActive) {
+    return pointerInput(timing.circuitKey, timing.outline.size, app.arranging, app.mapLocked, app.laptopActive, circle) {
         val margin = mapMarginPx(density)
         val reach = with(density) { 22.dp.toPx() }
         awaitEachGesture {
             val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
             val now = app.timing ?: return@awaitEachGesture
-            if (!mapLineTouched(app, now, down.position.x, down.position.y, margin, reach)) return@awaitEachGesture
+            // The track is grabbed by its line; the circle anywhere on it.
+            val grabbed = if (circle) pitCircleTouched(app, down.position.x, down.position.y, LABEL_ROOM.toPx())
+            else mapLineTouched(app, now, down.position.x, down.position.y, margin, reach)
+            if (!grabbed) return@awaitEachGesture
             // From the first touch on the line, the feeds underneath ignore this finger; however
             // the gesture ends (lifted, cancelled, or this handler replaced), they listen again.
             app.mapGrabbed = true
@@ -452,7 +462,8 @@ private fun Modifier.mapGestures(app: AppState, density: androidx.compose.ui.uni
                     val event = awaitPointerEvent(PointerEventPass.Initial)
                     val pan = event.calculatePan()
                     val zoom = event.calculateZoom()
-                    val turn = event.calculateRotation()
+                    // A circle has nothing to turn.
+                    val turn = if (circle) 0f else event.calculateRotation()
                     if (!dragging) {
                         travel += pan
                         dragging = travel.getDistance() > viewConfiguration.touchSlop || zoom != 1f || turn != 0f
@@ -521,6 +532,7 @@ private fun TopChrome(app: AppState, cutout: Clearance) {
         Glyph(Icons.Rounded.Add, "Add a feed", modifier = Modifier.helpAnchor(app, "add")) { app.openPickerForPlaying() }
         Glyph(Icons.Rounded.GridView, "Layout: ${app.layoutMode.label}", modifier = Modifier.helpAnchor(app, "layout")) { app.layoutSheetOpen = true; app.showChrome() }
         if (app.timing != null) Glyph(Icons.Rounded.Headset, if (app.radioOpen) "Hide team radio" else "Team radio", modifier = Modifier.helpAnchor(app, "radio-button"), onClick = app::toggleRadio)
+        if (app.timing?.laps?.isNotEmpty() == true && !app.laptopActive) Glyph(Icons.Rounded.FormatListNumbered, if (app.towerOpen) "Hide timing" else "Timing", onClick = app::toggleTower)
         if (app.timing != null || app.mapStatus != null) Glyph(Icons.Rounded.Map, "Track map", modifier = Modifier.helpAnchor(app, "map")) { app.mapSheetOpen = true }
         if (!app.isTv) Glyph(Icons.Rounded.HelpOutline, "What everything does", 22, onClick = app::showHelp)
     }
@@ -1188,8 +1200,9 @@ private fun MapSheet(app: AppState) {
             }
             Text(
                 when (app.mapMode) {
-                    MapMode.TRACK -> "The circuit over the feeds. Unlock the layout to drag it by the track line or its move grip, pinch or twist it. Tap a feed, then a car, to swap in that car's onboard."
-                    MapMode.EDGE -> "The lap laid around the edge of the screen, the finish at the top. Tap a feed, then a car, to swap in that car's onboard."
+                    MapMode.TRACK -> "The circuit over the feeds. Unlock the layout to drag it by the track line or its move grip, pinch or twist it. Tap a feed, then a car, to swap in that car's onboard. Hold a car to see where a stop now would put it."
+                    MapMode.EDGE -> "The lap laid around the edge of the screen, the finish at the top. Tap a feed, then a car, to swap in that car's onboard. Hold a car to see where a stop now would put it."
+                    MapMode.PIT -> "The circle of doom: the lap as a circle in time at the leader's pace, the finish at the top and the pit lane inside. Tap a car for every gap to it and the stretch a stop now would drop it back."
                     MapMode.OFF -> "No map."
                 },
                 style = Type.footnote,
@@ -1242,13 +1255,14 @@ private fun MapSheet(app: AppState) {
                         )
                     }
                 }
-                if (app.mapMode == MapMode.TRACK) {
+                if (app.mapMode.inWindow) {
                     Column(Modifier.padding(top = 16.dp).clip(RoundedCornerShape(12.dp)).background(Ink.background).padding(vertical = 4.dp)) {
                         SwitchRow("Lock the map in place", app.mapLocked) { app.toggleMapLock() }
                         SwitchRow("Keep feeds clear of the map", app.mapReserve, app::chooseMapReserve)
                     }
                     Text(
-                        "Locked, the map stays put while you arrange the feeds under it. Kept clear, the feeds make room for it instead of lying under it.",
+                        if (app.mapMode == MapMode.TRACK) "Locked, the map stays put while you arrange the feeds under it. Kept clear, the feeds make room for it instead of lying under it."
+                        else "Unlock the layout to drag the circle or pinch to resize it. Locked, it stays put while you arrange the feeds under it. Kept clear, the feeds make room for it instead of lying under it.",
                         style = Type.footnote,
                         modifier = Modifier.padding(top = 8.dp),
                     )
