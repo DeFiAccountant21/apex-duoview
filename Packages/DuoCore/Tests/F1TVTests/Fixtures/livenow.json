@@ -1,0 +1,22 @@
+{
+ "resultCode": "OK",
+ "message": "",
+ "errorDescription": "",
+ "resultObj": {
+  "pollingEnabled": {
+   "AMAZONFIRE": false,
+   "AMAZONFIRETV": false,
+   "ANDROID": false,
+   "ANDROIDTV": false,
+   "IOS": false,
+   "ROKU": false,
+   "SAMSUNG": false,
+   "TVOS": false,
+   "WEB": false
+  },
+  "pollingLower": 60,
+  "pollingUpper": 90,
+  "items": []
+ },
+ "systemTime": 1794526278147
+}

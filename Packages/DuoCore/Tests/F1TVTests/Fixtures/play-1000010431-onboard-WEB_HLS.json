@@ -1,0 +1,22 @@
+{
+ "resultCode": "OK",
+ "message": "200",
+ "errorDescription": "",
+ "resultObj": {
+  "entitlementToken": "<removed>",
+  "url": "<removed>",
+  "streamType": "SDR_HD_CMAF",
+  "channelId": 1016,
+  "pipelineVersion": 6,
+  "playApiVersion": "3.0",
+  "cdnType": "Cloudfront",
+  "settings": {
+   "upnext": {
+    "jitter": 15606
+   }
+  }
+ },
+ "systemTime": 1794526285435,
+ "_url_kind": "m3u8",
+ "_has_laURL": false
+}

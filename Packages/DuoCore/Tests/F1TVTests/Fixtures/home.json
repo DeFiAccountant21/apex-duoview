@@ -1,0 +1,2593 @@
+{
+ "resultCode": "OK",
+ "message": "",
+ "errorDescription": "200-10000",
+ "resultObj": {
+  "total": 9,
+  "containers": [
+   {
+    "layout": "hero",
+    "title": "Hero - Where Stars Are Made",
+    "id": "395_4624",
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "metadata": {
+     "label": "Hero - Where Stars Are Made",
+     "imageUrl": "",
+     "id": "395_4624",
+     "hash": "d41d8cd98f00b204e9800998ecf8427e",
+     "heroRaceSubTitle": "{uiSeries}",
+     "heroRaceSummary": "{shortDescription}",
+     "heroSubTitle": "{uiSeries}",
+     "tray_background": "",
+     "schedule": [
+      {
+       "pubDays": "",
+       "pubStartDate": 1794405600,
+       "pubEndDate": 1795050000,
+       "pubStartTime": "",
+       "pubEndTime": "",
+       "timezone": "UTC+00:00"
+      }
+     ]
+    },
+    "retrieveItems": {
+     "resultObj": {
+      "total": 1,
+      "searchResultTotal": 1,
+      "collectionName": "",
+      "containers": [
+       {
+        "id": "1000079724",
+        "layout": "CONTENT_ITEM",
+        "actions": [
+         {
+          "key": "onClick",
+          "uri": "/2.0/R/ENG/WEB_HLS/ALL/CONTENT/VIDEO/1000079724/PREMIUM/5",
+          "targetType": "DETAILS_PAGE",
+          "href": "/detail/1000079724/fia-formula-2-where-f1-stars-are-made"
+         }
+        ],
+        "properties": [
+         {
+          "meeting_Number": 0,
+          "sessionEndTime": 0,
+          "series": "FORMULA 2",
+          "lastUpdatedDate": 1794319427542,
+          "lastIndexedDate": 1794319427542,
+          "season_Meeting_Ordinal": 0,
+          "meeting_Start_Date": 0,
+          "meeting_End_Date": 0,
+          "season": 2026,
+          "session_index": 110
+         }
+        ],
+        "metadata": {
+         "contentId": 1000079724,
+         "contentType": "VIDEO",
+         "emfAttributes": {
+          "VideoType": "",
+          "MeetingKey": "",
+          "MeetingSessionKey": "",
+          "Meeting_Name": "",
+          "Meeting_Number": "",
+          "Circuit_Short_Name": "",
+          "Meeting_Code": "",
+          "MeetingCountryKey": "",
+          "CircuitKey": "",
+          "Meeting_Location": "",
+          "Series": "FORMULA 2",
+          "OBC": false,
+          "state": "",
+          "TimetableKey": "",
+          "SessionKey": "",
+          "SessionPeriod": "",
+          "Circuit_Official_Name": "",
+          "ActivityDescription": "",
+          "SeriesMeetingSessionIdentifier": "",
+          "sessionEndTime": "",
+          "Meeting_Start_Date": "",
+          "Meeting_End_Date": "",
+          "Track_Length": "",
+          "Scheduled_Lap_Count": "",
+          "Scheduled_Distance": "",
+          "Circuit_Location": "",
+          "Meeting_Sponsor": "",
+          "IsTestEvent": "",
+          "Season_Meeting_Ordinal": 0,
+          "Championship_Meeting_Ordinal": "",
+          "session_index": 110,
+          "Meeting_Official_Name": "",
+          "Meeting_Display_Date": "",
+          "PageID": null,
+          "sessionEndDate": 0,
+          "sessionStartDate": 0,
+          "Meeting_Country_Name": "",
+          "Global_Title": "FIA Formula 2: Where F1 Stars are Made",
+          "Global_Meeting_Country_Name": "",
+          "Global_Meeting_Name": "",
+          "Diplay_In_Schedule": true,
+          "ContentCategory": "EPISODIC",
+          "HeroMainTitleOverride": ""
+         },
+         "longDescription": "In celebration of the 10th season of FIA Formula 2, we speak to the F1 drivers who have graduated from the Championship, including newly crowned World Drivers’ Champion Kimi Antonelli, to look back at the moments that made them and the Championship that moulded them into the F1 talents they are today. Hear from Team Principals Toto Wolff, Fred Vasseur and Laurent Mekies, as well as F1 President and CEO Stefano Domenicali and F2 CEO Bruno Michel, on what makes an F2 driver into a Formula 1 star.",
+         "shortDescription": "In celebration of the 10th season of FIA Formula 2, we speak to the F1 drivers who have graduated from the Championship, including newly crowned World Drivers’ Champion Kimi Antonelli.",
+         "year": "2026",
+         "contractStartDate": 1794405600000,
+         "contractEndDate": 4102444799000,
+         "externalId": "F1_SUT_1794318512500",
+         "title": "FIA Formula 2: Where F1 Stars are Made",
+         "titleBrief": "Where F1 Stars are Made",
+         "objectType": "VIDEO",
+         "duration": 1545,
+         "contentSubtype": "FEATURE",
+         "episodeNumber": 1,
+         "season": 2026,
+         "starRating": 0,
+         "pictureUrl": "1000079724-0a011bd0-1ba4-4d35-b6c5-30958a7bf573/landscape_hero_web",
+         "language": "ENG",
+         "pcLevel": 2,
+         "isCopyProtected": true,
+         "copyProtections": [
+          {
+           "securityCode": "01",
+           "securityOption": "00000010"
+          },
+          {
+           "securityCode": "03",
+           "securityOption": "00000001"
+          },
+          {
+           "securityCode": "05",
+           "securityOption": "00000001"
+          }
+         ],
+         "genres": [
+          "Drivers"
+         ],
+         "searchKeywords": [
+          "Where F1 Stars are Made"
+         ],
+         "availableAlso": [
+          "MOBILE_HLS",
+          "BIG_SCREEN_HLS",
+          "WEB_DASH",
+          "BIG_SCREEN_DASH",
+          "TABLET_DASH",
+          "TABLET_HLS"
+         ],
+         "contentOptions": [],
+         "uiDuration": "00:25:45",
+         "uiSeries": "F2",
+         "entitlement": "Access",
+         "locked": false,
+         "seriesIndicator": true
+        },
+        "containers": {},
+        "platformVariants": [
+         {
+          "cpId": 644713,
+          "subtitlesLanguages": [],
+          "pictureUrl": "1000079724-0a011bd0-1ba4-4d35-b6c5-30958a7bf573",
+          "videoUrl": "https://ott-video-cf.formula1.com/hls/F1_SUT_1794318512500_1794319159627/index.m3u8",
+          "audioLanguages": [
+           {
+            "isPreferred": false,
+            "audioLanguageName": "ENG",
+            "audioId": 1
+           }
+          ],
+          "hasTrailer": false,
+          "videoType": "HD",
+          "technicalPackages": [
+           {
+            "packageId": 1060,
+            "packageName": "VOD",
+            "packageType": "SVOD"
+           }
+          ]
+         }
+        ],
+        "uiMetadata": {
+         "mainTitle": "FIA Formula 2: Where F1 Stars are Made",
+         "subTitle": "F2",
+         "summary": "In celebration of the 10th season of FIA Formula 2, we speak to the F1 drivers who have graduated from the Championship, including newly crowned World Drivers’ Champion Kimi Antonelli."
+        }
+       }
+      ]
+     },
+     "uriOriginal": "/TRAY/SEARCH/VOD?filter_objectType=Video&filter_orderByDefault=Y&filter_tags=Where F1 Stars are Made&maxResults=1&orderBy=contractStartDate&sortOrder=desc",
+     "typeOriginal": "REMOTE"
+    },
+    "actions": [
+     {
+      "key": "onTitleClick",
+      "uri": "/2.0/R/ENG/WEB_HLS/ALL/PAGE/SEARCH/VOD/PREMIUM/5?filter_objectType=Video&filter_orderByDefault=Y&filter_tags=Where+F1+Stars+are+Made&maxResults=1&orderBy=contractStartDate&sortOrder=desc&pageID=395_4624&layout=horizontal_thumbnail",
+      "targetType": "WALL_PAGE",
+      "type": "REMOTE",
+      "layout": "horizontal_thumbnail",
+      "href": "/search?filter_objectType=Video&filter_orderByDefault=Y&filter_tags=Where+F1+Stars+are+Made&maxResults=1&orderBy=contractStartDate&sortOrder=desc&pageID=395_4624"
+     }
+    ]
+   },
+   {
+    "layout": "vertical_thumbnail",
+    "title": "New Episodes",
+    "id": "395_3749",
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "metadata": {
+     "label": "New Episodes",
+     "imageUrl": "",
+     "id": "395_3749",
+     "hash": "d41d8cd98f00b204e9800998ecf8427e",
+     "gridLayout1": "[[\"L\"],[\"M\",\"M\"],[\"S\",\"S\",\"S\"],[\"M\",\"M\",\"M\",\"M\"],[\"M\",\"M\",\"S\",\"S\",\"S\"],[\"S\",\"S\",\"S\",\"S\",\"S\",\"S\"]]",
+     "railMainTitle": "{titleBrief}",
+     "tray_background": "",
+     "schedule": [
+      {
+       "pubDays": "",
+       "pubStartDate": 1794387600,
+       "pubEndDate": 1794589200,
+       "pubStartTime": "",
+       "pubEndTime": "",
+       "timezone": "UTC+00:00"
+      }
+     ],
+     "seriesIndicator": true
+    },
+    "retrieveItems": {
+     "resultObj": {
+      "total": 3,
+      "searchResultTotal": 3,
+      "collectionName": "Midweek Content New Episodes",
+      "containers": [
+       {
+        "id": "1000079850",
+        "layout": "CONTENT_ITEM",
+        "actions": [
+         {
+          "key": "onClick",
+          "uri": "/2.0/R/ENG/WEB_HLS/ALL/CONTENT/VIDEO/1000079850/PREMIUM/5",
+          "targetType": "DETAILS_PAGE",
+          "href": "/detail/1000079850/the-cooldown-room-obrigado-brazil"
+         }
+        ],
+        "metadata": {
+         "contentId": 1000079850,
+         "contentType": "VIDEO",
+         "emfAttributes": {
+          "VideoType": "",
+          "MeetingKey": "1299",
+          "MeetingSessionKey": "",
+          "Meeting_Name": "São Paulo Grand Prix",
+          "Meeting_Number": "20",
+          "Circuit_Short_Name": "Interlagos",
+          "Meeting_Code": "F1202620",
+          "MeetingCountryKey": "10",
+          "CircuitKey": "14",
+          "Meeting_Location": "São Paulo",
+          "Series": "FORMULA 1",
+          "OBC": false,
+          "state": "",
+          "TimetableKey": "",
+          "SessionKey": "",
+          "SessionPeriod": "",
+          "Circuit_Official_Name": "",
+          "ActivityDescription": "",
+          "SeriesMeetingSessionIdentifier": "",
+          "sessionEndTime": "",
+          "Meeting_Start_Date": "",
+          "Meeting_End_Date": "",
+          "Track_Length": "4.309",
+          "Scheduled_Lap_Count": "71",
+          "Scheduled_Distance": "305.879",
+          "Circuit_Location": "São Paulo",
+          "Meeting_Sponsor": "MSC CRUISES",
+          "IsTestEvent": "false",
+          "Season_Meeting_Ordinal": 0,
+          "Championship_Meeting_Ordinal": "20",
+          "session_index": 107,
+          "Meeting_Official_Name": "FORMULA 1 MSC CRUISES GRANDE PRÊMIO DE SÃO PAULO 2026",
+          "Meeting_Display_Date": "6 NOV - 8 NOV",
+          "PageID": null,
+          "sessionEndDate": 0,
+          "sessionStartDate": 0,
+          "Meeting_Country_Name": "Brazil",
+          "Global_Title": "The Cooldown Room S03E22 - OBRIGADO BRAZIL! Ariana Bravo, Emerson Fittipaldi Jr., Alice Powell and Calum Nicholson break down Interlagos. Plus so much more.",
+          "Global_Meeting_Country_Name": "Brazil",
+          "Global_Meeting_Name": "FORMULA 1 MSC CRUISES GRANDE PRÊMIO DE SÃO PAULO 2026",
+          "Diplay_In_Schedule": true,
+          "ContentCategory": "EPISODIC",
+          "HeroMainTitleOverride": "",
+          "video": "S3://f1tv-mezzanine-archive/2026/vod/F1TV-2620-BRAZIL-TCDR-EP23-V04.mp4",
+          "bug": true
+         },
+         "longDescription": "Interlagos never disappoints, and São Paulo brought the samba and the chaos. Join Ariana, Calum, Alice and Emerson Fittipaldi Jr. in the studio as they break down the weekend’s action from Brazil. A Fittipaldi on the sofa for the Brazilian GP? It doesn’t get more fitting than that.",
+         "shortDescription": "OBRIGADO BRAZIL! Ariana Bravo, Emerson Fittipaldi Jr., Alice Powell and Calum Nicholson break down Interlagos. Plus so much more.",
+         "country": "BRA",
+         "year": "2026",
+         "contractStartDate": 1794420900000,
+         "contractEndDate": 4102444799000,
+         "externalId": "F1_SUT_1794419331466",
+         "title": "The Cooldown Room - OBRIGADO BRAZIL! ",
+         "titleBrief": "OBRIGADO BRAZIL!",
+         "objectType": "VIDEO",
+         "duration": 1800,
+         "contentSubtype": "SHOW",
+         "episodeNumber": 22,
+         "season": 2026,
+         "starRating": 0,
+         "pictureUrl": "1000079850-5175d5ef-519a-423f-a4ad-9a1841fbfd57/landscape_web",
+         "language": "ENG",
+         "pcLevel": 2,
+         "pcExtendedRatings": [],
+         "isCopyProtected": true,
+         "copyProtections": [
+          {
+           "securityCode": "01",
+           "securityOption": "00000010"
+          },
+          {
+           "securityCode": "03",
+           "securityOption": "00000001"
+          },
+          {
+           "securityCode": "05",
+           "securityOption": "00000001"
+          }
+         ],
+         "genres": [
+          "The Cooldown Room"
+         ],
+         "availableAlso": [
+          "MOBILE_HLS",
+          "BIG_SCREEN_HLS",
+          "WEB_DASH",
+          "TABLET_DASH",
+          "BIG_SCREEN_DASH",
+          "TABLET_HLS"
+         ],
+         "contentOptions": [],
+         "uiDuration": "00:30:00",
+         "uiSeries": "F1",
+         "entitlement": "Access",
+         "locked": false,
+         "seriesIndicator": true
+        },
+        "containers": {},
+        "platformVariants": [
+         {
+          "subtitlesLanguages": [],
+          "audioLanguages": [],
+          "technicalPackages": [
+           {
+            "packageType": "SVOD"
+           }
+          ]
+         }
+        ],
+        "assets": [
+         {
+          "assetType": "MASTER",
+          "assetName": "VOD_undefined"
+         }
+        ],
+        "uiMetadata": {
+         "mainTitle": "OBRIGADO BRAZIL!",
+         "subTitle": "00:30:00 | Show"
+        }
+       },
+       {
+        "id": "1000079725",
+        "layout": "CONTENT_ITEM",
+        "actions": [
+         {
+          "key": "onClick",
+          "uri": "/2.0/R/ENG/WEB_HLS/ALL/CONTENT/VIDEO/1000079725/PREMIUM/5",
+          "targetType": "DETAILS_PAGE",
+          "href": "/detail/1000079725/jolyon-palmer-s-analysis-sao-paulo"
+         }
+        ],
+        "metadata": {
+         "contentId": 1000079725,
+         "contentType": "VIDEO",
+         "emfAttributes": {
+          "VideoType": "",
+          "MeetingKey": "1299",
+          "MeetingSessionKey": "",
+          "Meeting_Name": "São Paulo Grand Prix",
+          "Meeting_Number": "20",
+          "Circuit_Short_Name": "Interlagos",
+          "Meeting_Code": "F1202620",
+          "MeetingCountryKey": "10",
+          "CircuitKey": "14",
+          "Meeting_Location": "São Paulo",
+          "Series": "FORMULA 1",
+          "OBC": false,
+          "state": "",
+          "TimetableKey": "",
+          "SessionKey": "",
+          "SessionPeriod": "",
+          "Circuit_Official_Name": "",
+          "ActivityDescription": "",
+          "SeriesMeetingSessionIdentifier": "",
+          "sessionEndTime": "",
+          "Meeting_Start_Date": "",
+          "Meeting_End_Date": "",
+          "Track_Length": "4.309",
+          "Scheduled_Lap_Count": "71",
+          "Scheduled_Distance": "305.879",
+          "Circuit_Location": "São Paulo",
+          "Meeting_Sponsor": "MSC CRUISES",
+          "IsTestEvent": "false",
+          "Season_Meeting_Ordinal": 0,
+          "Championship_Meeting_Ordinal": "20",
+          "session_index": 108,
+          "Meeting_Official_Name": "FORMULA 1 MSC CRUISES GRANDE PRÊMIO DE SÃO PAULO 2026",
+          "Meeting_Display_Date": "6 NOV - 8 NOV",
+          "PageID": null,
+          "sessionEndDate": 0,
+          "sessionStartDate": 0,
+          "Meeting_Country_Name": "Brazil",
+          "Global_Title": "2620 São Paulo GP - Jolyon Palmer Analysis",
+          "Global_Meeting_Country_Name": "Brazil",
+          "Global_Meeting_Name": "FORMULA 1 MSC CRUISES GRANDE PRÊMIO DE SÃO PAULO 2026",
+          "Diplay_In_Schedule": true,
+          "ContentCategory": "EPISODIC",
+          "HeroMainTitleOverride": "",
+          "video": "S3://f1tv-mezzanine-archive/2026/vod/F1TV_2620_Brazil_JPA.mp4",
+          "bug": true
+         },
+         "longDescription": "Former F1 driver and F1 TV analyst Jolyon Palmer looks at how the drivers and teams coped with the changeable conditions at the 2026 São Paulo Grand Prix.",
+         "shortDescription": "Analysis of all the action from a thrilling Sao Paulo Grand Prix.",
+         "country": "BRA",
+         "year": "2026",
+         "contractStartDate": 1794322735000,
+         "contractEndDate": 4102444799000,
+         "externalId": "F1_SUT_1794322735321",
+         "title": "Jolyon Palmer's Analysis - São Paulo",
+         "titleBrief": "Who were the Rain Masters at Interlagos?",
+         "objectType": "VIDEO",
+         "duration": 2085,
+         "contentSubtype": "ANALYSIS",
+         "episodeNumber": 20,
+         "season": 2026,
+         "starRating": 0,
+         "pictureUrl": "1000079725-897156d8-88bb-47b4-9c62-ee42dd0171ae/landscape_web",
+         "language": "ENG",
+         "pcLevel": 2,
+         "pcExtendedRatings": [],
+         "isCopyProtected": true,
+         "copyProtections": [
+          {
+           "securityCode": "01",
+           "securityOption": "00000010"
+          },
+          {
+           "securityCode": "03",
+           "securityOption": "00000001"
+          },
+          {
+           "securityCode": "05",
+           "securityOption": "00000001"
+          }
+         ],
+         "genres": [
+          "Jolyon Palmer's Analysis"
+         ],
+         "availableAlso": [
+          "MOBILE_HLS",
+          "BIG_SCREEN_HLS",
+          "WEB_DASH",
+          "BIG_SCREEN_DASH",
+          "TABLET_DASH",
+          "TABLET_HLS"
+         ],
+         "contentOptions": [],
+         "uiDuration": "00:34:45",
+         "uiSeries": "F1",
+         "entitlement": "Access",
+         "locked": false,
+         "seriesIndicator": true
+        },
+        "containers": {},
+        "platformVariants": [
+         {
+          "subtitlesLanguages": [],
+          "audioLanguages": [],
+          "technicalPackages": [
+           {
+            "packageType": "SVOD"
+           }
+          ]
+         }
+        ],
+        "assets": [
+         {
+          "assetType": "MASTER",
+          "assetName": "VOD_undefined"
+         }
+        ],
+        "uiMetadata": {
+         "mainTitle": "Who were the Rain Masters at Interlagos?",
+         "subTitle": "00:34:45 | Analysis"
+        }
+       },
+       {
+        "id": "1000079723",
+        "layout": "CONTENT_ITEM",
+        "actions": [
+         {
+          "key": "onClick",
+          "uri": "/2.0/R/ENG/WEB_HLS/ALL/CONTENT/VIDEO/1000079723/PREMIUM/5",
+          "targetType": "DETAILS_PAGE",
+          "href": "/detail/1000079723/radio-rewind-sao-paulo"
+         }
+        ],
+        "metadata": {
+         "contentId": 1000079723,
+         "contentType": "VIDEO",
+         "emfAttributes": {
+          "VideoType": "",
+          "MeetingKey": "1299",
+          "MeetingSessionKey": "11412",
+          "Meeting_Name": "São Paulo Grand Prix",
+          "Meeting_Number": "20",
+          "Circuit_Short_Name": "Interlagos",
+          "Meeting_Code": "F1202620",
+          "MeetingCountryKey": "10",
+          "CircuitKey": "14",
+          "Meeting_Location": "São Paulo",
+          "Series": "FORMULA 1",
+          "OBC": false,
+          "state": "",
+          "TimetableKey": "",
+          "SessionKey": "",
+          "SessionPeriod": "",
+          "Circuit_Official_Name": "",
+          "ActivityDescription": "",
+          "SeriesMeetingSessionIdentifier": "",
+          "sessionEndTime": "2026-11-08T16:00:00-03:00",
+          "Meeting_Start_Date": "",
+          "Meeting_End_Date": "",
+          "Track_Length": "4.309",
+          "Scheduled_Lap_Count": "71",
+          "Scheduled_Distance": "305.879",
+          "Circuit_Location": "São Paulo",
+          "Meeting_Sponsor": "MSC CRUISES",
+          "IsTestEvent": "false",
+          "Season_Meeting_Ordinal": 0,
+          "Championship_Meeting_Ordinal": "20",
+          "session_index": 118,
+          "Meeting_Official_Name": "FORMULA 1 MSC CRUISES GRANDE PRÊMIO DE SÃO PAULO 2026",
+          "Meeting_Display_Date": "6 NOV - 8 NOV",
+          "PageID": null,
+          "sessionEndDate": 0,
+          "sessionStartDate": 1794157200000,
+          "Meeting_Country_Name": "Brazil",
+          "Global_Title": "2620 São Paulo GP - Radio Rewind",
+          "Global_Meeting_Country_Name": "Brazil",
+          "Global_Meeting_Name": "FORMULA 1 MSC CRUISES GRANDE PRÊMIO DE SÃO PAULO 2026",
+          "Diplay_In_Schedule": true,
+          "ContentCategory": "EPISODIC",
+          "HeroMainTitleOverride": "",
+          "video": "S3://f1tv-mezzanine-archive/2026/vod/F1TV_2620SaoPauloRadioRewind_DS.mp4",
+          "bug": true
+         },
+         "longDescription": "The best team radio from Brazil.",
+         "shortDescription": "The best team radio from Brazil.",
+         "country": "BRA",
+         "year": "2026",
+         "contractStartDate": 1794247116000,
+         "contractEndDate": 4102444799000,
+         "externalId": "F1_SUT_1794247115066",
+         "title": "Radio Rewind - São Paulo",
+         "titleBrief": "Radio Rewind",
+         "objectType": "VIDEO",
+         "duration": 1090,
+         "contentSubtype": "FEATURE",
+         "episodeNumber": 20,
+         "season": 2026,
+         "starRating": 0,
+         "pictureUrl": "1000079723-3525639e-963b-48ed-96ab-4f654ed591f1/landscape_web",
+         "language": "ENG",
+         "pcLevel": 2,
+         "pcExtendedRatings": [],
+         "isCopyProtected": true,
+         "copyProtections": [
+          {
+           "securityCode": "01",
+           "securityOption": "00000010"
+          },
+          {
+           "securityCode": "03",
+           "securityOption": "00000001"
+          },
+          {
+           "securityCode": "05",
+           "securityOption": "00000001"
+          }
+         ],
+         "genres": [
+          "Radio Rewind"
+         ],
+         "availableAlso": [
+          "MOBILE_HLS",
+          "BIG_SCREEN_HLS",
+          "WEB_DASH",
+          "TABLET_DASH",
+          "BIG_SCREEN_DASH",
+          "TABLET_HLS"
+         ],
+         "contentOptions": [],
+         "uiDuration": "00:18:10",
+         "uiSeries": "F1",
+         "entitlement": "Access",
+         "locked": false,
+         "seriesIndicator": true
+        },
+        "containers": {},
+        "platformVariants": [
+         {
+          "subtitlesLanguages": [],
+          "audioLanguages": [],
+          "technicalPackages": [
+           {
+            "packageType": "SVOD"
+           }
+          ]
+         }
+        ],
+        "assets": [
+         {
+          "assetType": "MASTER",
+          "assetName": "VOD_undefined"
+         }
+        ],
+        "uiMetadata": {
+         "mainTitle": "Radio Rewind",
+         "subTitle": "00:18:10 | Feature"
+        }
+       }
+      ]
+     },
+     "uriOriginal": "/TRAY/EXTCOLLECTION/11131",
+     "typeOriginal": "REMOTE"
+    },
+    "actions": [
+     {
+      "key": "onTitleClick",
+      "uri": "/2.0/R/ENG/WEB_HLS/ALL/PAGE/EXTCOLLECTION/11131/PREMIUM/5?pageID=395_3749&layout=horizontal_thumbnail",
+      "targetType": "WALL_PAGE",
+      "type": "REMOTE",
+      "layout": "horizontal_thumbnail",
+      "href": "/collection/11131/new-episodes/pageID/395_3749"
+     }
+    ]
+   },
+   {
+    "layout": "horizontal_thumbnail",
+    "title": "2026 São Paulo Grand Prix",
+    "id": "395_4622",
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "metadata": {
+     "label": "2026 São Paulo Grand Prix",
+     "imageUrl": "",
+     "id": "395_4622",
+     "hash": "d41d8cd98f00b204e9800998ecf8427e",
+     "railMainTitle": "{titleBrief}",
+     "tray_background": "",
+     "schedule": [
+      {
+       "pubDays": "",
+       "pubStartDate": 1794204000,
+       "pubEndDate": 1795046400,
+       "pubStartTime": "",
+       "pubEndTime": "",
+       "timezone": "UTC+00:00"
+      }
+     ],
+     "seriesIndicator": true
+    },
+    "retrieveItems": {
+     "resultObj": {
+      "total": 25,
+      "searchResultTotal": 26,
+      "collectionName": "",
+      "containers": [
+       {
+        "id": "1000079725",
+        "layout": "CONTENT_ITEM",
+        "actions": [
+         {
+          "key": "onClick",
+          "uri": "/2.0/R/ENG/WEB_HLS/ALL/CONTENT/VIDEO/1000079725/PREMIUM/5",
+          "targetType": "DETAILS_PAGE",
+          "href": "/detail/1000079725/jolyon-palmer-s-analysis-sao-paulo"
+         }
+        ],
+        "properties": [
+         {
+          "meeting_Number": 20,
+          "sessionEndTime": 0,
+          "series": "FORMULA 1",
+          "lastUpdatedDate": 1794325927194,
+          "lastIndexedDate": 1794325927194,
+          "season_Meeting_Ordinal": 0,
+          "meeting_Start_Date": 0,
+          "meeting_End_Date": 0,
+          "season": 2026,
+          "session_index": 108
+         }
+        ],
+        "metadata": {
+         "contentId": 1000079725,
+         "contentType": "VIDEO",
+         "emfAttributes": {
+          "VideoType": "",
+          "MeetingKey": "1299",
+          "MeetingSessionKey": "",
+          "Meeting_Name": "São Paulo Grand Prix",
+          "Meeting_Number": "20",
+          "Circuit_Short_Name": "Interlagos",
+          "Meeting_Code": "F1202620",
+          "MeetingCountryKey": "10",
+          "CircuitKey": "14",
+          "Meeting_Location": "São Paulo",
+          "Series": "FORMULA 1",
+          "OBC": false,
+          "state": "",
+          "TimetableKey": "",
+          "SessionKey": "",
+          "SessionPeriod": "",
+          "Circuit_Official_Name": "",
+          "ActivityDescription": "",
+          "SeriesMeetingSessionIdentifier": "",
+          "sessionEndTime": "",
+          "Meeting_Start_Date": "",
+          "Meeting_End_Date": "",
+          "Track_Length": "4.309",
+          "Scheduled_Lap_Count": "71",
+          "Scheduled_Distance": "305.879",
+          "Circuit_Location": "São Paulo",
+          "Meeting_Sponsor": "MSC CRUISES",
+          "IsTestEvent": "false",
+          "Season_Meeting_Ordinal": 0,
+          "Championship_Meeting_Ordinal": "20",
+          "session_index": 108,
+          "Meeting_Official_Name": "FORMULA 1 MSC CRUISES GRANDE PRÊMIO DE SÃO PAULO 2026",
+          "Meeting_Display_Date": "6 NOV - 8 NOV",
+          "PageID": null,
+          "sessionEndDate": 0,
+          "sessionStartDate": 0,
+          "Meeting_Country_Name": "Brazil",
+          "Global_Title": "2620 São Paulo GP - Jolyon Palmer Analysis",
+          "Global_Meeting_Country_Name": "Brazil",
+          "Global_Meeting_Name": "FORMULA 1 MSC CRUISES GRANDE PRÊMIO DE SÃO PAULO 2026",
+          "Diplay_In_Schedule": true,
+          "ContentCategory": "EPISODIC",
+          "HeroMainTitleOverride": ""
+         },
+         "longDescription": "Former F1 driver and F1 TV analyst Jolyon Palmer looks at how the drivers and teams coped with the changeable conditions at the 2026 São Paulo Grand Prix.",
+         "shortDescription": "Analysis of all the action from a thrilling Sao Paulo Grand Prix.",
+         "country": "BRA",
+         "year": "2026",
+         "contractStartDate": 1794322735000,
+         "contractEndDate": 4102444799000,
+         "externalId": "F1_SUT_1794322735321",
+         "title": "Jolyon Palmer's Analysis - São Paulo",
+         "titleBrief": "Who were the Rain Masters at Interlagos?",
+         "objectType": "VIDEO",
+         "duration": 2085,
+         "contentSubtype": "ANALYSIS",
+         "episodeNumber": 20,
+         "season": 2026,
+         "starRating": 0,
+         "pictureUrl": "1000079725-897156d8-88bb-47b4-9c62-ee42dd0171ae/landscape_web",
+         "language": "ENG",
+         "pcLevel": 2,
+         "isCopyProtected": true,
+         "copyProtections": [
+          {
+           "securityCode": "01",
+           "securityOption": "00000010"
+          },
+          {
+           "securityCode": "03",
+           "securityOption": "00000001"
+          },
+          {
+           "securityCode": "05",
+           "securityOption": "00000001"
+          }
+         ],
+         "genres": [
+          "Jolyon Palmer's Analysis"
+         ],
+         "availableAlso": [
+          "MOBILE_HLS",
+          "BIG_SCREEN_HLS",
+          "WEB_DASH",
+          "BIG_SCREEN_DASH",
+          "TABLET_DASH",
+          "TABLET_HLS"
+         ],
+         "contentOptions": [],
+         "uiDuration": "00:34:45",
+         "uiSeries": "F1",
+         "entitlement": "Access",
+         "locked": false,
+         "seriesIndicator": true
+        },
+        "containers": {},
+        "platformVariants": [
+         {
+          "cpId": 644726,
+          "subtitlesLanguages": [],
+          "pictureUrl": "1000079725-897156d8-88bb-47b4-9c62-ee42dd0171ae",
+          "videoUrl": "https://ott-video-cf.formula1.com/hls/F1_SUT_1794322735321_1794325679075/index.m3u8",
+          "audioLanguages": [
+           {
+            "isPreferred": false,
+            "audioLanguageName": "ENG",
+            "audioId": 1
+           }
+          ],
+          "hasTrailer": false,
+          "videoType": "HD",
+          "technicalPackages": [
+           {
+            "packageId": 1060,
+            "packageName": "VOD",
+            "packageType": "SVOD"
+           }
+          ]
+         }
+        ],
+        "uiMetadata": {
+         "mainTitle": "Who were the Rain Masters at Interlagos?",
+         "subTitle": "00:34:45 | Analysis"
+        }
+       },
+       {
+        "id": "1000079721",
+        "layout": "CONTENT_ITEM",
+        "actions": [
+         {
+          "key": "onClick",
+          "uri": "/2.0/R/ENG/WEB_HLS/ALL/CONTENT/VIDEO/1000079721/PREMIUM/5",
+          "targetType": "DETAILS_PAGE",
+          "href": "/detail/1000079721/race-in-30-sao-paulo"
+         }
+        ],
+        "properties": [
+         {
+          "meeting_Number": 20,
+          "sessionEndTime": 1794164400000,
+          "series": "FORMULA 1",
+          "lastUpdatedDate": 1794178119023,
+          "lastIndexedDate": 1794178119023,
+          "season_Meeting_Ordinal": 0,
+          "meeting_Start_Date": 0,
+          "meeting_End_Date": 0,
+          "season": 2026,
+          "session_index": 109,
+          "meetingSessionKey": 11412
+         }
+        ],
+        "metadata": {
+         "contentId": 1000079721,
+         "contentType": "VIDEO",
+         "emfAttributes": {
+          "VideoType": "",
+          "MeetingKey": "1299",
+          "MeetingSessionKey": "11412",
+          "Meeting_Name": "São Paulo Grand Prix",
+          "Meeting_Number": "20",
+          "Circuit_Short_Name": "Interlagos",
+          "Meeting_Code": "F1202620",
+          "MeetingCountryKey": "10",
+          "CircuitKey": "14",
+          "Meeting_Location": "São Paulo",
+          "Series": "FORMULA 1",
+          "OBC": false,
+          "state": "",
+          "TimetableKey": "",
+          "SessionKey": "",
+          "SessionPeriod": "",
+          "Circuit_Official_Name": "",
+          "ActivityDescription": "",
+          "SeriesMeetingSessionIdentifier": "",
+          "sessionEndTime": "2026-11-08T16:00:00-03:00",
+          "Meeting_Start_Date": "",
+          "Meeting_End_Date": "",
+          "Track_Length": "4.309",
+          "Scheduled_Lap_Count": "71",
+          "Scheduled_Distance": "305.879",
+          "Circuit_Location": "São Paulo",
+          "Meeting_Sponsor": "MSC CRUISES",
+          "IsTestEvent": "false",
+          "Season_Meeting_Ordinal": 0,
+          "Championship_Meeting_Ordinal": "20",
+          "session_index": 109,
+          "Meeting_Official_Name": "FORMULA 1 MSC CRUISES GRANDE PRÊMIO DE SÃO PAULO 2026",
+          "Meeting_Display_Date": "6 NOV - 8 NOV",
+          "PageID": null,
+          "sessionEndDate": 1794164400000,
+          "sessionStartDate": 1794157200000,
+          "Meeting_Country_Name": "Brazil",
+          "Global_Title": "2620 São Paulo GP - F1 Race in 30 (ROW)",
+          "Global_Meeting_Country_Name": "Brazil",
+          "Global_Meeting_Name": "FORMULA 1 MSC CRUISES GRANDE PRÊMIO DE SÃO PAULO 2026",
+          "Diplay_In_Schedule": true,
+          "ContentCategory": "EPISODIC",
+          "HeroMainTitleOverride": ""
+         },
+         "longDescription": "Watch the best of the race action from São Paulo.",
+         "shortDescription": "Race action from São Paulo.",
+         "country": "BRA",
+         "year": "2026",
+         "contractStartDate": 1794170430000,
+         "contractEndDate": 4102444799000,
+         "externalId": "F1_SUT_1794170429415",
+         "title": "Race in 30 - São Paulo",
+         "titleBrief": "Race in 30",
+         "objectType": "VIDEO",
+         "duration": 1795,
+         "contentSubtype": "EXTENDED HIGHLIGHTS",
+         "episodeNumber": 20,
+         "season": 2026,
+         "starRating": 0,
+         "pictureUrl": "1000079721-b14c1847-c75b-4ca0-9ce8-c85c6906c871/landscape_web",
+         "language": "ENG",
+         "pcLevel": 2,
+         "isCopyProtected": true,
+         "copyProtections": [
+          {
+           "securityCode": "01",
+           "securityOption": "00000010"
+          },
+          {
+           "securityCode": "03",
+           "securityOption": "00000001"
+          },
+          {
+           "securityCode": "05",
+           "securityOption": "00000001"
+          }
+         ],
+         "genres": [
+          "Race In 30"
+         ],
+         "availableAlso": [
+          "MOBILE_HLS",
+          "BIG_SCREEN_HLS",
+          "WEB_DASH",
+          "TABLET_DASH",
+          "BIG_SCREEN_DASH",
+          "TABLET_HLS"
+         ],
+         "contentOptions": [],
+         "uiDuration": "00:29:55",
+         "uiSeries": "F1",
+         "entitlement": "Access",
+         "locked": false,
+         "seriesIndicator": true
+        },
+        "containers": {},
+        "platformVariants": [
+         {
+          "cpId": 644690,
+          "subtitlesLanguages": [],
+          "pictureUrl": "1000079721-b14c1847-c75b-4ca0-9ce8-c85c6906c871",
+          "videoUrl": "https://ott-video-cf.formula1.com/hls/F1_SUT_1794170429415_1794177812291/index.m3u8",
+          "audioLanguages": [
+           {
+            "isPreferred": false,
+            "audioLanguageName": "ENG",
+            "audioId": 1
+           }
+          ],
+          "hasTrailer": false,
+          "videoType": "HD",
+          "technicalPackages": [
+           {
+            "packageId": 1050,
+            "packageName": "VOD_Extended",
+            "packageType": "SVOD"
+           }
+          ]
+         }
+        ],
+        "uiMetadata": {
+         "mainTitle": "Race in 30",
+         "subTitle": "00:29:55 | Extended Highlights"
+        }
+       },
+       {
+        "id": "1000010431",
+        "layout": "CONTENT_ITEM",
+        "actions": [
+         {
+          "key": "onClick",
+          "uri": "/2.0/R/ENG/WEB_HLS/ALL/CONTENT/VIDEO/1000010431/PREMIUM/5?action=play",
+          "targetType": "DETAILS_PAGE",
+          "href": "/detail/1000010431/2026-sao-paulo-grand-prix?action=play"
+         }
+        ],
+        "properties": [
+         {
+          "meeting_Number": 20,
+          "sessionEndTime": 1794164400000,
+          "series": "FORMULA 1",
+          "lastUpdatedDate": 1794505045536,
+          "lastIndexedDate": 1794505045536,
+          "season_Meeting_Ordinal": 0,
+          "meeting_Start_Date": 0,
+          "meeting_End_Date": 0,
+          "season": 2026,
+          "session_index": 110,
+          "meetingSessionKey": 11412
+         }
+        ],
+        "metadata": {
+         "contentId": 1000010431,
+         "contentType": "VIDEO",
+         "emfAttributes": {
+          "VideoType": "meetingSession",
+          "MeetingKey": "1299",
+          "MeetingSessionKey": "11412",
+          "Meeting_Name": "São Paulo Grand Prix",
+          "Meeting_Number": "20",
+          "Circuit_Short_Name": "Interlagos",
+          "Meeting_Code": "F1202620",
+          "MeetingCountryKey": "10",
+          "CircuitKey": "14",
+          "Meeting_Location": "São Paulo",
+          "Series": "FORMULA 1",
+          "OBC": true,
+          "state": "Pre-Live",
+          "TimetableKey": "",
+          "SessionKey": "",
+          "SessionPeriod": "",
+          "Circuit_Official_Name": "",
+          "ActivityDescription": "",
+          "SeriesMeetingSessionIdentifier": "",
+          "sessionEndTime": "2026-11-08T16:00:00-03:00",
+          "Meeting_Start_Date": "",
+          "Meeting_End_Date": "",
+          "Track_Length": "",
+          "Scheduled_Lap_Count": "",
+          "Scheduled_Distance": "",
+          "Circuit_Location": "",
+          "Meeting_Sponsor": "",
+          "IsTestEvent": "",
+          "Season_Meeting_Ordinal": 0,
+          "Championship_Meeting_Ordinal": "",
+          "session_index": 110,
+          "Meeting_Official_Name": "",
+          "Meeting_Display_Date": "",
+          "PageID": null,
+          "sessionEndDate": 1794164400000,
+          "sessionStartDate": 1794157200000,
+          "Meeting_Country_Name": "Brazil",
+          "Global_Title": "2620 São Paulo GP - F1 Race",
+          "Global_Meeting_Country_Name": "Brazil",
+          "Global_Meeting_Name": "São Paulo Grand Prix",
+          "Diplay_In_Schedule": true,
+          "ContentCategory": "RACE",
+          "HeroMainTitleOverride": ""
+         },
+         "longDescription": "Race",
+         "shortDescription": "Race",
+         "country": "BRA",
+         "year": "2026",
+         "contractStartDate": 1788973200000,
+         "contractEndDate": 4102444799000,
+         "externalId": "FOM_SESSION_11412",
+         "title": "2026 São Paulo Grand Prix",
+         "titleBrief": "Race",
+         "objectType": "VIDEO",
+         "duration": 8052,
+         "contentSubtype": "REPLAY",
+         "episodeNumber": 20,
+         "season": 2026,
+         "starRating": 0,
+         "pictureUrl": "1000010431-bbce179f-cda6-4fbd-957d-00b2e98a334d/landscape_web",
+         "language": "ENG",
+         "pcLevel": 2,
+         "isCopyProtected": true,
+         "copyProtections": [
+          {
+           "securityCode": "01",
+           "securityOption": "00000010"
+          },
+          {
+           "securityCode": "03",
+           "securityOption": "00000001"
+          },
+          {
+           "securityCode": "05",
+           "securityOption": "00000001"
+          }
+         ],
+         "genres": [
+          "Race"
+         ],
+         "availableAlso": [
+          "MOBILE_HLS",
+          "BIG_SCREEN_HLS",
+          "WEB_DASH",
+          "BIG_SCREEN_DASH",
+          "TABLET_DASH",
+          "TABLET_HLS"
+         ],
+         "contentOptions": [],
+         "uiDuration": "02:14:12",
+         "uiSeries": "F1",
+         "entitlement": "Access",
+         "locked": false,
+         "seriesIndicator": true
+        },
+        "containers": {
+         "bundles": [
+          {
+           "bundleId": 1500000325,
+           "bundleType": "BUNDLE",
+           "bundleSubtype": "MEETING",
+           "isParent": true,
+           "orderId": 0
+          },
+          {
+           "bundleId": 1700000046,
+           "bundleType": "GROUP_OF_BUNDLES",
+           "bundleSubtype": "YEAR",
+           "isParent": false,
+           "orderId": 86
+          }
+         ]
+        },
+        "platformVariants": [
+         {
+          "cpId": 86003,
+          "subtitlesLanguages": [],
+          "pictureUrl": "1000010431-bbce179f-cda6-4fbd-957d-00b2e98a334d",
+          "videoUrl": "https://f1tv.formula1.com/dummyvideo.m3u8",
+          "audioLanguages": [
+           {
+            "isPreferred": false,
+            "audioLanguageName": "ENG",
+            "audioId": 1
+           }
+          ],
+          "hasTrailer": false,
+          "videoType": "HD",
+          "technicalPackages": [
+           {
+            "packageId": 1000,
+            "packageName": "F1_Live",
+            "packageType": "SVOD"
+           }
+          ]
+         }
+        ],
+        "parents": [
+         {
+          "parentId": 1500000325,
+          "parentType": "BUNDLE",
+          "parentSubType": "MEETING"
+         },
+         {
+          "parentId": 1700000046,
+          "parentType": "GROUP_OF_BUNDLES",
+          "parentSubType": "YEAR"
+         }
+        ],
+        "uiMetadata": {
+         "mainTitle": "Race",
+         "subTitle": "02:14:12 | Replay"
+        }
+       },
+       {
+        "id": "1000079718",
+        "layout": "CONTENT_ITEM",
+        "actions": [
+         {
+          "key": "onClick",
+          "uri": "/2.0/R/ENG/WEB_HLS/ALL/CONTENT/VIDEO/1000079718/PREMIUM/5",
+          "targetType": "DETAILS_PAGE",
+          "href": "/detail/1000079718/race-highlights-sao-paulo"
+         }
+        ],
+        "properties": [
+         {
+          "meeting_Number": 20,
+          "sessionEndTime": 1794164400000,
+          "series": "FORMULA 1",
+          "lastUpdatedDate": 1794300039732,
+          "lastIndexedDate": 1794300039732,
+          "season_Meeting_Ordinal": 0,
+          "meeting_Start_Date": 0,
+          "meeting_End_Date": 0,
+          "season": 2026,
+          "session_index": 112,
+          "meetingSessionKey": 11412
+         }
+        ],
+        "metadata": {
+         "contentId": 1000079718,
+         "contentType": "VIDEO",
+         "emfAttributes": {
+          "VideoType": "",
+          "MeetingKey": "1299",
+          "MeetingSessionKey": "11412",
+          "Meeting_Name": "São Paulo Grand Prix",
+          "Meeting_Number": "20",
+          "Circuit_Short_Name": "Interlagos",
+          "Meeting_Code": "F1202620",
+          "MeetingCountryKey": "10",
+          "CircuitKey": "14",
+          "Meeting_Location": "São Paulo",
+          "Series": "FORMULA 1",
+          "OBC": false,
+          "state": "",
+          "TimetableKey": "",
+          "SessionKey": "",
+          "SessionPeriod": "",
+          "Circuit_Official_Name": "",
+          "ActivityDescription": "",
+          "SeriesMeetingSessionIdentifier": "",
+          "sessionEndTime": "2026-11-08T16:00:00-03:00",
+          "Meeting_Start_Date": "",
+          "Meeting_End_Date": "",
+          "Track_Length": "4.309",
+          "Scheduled_Lap_Count": "71",
+          "Scheduled_Distance": "305.879",
+          "Circuit_Location": "São Paulo",
+          "Meeting_Sponsor": "MSC CRUISES",
+          "IsTestEvent": "false",
+          "Season_Meeting_Ordinal": 0,
+          "Championship_Meeting_Ordinal": "20",
+          "session_index": 112,
+          "Meeting_Official_Name": "FORMULA 1 MSC CRUISES GRANDE PRÊMIO DE SÃO PAULO 2026",
+          "Meeting_Display_Date": "6 NOV - 8 NOV",
+          "PageID": null,
+          "sessionEndDate": 1794164400000,
+          "sessionStartDate": 1794157200000,
+          "Meeting_Country_Name": "Brazil",
+          "Global_Title": "2620 São Paulo GP - F1 Race Highlights (ROW)",
+          "Global_Meeting_Country_Name": "Brazil",
+          "Global_Meeting_Name": "FORMULA 1 MSC CRUISES GRANDE PRÊMIO DE SÃO PAULO 2026",
+          "Diplay_In_Schedule": true,
+          "ContentCategory": "RACE",
+          "HeroMainTitleOverride": ""
+         },
+         "longDescription": "Watch the best of the race action from São Paulo.",
+         "shortDescription": "Race action from São Paulo.",
+         "country": "BRA",
+         "year": "2026",
+         "contractStartDate": 1794169232000,
+         "contractEndDate": 4102444799000,
+         "externalId": "F1_SUT_1794169231597",
+         "title": "Race Highlights - São Paulo",
+         "titleBrief": "Race Highlights",
+         "objectType": "VIDEO",
+         "duration": 483,
+         "contentSubtype": "RACE HIGHLIGHTS",
+         "episodeNumber": 20,
+         "season": 2026,
+         "starRating": 0,
+         "pictureUrl": "1000079718-c09815fb-ba2d-4f9b-ae3a-38c105c60b3d/landscape_web",
+         "language": "ENG",
+         "pcLevel": 2,
+         "isCopyProtected": true,
+         "copyProtections": [
+          {
+           "securityCode": "01",
+           "securityOption": "00000010"
+          },
+          {
+           "securityCode": "03",
+           "securityOption": "00000001"
+          },
+          {
+           "securityCode": "05",
+           "securityOption": "00000001"
+          }
+         ],
+         "genres": [
+          "Race Highlights"
+         ],
+         "availableAlso": [
+          "MOBILE_HLS",
+          "BIG_SCREEN_HLS",
+          "WEB_DASH",
+          "BIG_SCREEN_DASH",
+          "TABLET_DASH",
+          "TABLET_HLS"
+         ],
+         "contentOptions": [],
+         "uiDuration": "00:08:03",
+         "uiSeries": "F1",
+         "entitlement": "Access",
+         "locked": false,
+         "seriesIndicator": true
+        },
+        "containers": {},
+        "platformVariants": [
+         {
+          "cpId": 644667,
+          "subtitlesLanguages": [],
+          "pictureUrl": "1000079718-c09815fb-ba2d-4f9b-ae3a-38c105c60b3d",
+          "videoUrl": "https://ott-video-cf.formula1.com/hls/F1_SUT_1794169231597_1794172849642/index.m3u8",
+          "audioLanguages": [
+           {
+            "isPreferred": false,
+            "audioLanguageName": "ENG",
+            "audioId": 1
+           }
+          ],
+          "hasTrailer": false,
+          "videoType": "HD",
+          "technicalPackages": [
+           {
+            "packageId": 1210,
+            "packageName": "VOD_ROW",
+            "packageType": "SVOD"
+           }
+          ]
+         }
+        ],
+        "uiMetadata": {
+         "mainTitle": "Race Highlights",
+         "subTitle": "00:08:03 | Race Highlights"
+        }
+       },
+       {
+        "id": "1000079723",
+        "layout": "CONTENT_ITEM",
+        "actions": [
+         {
+          "key": "onClick",
+          "uri": "/2.0/R/ENG/WEB_HLS/ALL/CONTENT/VIDEO/1000079723/PREMIUM/5",
+          "targetType": "DETAILS_PAGE",
+          "href": "/detail/1000079723/radio-rewind-sao-paulo"
+         }
+        ],
+        "properties": [
+         {
+          "meeting_Number": 20,
+          "sessionEndTime": 1794164400000,
+          "series": "FORMULA 1",
+          "lastUpdatedDate": 1794247873728,
+          "lastIndexedDate": 1794247873728,
+          "season_Meeting_Ordinal": 0,
+          "meeting_Start_Date": 0,
+          "meeting_End_Date": 0,
+          "season": 2026,
+          "session_index": 118,
+          "meetingSessionKey": 11412
+         }
+        ],
+        "metadata": {
+         "contentId": 1000079723,
+         "contentType": "VIDEO",
+         "emfAttributes": {
+          "VideoType": "",
+          "MeetingKey": "1299",
+          "MeetingSessionKey": "11412",
+          "Meeting_Name": "São Paulo Grand Prix",
+          "Meeting_Number": "20",
+          "Circuit_Short_Name": "Interlagos",
+          "Meeting_Code": "F1202620",
+          "MeetingCountryKey": "10",
+          "CircuitKey": "14",
+          "Meeting_Location": "São Paulo",
+          "Series": "FORMULA 1",
+          "OBC": false,
+          "state": "",
+          "TimetableKey": "",
+          "SessionKey": "",
+          "SessionPeriod": "",
+          "Circuit_Official_Name": "",
+          "ActivityDescription": "",
+          "SeriesMeetingSessionIdentifier": "",
+          "sessionEndTime": "2026-11-08T16:00:00-03:00",
+          "Meeting_Start_Date": "",
+          "Meeting_End_Date": "",
+          "Track_Length": "4.309",
+          "Scheduled_Lap_Count": "71",
+          "Scheduled_Distance": "305.879",
+          "Circuit_Location": "São Paulo",
+          "Meeting_Sponsor": "MSC CRUISES",
+          "IsTestEvent": "false",
+          "Season_Meeting_Ordinal": 0,
+          "Championship_Meeting_Ordinal": "20",
+          "session_index": 118,
+          "Meeting_Official_Name": "FORMULA 1 MSC CRUISES GRANDE PRÊMIO DE SÃO PAULO 2026",
+          "Meeting_Display_Date": "6 NOV - 8 NOV",
+          "PageID": null,
+          "sessionEndDate": 0,
+          "sessionStartDate": 1794157200000,
+          "Meeting_Country_Name": "Brazil",
+          "Global_Title": "2620 São Paulo GP - Radio Rewind",
+          "Global_Meeting_Country_Name": "Brazil",
+          "Global_Meeting_Name": "FORMULA 1 MSC CRUISES GRANDE PRÊMIO DE SÃO PAULO 2026",
+          "Diplay_In_Schedule": true,
+          "ContentCategory": "EPISODIC",
+          "HeroMainTitleOverride": ""
+         },
+         "longDescription": "The best team radio from Brazil.",
+         "shortDescription": "The best team radio from Brazil.",
+         "country": "BRA",
+         "year": "2026",
+         "contractStartDate": 1794247116000,
+         "contractEndDate": 4102444799000,
+         "externalId": "F1_SUT_1794247115066",
+         "title": "Radio Rewind - São Paulo",
+         "titleBrief": "Radio Rewind",
+         "objectType": "VIDEO",
+         "duration": 1090,
+         "contentSubtype": "FEATURE",
+         "episodeNumber": 20,
+         "season": 2026,
+         "starRating": 0,
+         "pictureUrl": "1000079723-3525639e-963b-48ed-96ab-4f654ed591f1/landscape_web",
+         "language": "ENG",
+         "pcLevel": 2,
+         "isCopyProtected": true,
+         "copyProtections": [
+          {
+           "securityCode": "01",
+           "securityOption": "00000010"
+          },
+          {
+           "securityCode": "03",
+           "securityOption": "00000001"
+          },
+          {
+           "securityCode": "05",
+           "securityOption": "00000001"
+          }
+         ],
+         "genres": [
+          "Radio Rewind"
+         ],
+         "availableAlso": [
+          "MOBILE_HLS",
+          "BIG_SCREEN_HLS",
+          "WEB_DASH",
+          "TABLET_DASH",
+          "BIG_SCREEN_DASH",
+          "TABLET_HLS"
+         ],
+         "contentOptions": [],
+         "uiDuration": "00:18:10",
+         "uiSeries": "F1",
+         "entitlement": "Access",
+         "locked": false,
+         "seriesIndicator": true
+        },
+        "containers": {},
+        "platformVariants": [
+         {
+          "cpId": 644707,
+          "subtitlesLanguages": [],
+          "pictureUrl": "1000079723-3525639e-963b-48ed-96ab-4f654ed591f1",
+          "videoUrl": "https://ott-video-cf.formula1.com/hls/F1_SUT_1794247115066_1794247723210/index.m3u8",
+          "audioLanguages": [
+           {
+            "isPreferred": false,
+            "audioLanguageName": "ENG",
+            "audioId": 1
+           }
+          ],
+          "hasTrailer": false,
+          "videoType": "HD",
+          "technicalPackages": [
+           {
+            "packageId": 1060,
+            "packageName": "VOD",
+            "packageType": "SVOD"
+           }
+          ]
+         }
+        ],
+        "uiMetadata": {
+         "mainTitle": "Radio Rewind",
+         "subTitle": "00:18:10 | Feature"
+        }
+       },
+       {
+        "id": "1000010430",
+        "layout": "CONTENT_ITEM",
+        "actions": [
+         {
+          "key": "onClick",
+          "uri": "/2.0/R/ENG/WEB_HLS/ALL/CONTENT/VIDEO/1000010430/PREMIUM/5?action=play",
+          "targetType": "DETAILS_PAGE",
+          "href": "/detail/1000010430/post-race-show-brazil?action=play"
+         }
+        ],
+        "properties": [
+         {
+          "meeting_Number": 20,
+          "sessionEndTime": 1794166800000,
+          "series": "FORMULA 1",
+          "lastUpdatedDate": 1794505045180,
+          "lastIndexedDate": 1794505045180,
+          "season_Meeting_Ordinal": 0,
+          "meeting_Start_Date": 0,
+          "meeting_End_Date": 0,
+          "season": 2026,
+          "session_index": 119,
+          "meetingSessionKey": 11412003
+         }
+        ],
+        "metadata": {
+         "contentId": 1000010430,
+         "contentType": "VIDEO",
+         "emfAttributes": {
+          "VideoType": "meetingSession",
+          "MeetingKey": "1299",
+          "MeetingSessionKey": "11412003",
+          "Meeting_Name": "São Paulo Grand Prix",
+          "Meeting_Number": "20",
+          "Circuit_Short_Name": "Interlagos",
+          "Meeting_Code": "F1202620",
+          "MeetingCountryKey": "10",
+          "CircuitKey": "14",
+          "Meeting_Location": "São Paulo",
+          "Series": "FORMULA 1",
+          "OBC": false,
+          "state": "Pre-Live",
+          "TimetableKey": "",
+          "SessionKey": "",
+          "SessionPeriod": "",
+          "Circuit_Official_Name": "",
+          "ActivityDescription": "",
+          "SeriesMeetingSessionIdentifier": "",
+          "sessionEndTime": "2026-11-08T16:40:00-03:00",
+          "Meeting_Start_Date": "",
+          "Meeting_End_Date": "",
+          "Track_Length": "",
+          "Scheduled_Lap_Count": "",
+          "Scheduled_Distance": "",
+          "Circuit_Location": "",
+          "Meeting_Sponsor": "",
+          "IsTestEvent": "",
+          "Season_Meeting_Ordinal": 0,
+          "Championship_Meeting_Ordinal": "",
+          "session_index": 119,
+          "Meeting_Official_Name": "",
+          "Meeting_Display_Date": "",
+          "PageID": null,
+          "sessionEndDate": 1794166800000,
+          "sessionStartDate": 1794164400000,
+          "Meeting_Country_Name": "Brazil",
+          "Global_Title": "2620 São Paulo GP - Post-Race Show",
+          "Global_Meeting_Country_Name": "Brazil",
+          "Global_Meeting_Name": "São Paulo Grand Prix",
+          "Diplay_In_Schedule": true,
+          "ContentCategory": "EPISODIC",
+          "HeroMainTitleOverride": ""
+         },
+         "longDescription": "Interviews, reaction and expert analysis from the race.",
+         "shortDescription": "Interviews, reaction and expert analysis from the race.",
+         "country": "BRA",
+         "year": "2026",
+         "contractStartDate": 1788980400000,
+         "contractEndDate": 4102444799000,
+         "externalId": "FOM_SESSION_11412003",
+         "title": "Post-Race Show - Brazil",
+         "titleBrief": "Post-Race Show",
+         "objectType": "VIDEO",
+         "duration": 3024,
+         "contentSubtype": "REPLAY",
+         "episodeNumber": 20,
+         "season": 2026,
+         "starRating": 0,
+         "pictureUrl": "1000010430-a800e4df-20f8-4115-b304-12604536790d/landscape_web",
+         "language": "ENG",
+         "pcLevel": 2,
+         "isCopyProtected": true,
+         "copyProtections": [
+          {
+           "securityCode": "01",
+           "securityOption": "00000010"
+          },
+          {
+           "securityCode": "03",
+           "securityOption": "00000001"
+          },
+          {
+           "securityCode": "05",
+           "securityOption": "00000001"
+          }
+         ],
+         "genres": [
+          "Post-Race Show"
+         ],
+         "availableAlso": [
+          "MOBILE_HLS",
+          "BIG_SCREEN_HLS",
+          "WEB_DASH",
+          "BIG_SCREEN_DASH",
+          "TABLET_DASH",
+          "TABLET_HLS"
+         ],
+         "contentOptions": [],
+         "uiDuration": "00:50:24",
+         "uiSeries": "F1",
+         "entitlement": "Access",
+         "locked": false,
+         "seriesIndicator": true
+        },
+        "containers": {
+         "bundles": [
+          {
+           "bundleId": 1500000325,
+           "bundleType": "BUNDLE",
+           "bundleSubtype": "MEETING",
+           "isParent": true,
+           "orderId": 0
+          },
+          {
+           "bundleId": 1700000046,
+           "bundleType": "GROUP_OF_BUNDLES",
+           "bundleSubtype": "YEAR",
+           "isParent": false,
+           "orderId": 86
+          }
+         ]
+        },
+        "platformVariants": [
+         {
+          "cpId": 85996,
+          "subtitlesLanguages": [],
+          "pictureUrl": "1000010430-a800e4df-20f8-4115-b304-12604536790d",
+          "videoUrl": "https://f1tv.formula1.com/dummyvideo.m3u8",
+          "audioLanguages": [
+           {
+            "isPreferred": false,
+            "audioLanguageName": "ENG",
+            "audioId": 1
+           }
+          ],
+          "hasTrailer": false,
+          "videoType": "HD",
+          "technicalPackages": [
+           {
+            "packageId": 1320,
+            "packageName": "F1_Live_Shows",
+            "packageType": "SVOD"
+           }
+          ]
+         }
+        ],
+        "parents": [
+         {
+          "parentId": 1500000325,
+          "parentType": "BUNDLE",
+          "parentSubType": "MEETING"
+         },
+         {
+          "parentId": 1700000046,
+          "parentType": "GROUP_OF_BUNDLES",
+          "parentSubType": "YEAR"
+         }
+        ],
+        "uiMetadata": {
+         "mainTitle": "Post-Race Show",
+         "subTitle": "00:50:24 | Replay"
+        }
+       }
+      ],
+      "meetingName": "São Paulo Grand Prix"
+     },
+     "uriOriginal": "/SANDWICH?from=2&meetingId=1299",
+     "typeOriginal": "LOCAL"
+    },
+    "actions": [
+     {
+      "key": "onTitleClick",
+      "uri": "/2.0/R/ENG/WEB_HLS/ALL/PAGE/12335/PREMIUM/5",
+      "targetType": "WALL_PAGE",
+      "type": "LOCAL",
+      "layout": "horizontal_thumbnail",
+      "href": "/page/12335/2026-sao-paulo-grand-prix"
+     }
+    ]
+   },
+   {
+    "layout": "horizontal_simple_poster",
+    "title": "Shows",
+    "id": "395_1196",
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "metadata": {
+     "label": "Shows",
+     "imageUrl": "",
+     "id": "395_1196",
+     "hash": "d41d8cd98f00b204e9800998ecf8427e",
+     "tray_background": "",
+     "schedule": [
+      {
+       "pubDays": "",
+       "pubStartDate": 1730281500,
+       "pubEndDate": "",
+       "pubStartTime": "",
+       "pubEndTime": "",
+       "timezone": "UTC+00:00"
+      }
+     ]
+    },
+    "retrieveItems": {
+     "resultObj": {
+      "total": 8,
+      "searchResultTotal": 8,
+      "collectionName": "Shows Launchers (Portrait JPA, WD, TT, WWU)",
+      "containers": [
+       {
+        "id": "1500000275",
+        "layout": "CONTENT_ITEM",
+        "actions": [
+         {
+          "key": "onClick",
+          "uri": "/2.0/R/ENG/WEB_HLS/ALL/PAGE/9298/PREMIUM/5",
+          "targetType": "DETAILS_PAGE",
+          "href": "/page/9298/the-cooldown-room"
+         }
+        ],
+        "metadata": {
+         "contentId": 1500000275,
+         "contentType": "BUNDLE",
+         "emfAttributes": {
+          "VideoType": "",
+          "MeetingKey": "",
+          "MeetingSessionKey": "",
+          "Meeting_Name": "",
+          "Meeting_Number": "",
+          "Circuit_Short_Name": "",
+          "Meeting_Code": "",
+          "MeetingCountryKey": "",
+          "CircuitKey": "",
+          "Meeting_Location": "",
+          "Series": "",
+          "OBC": false,
+          "state": "",
+          "TimetableKey": "",
+          "SessionKey": "",
+          "SessionPeriod": "",
+          "Circuit_Official_Name": "",
+          "ActivityDescription": "",
+          "SeriesMeetingSessionIdentifier": "",
+          "sessionEndTime": "",
+          "Meeting_Start_Date": "",
+          "Meeting_End_Date": "",
+          "Track_Length": "",
+          "Scheduled_Lap_Count": "",
+          "Scheduled_Distance": "",
+          "Circuit_Location": "",
+          "Meeting_Sponsor": "",
+          "IsTestEvent": "",
+          "Season_Meeting_Ordinal": 0,
+          "Championship_Meeting_Ordinal": "",
+          "session_index": 0,
+          "Meeting_Official_Name": "",
+          "Meeting_Display_Date": "",
+          "PageID": 9298,
+          "sessionEndDate": 0,
+          "sessionStartDate": 0,
+          "Meeting_Country_Name": "",
+          "Global_Title": "",
+          "Global_Meeting_Country_Name": "",
+          "Global_Meeting_Name": "",
+          "Diplay_In_Schedule": true,
+          "ContentCategory": "",
+          "HeroMainTitleOverride": ""
+         },
+         "longDescription": "",
+         "shortDescription": "",
+         "year": "",
+         "contractStartDate": 1658880000000,
+         "contractEndDate": 4102444799000,
+         "externalId": "SHOW_0023_Bundle",
+         "title": "The Cooldown Room",
+         "titleBrief": "",
+         "objectType": "BUNDLE",
+         "duration": 0,
+         "contentSubtype": "EPISODIC_SHOW",
+         "starRating": 0,
+         "pictureUrl": "1000008416-5e29ca63-9b22-4987-b237-62a184884503/portrait_web",
+         "language": "NA",
+         "pcLevel": 2,
+         "pcExtendedRatings": [],
+         "isCopyProtected": true,
+         "copyProtections": [
+          {
+           "securityCode": "01",
+           "securityOption": "00000010"
+          },
+          {
+           "securityCode": "03",
+           "securityOption": "00000001"
+          },
+          {
+           "securityCode": "05",
+           "securityOption": "00000001"
+          }
+         ],
+         "genres": [
+          "The Cooldown Room"
+         ],
+         "availableAlso": [
+          "MOBILE_HLS",
+          "BIG_SCREEN_HLS",
+          "WEB_DASH",
+          "BIG_SCREEN_DASH",
+          "TABLET_DASH",
+          "TABLET_HLS"
+         ],
+         "contentOptions": [],
+         "uiSeries": ""
+        },
+        "containers": {},
+        "platformVariants": [],
+        "assets": [
+         {
+          "assetId": 69838,
+          "assetType": "TRAILER",
+          "assetSubType": "POSTER",
+          "assetName": "VOD_HD",
+          "videoType": "HD"
+         }
+        ],
+        "uiMetadata": {}
+       },
+       {
+        "id": "1500000170",
+        "layout": "CONTENT_ITEM",
+        "actions": [
+         {
+          "key": "onClick",
+          "uri": "/2.0/R/ENG/WEB_HLS/ALL/PAGE/1299/PREMIUM/5",
+          "targetType": "DETAILS_PAGE",
+          "href": "/page/1299/tech-talk"
+         }
+        ],
+        "metadata": {
+         "contentId": 1500000170,
+         "contentType": "BUNDLE",
+         "emfAttributes": {
+          "VideoType": "",
+          "MeetingKey": "",
+          "MeetingSessionKey": "",
+          "Meeting_Name": "",
+          "Meeting_Number": "",
+          "Circuit_Short_Name": "",
+          "Meeting_Code": "",
+          "MeetingCountryKey": "",
+          "CircuitKey": "",
+          "Meeting_Location": "",
+          "Series": "",
+          "OBC": false,
+          "state": "",
+          "TimetableKey": "",
+          "SessionKey": "",
+          "SessionPeriod": "",
+          "Circuit_Official_Name": "",
+          "ActivityDescription": "",
+          "SeriesMeetingSessionIdentifier": "",
+          "sessionEndTime": "",
+          "Meeting_Start_Date": "",
+          "Meeting_End_Date": "",
+          "Track_Length": "",
+          "Scheduled_Lap_Count": "",
+          "Scheduled_Distance": "",
+          "Circuit_Location": "",
+          "Meeting_Sponsor": "",
+          "IsTestEvent": "",
+          "Season_Meeting_Ordinal": 0,
+          "Championship_Meeting_Ordinal": "",
+          "session_index": 0,
+          "Meeting_Official_Name": "",
+          "Meeting_Display_Date": "",
+          "PageID": 1299,
+          "sessionEndDate": 0,
+          "sessionStartDate": 0,
+          "Meeting_Country_Name": "",
+          "Global_Title": "",
+          "Global_Meeting_Country_Name": "",
+          "Global_Meeting_Name": "",
+          "Diplay_In_Schedule": true,
+          "ContentCategory": "",
+          "HeroMainTitleOverride": "",
+          "bug": true
+         },
+         "longDescription": "",
+         "shortDescription": "",
+         "year": "",
+         "contractStartDate": 1657756800000,
+         "contractEndDate": 4102444799000,
+         "externalId": "SHOW_0013_Bundle",
+         "title": "Tech Talk",
+         "titleBrief": "",
+         "objectType": "BUNDLE",
+         "duration": 0,
+         "contentSubtype": "EPISODIC_SHOW",
+         "starRating": 0,
+         "pictureUrl": "1000005955-d0002921-edf0-484f-ba2f-d0c65f5191bf/portrait_web",
+         "language": "NA",
+         "pcLevel": 2,
+         "pcExtendedRatings": [],
+         "isCopyProtected": true,
+         "copyProtections": [
+          {
+           "securityCode": "01",
+           "securityOption": "00000010"
+          },
+          {
+           "securityCode": "03",
+           "securityOption": "00000001"
+          },
+          {
+           "securityCode": "05",
+           "securityOption": "00000001"
+          }
+         ],
+         "genres": [
+          "Tech Talk"
+         ],
+         "availableAlso": [
+          "MOBILE_HLS",
+          "BIG_SCREEN_HLS",
+          "WEB_DASH",
+          "BIG_SCREEN_DASH",
+          "TABLET_DASH",
+          "TABLET_HLS"
+         ],
+         "contentOptions": [],
+         "uiSeries": ""
+        },
+        "containers": {},
+        "platformVariants": [],
+        "assets": [
+         {
+          "assetId": 49420,
+          "assetType": "TRAILER",
+          "assetSubType": "POSTER",
+          "assetName": "VOD_HD",
+          "videoType": "HD"
+         }
+        ],
+        "uiMetadata": {}
+       },
+       {
+        "id": "1500000306",
+        "layout": "CONTENT_ITEM",
+        "actions": [
+         {
+          "key": "onClick",
+          "uri": "/2.0/R/ENG/WEB_HLS/ALL/PAGE/12042/PREMIUM/5",
+          "targetType": "DETAILS_PAGE",
+          "href": "/page/12042/off-the-grid"
+         }
+        ],
+        "metadata": {
+         "contentId": 1500000306,
+         "contentType": "BUNDLE",
+         "emfAttributes": {
+          "VideoType": "",
+          "MeetingKey": "",
+          "MeetingSessionKey": "",
+          "Meeting_Name": "",
+          "Meeting_Number": "",
+          "Circuit_Short_Name": "",
+          "Meeting_Code": "",
+          "MeetingCountryKey": "",
+          "CircuitKey": "",
+          "Meeting_Location": "",
+          "Series": "",
+          "OBC": false,
+          "state": "",
+          "TimetableKey": "",
+          "SessionKey": "",
+          "SessionPeriod": "",
+          "Circuit_Official_Name": "",
+          "ActivityDescription": "",
+          "SeriesMeetingSessionIdentifier": "",
+          "sessionEndTime": "",
+          "Meeting_Start_Date": "",
+          "Meeting_End_Date": "",
+          "Track_Length": "",
+          "Scheduled_Lap_Count": "",
+          "Scheduled_Distance": "",
+          "Circuit_Location": "",
+          "Meeting_Sponsor": "",
+          "IsTestEvent": "",
+          "Season_Meeting_Ordinal": 0,
+          "Championship_Meeting_Ordinal": "",
+          "session_index": 0,
+          "Meeting_Official_Name": "",
+          "Meeting_Display_Date": "",
+          "PageID": 12042,
+          "sessionEndDate": 0,
+          "sessionStartDate": 0,
+          "Meeting_Country_Name": "",
+          "Global_Title": "",
+          "Global_Meeting_Country_Name": "",
+          "Global_Meeting_Name": "",
+          "Diplay_In_Schedule": true,
+          "ContentCategory": "",
+          "HeroMainTitleOverride": ""
+         },
+         "longDescription": "",
+         "shortDescription": "",
+         "year": "",
+         "contractStartDate": 1658880000000,
+         "contractEndDate": 4102444799000,
+         "externalId": "SHOW_0025_Bundle",
+         "title": "Off The Grid",
+         "titleBrief": "",
+         "objectType": "BUNDLE",
+         "duration": 0,
+         "contentSubtype": "EPISODIC_SHOW",
+         "starRating": 0,
+         "pictureUrl": "1000010048-60a9b687-4bb7-4448-8178-8e65882e905f/portrait_web",
+         "language": "NA",
+         "pcLevel": 2,
+         "pcExtendedRatings": [],
+         "isCopyProtected": true,
+         "copyProtections": [
+          {
+           "securityCode": "01",
+           "securityOption": "00000010"
+          },
+          {
+           "securityCode": "03",
+           "securityOption": "00000001"
+          },
+          {
+           "securityCode": "05",
+           "securityOption": "00000001"
+          }
+         ],
+         "genres": [
+          "Off The Grid"
+         ],
+         "availableAlso": [
+          "MOBILE_HLS",
+          "BIG_SCREEN_HLS",
+          "WEB_DASH",
+          "BIG_SCREEN_DASH",
+          "TABLET_DASH",
+          "TABLET_HLS"
+         ],
+         "contentOptions": [],
+         "uiSeries": ""
+        },
+        "containers": {},
+        "platformVariants": [],
+        "assets": [
+         {
+          "assetId": 83057,
+          "assetType": "TRAILER",
+          "assetSubType": "POSTER",
+          "assetName": "VOD_HD",
+          "videoType": "HD"
+         }
+        ],
+        "uiMetadata": {}
+       },
+       {
+        "id": "1500000305",
+        "layout": "CONTENT_ITEM",
+        "actions": [
+         {
+          "key": "onClick",
+          "uri": "/2.0/R/ENG/WEB_HLS/ALL/PAGE/11321/PREMIUM/5",
+          "targetType": "DETAILS_PAGE",
+          "href": "/page/11321/lap-of-luxury"
+         }
+        ],
+        "metadata": {
+         "contentId": 1500000305,
+         "contentType": "BUNDLE",
+         "emfAttributes": {
+          "VideoType": "",
+          "MeetingKey": "",
+          "MeetingSessionKey": "",
+          "Meeting_Name": "",
+          "Meeting_Number": "",
+          "Circuit_Short_Name": "",
+          "Meeting_Code": "",
+          "MeetingCountryKey": "",
+          "CircuitKey": "",
+          "Meeting_Location": "",
+          "Series": "",
+          "OBC": false,
+          "state": "",
+          "TimetableKey": "",
+          "SessionKey": "",
+          "SessionPeriod": "",
+          "Circuit_Official_Name": "",
+          "ActivityDescription": "",
+          "SeriesMeetingSessionIdentifier": "",
+          "sessionEndTime": "",
+          "Meeting_Start_Date": "",
+          "Meeting_End_Date": "",
+          "Track_Length": "",
+          "Scheduled_Lap_Count": "",
+          "Scheduled_Distance": "",
+          "Circuit_Location": "",
+          "Meeting_Sponsor": "",
+          "IsTestEvent": "",
+          "Season_Meeting_Ordinal": 0,
+          "Championship_Meeting_Ordinal": "",
+          "session_index": 0,
+          "Meeting_Official_Name": "",
+          "Meeting_Display_Date": "",
+          "PageID": 11321,
+          "sessionEndDate": 0,
+          "sessionStartDate": 0,
+          "Meeting_Country_Name": "",
+          "Global_Title": "",
+          "Global_Meeting_Country_Name": "",
+          "Global_Meeting_Name": "",
+          "Diplay_In_Schedule": true,
+          "ContentCategory": "",
+          "HeroMainTitleOverride": ""
+         },
+         "longDescription": "",
+         "shortDescription": "",
+         "year": "",
+         "contractStartDate": 1658966400000,
+         "contractEndDate": 4102444799000,
+         "externalId": "DOC_0016_Bundle",
+         "title": "Lap of Luxury",
+         "titleBrief": "",
+         "objectType": "BUNDLE",
+         "duration": 0,
+         "contentSubtype": "DOCUMENTARIES",
+         "starRating": 0,
+         "pictureUrl": "1000009540-c95b7288-5d92-4427-98c0-cb4e097ae580/portrait_web",
+         "language": "NA",
+         "pcLevel": 2,
+         "pcExtendedRatings": [],
+         "isCopyProtected": true,
+         "copyProtections": [
+          {
+           "securityCode": "01",
+           "securityOption": "00000010"
+          },
+          {
+           "securityCode": "03",
+           "securityOption": "00000001"
+          },
+          {
+           "securityCode": "05",
+           "securityOption": "00000001"
+          }
+         ],
+         "genres": [
+          "Lap of Luxury"
+         ],
+         "availableAlso": [
+          "MOBILE_HLS",
+          "BIG_SCREEN_HLS",
+          "WEB_DASH",
+          "BIG_SCREEN_DASH",
+          "TABLET_DASH",
+          "TABLET_HLS"
+         ],
+         "contentOptions": [],
+         "uiSeries": ""
+        },
+        "containers": {},
+        "platformVariants": [],
+        "assets": [
+         {
+          "assetId": 79008,
+          "assetType": "TRAILER",
+          "assetSubType": "POSTER",
+          "assetName": "VOD_HD",
+          "videoType": "HD"
+         }
+        ],
+        "uiMetadata": {}
+       },
+       {
+        "id": "1500000333",
+        "layout": "CONTENT_ITEM",
+        "actions": [
+         {
+          "key": "onClick",
+          "uri": "/2.0/R/ENG/WEB_HLS/ALL/PAGE/14083/PREMIUM/5",
+          "targetType": "DETAILS_PAGE",
+          "href": "/page/14083/on-the-limit-porsche-supercup"
+         }
+        ],
+        "metadata": {
+         "contentId": 1500000333,
+         "contentType": "BUNDLE",
+         "emfAttributes": {
+          "VideoType": "",
+          "MeetingKey": "",
+          "MeetingSessionKey": "",
+          "Meeting_Name": "",
+          "Meeting_Number": "",
+          "Circuit_Short_Name": "",
+          "Meeting_Code": "",
+          "MeetingCountryKey": "",
+          "CircuitKey": "",
+          "Meeting_Location": "",
+          "Series": "",
+          "OBC": false,
+          "state": "",
+          "TimetableKey": "",
+          "SessionKey": "",
+          "SessionPeriod": "",
+          "Circuit_Official_Name": "",
+          "ActivityDescription": "",
+          "SeriesMeetingSessionIdentifier": "",
+          "sessionEndTime": "",
+          "Meeting_Start_Date": "",
+          "Meeting_End_Date": "",
+          "Track_Length": "",
+          "Scheduled_Lap_Count": "",
+          "Scheduled_Distance": "",
+          "Circuit_Location": "",
+          "Meeting_Sponsor": "",
+          "IsTestEvent": "",
+          "Season_Meeting_Ordinal": 0,
+          "Championship_Meeting_Ordinal": "",
+          "session_index": 0,
+          "Meeting_Official_Name": "",
+          "Meeting_Display_Date": "",
+          "PageID": 14083,
+          "sessionEndDate": 0,
+          "sessionStartDate": 0,
+          "Meeting_Country_Name": "",
+          "Global_Title": "",
+          "Global_Meeting_Country_Name": "",
+          "Global_Meeting_Name": "",
+          "Diplay_In_Schedule": true,
+          "ContentCategory": "",
+          "HeroMainTitleOverride": ""
+         },
+         "longDescription": "Behind the scenes at the 2026 Porsche Mobil 1 Supercup.",
+         "shortDescription": "Behind the scenes at the 2026 Porsche Mobil 1 Supercup.",
+         "year": "",
+         "contractStartDate": 1658966400000,
+         "contractEndDate": 4102444799000,
+         "externalId": "DOC_0017_Bundle",
+         "title": "On the limit: Porsche Supercup",
+         "titleBrief": "On The Limit",
+         "objectType": "BUNDLE",
+         "duration": 0,
+         "contentSubtype": "DOCUMENTARIES",
+         "starRating": 0,
+         "pictureUrl": "1000010675-79af2b00-9d41-4353-8fc2-17a2d61bbe61/portrait_web",
+         "language": "NA",
+         "pcLevel": 2,
+         "pcExtendedRatings": [],
+         "isCopyProtected": true,
+         "copyProtections": [
+          {
+           "securityCode": "01",
+           "securityOption": "00000010"
+          },
+          {
+           "securityCode": "03",
+           "securityOption": "00000001"
+          },
+          {
+           "securityCode": "05",
+           "securityOption": "00000001"
+          }
+         ],
+         "genres": [
+          "On The Limit"
+         ],
+         "availableAlso": [
+          "MOBILE_HLS",
+          "BIG_SCREEN_HLS",
+          "WEB_DASH",
+          "BIG_SCREEN_DASH",
+          "TABLET_DASH",
+          "TABLET_HLS"
+         ],
+         "contentOptions": [],
+         "uiSeries": ""
+        },
+        "containers": {},
+        "platformVariants": [],
+        "assets": [
+         {
+          "assetId": 88274,
+          "assetType": "TRAILER",
+          "assetSubType": "POSTER",
+          "assetName": "VOD_HD",
+          "videoType": "HD"
+         }
+        ],
+        "uiMetadata": {}
+       },
+       {
+        "id": "1500000185",
+        "layout": "CONTENT_ITEM",
+        "actions": [
+         {
+          "key": "onClick",
+          "uri": "/2.0/R/ENG/WEB_HLS/ALL/PAGE/1789/PREMIUM/5",
+          "targetType": "DETAILS_PAGE",
+          "href": "/page/1789/jolyon-palmer-s-analysis"
+         }
+        ],
+        "metadata": {
+         "contentId": 1500000185,
+         "contentType": "BUNDLE",
+         "emfAttributes": {
+          "VideoType": "",
+          "MeetingKey": "",
+          "MeetingSessionKey": "",
+          "Meeting_Name": "",
+          "Meeting_Number": "",
+          "Circuit_Short_Name": "",
+          "Meeting_Code": "",
+          "MeetingCountryKey": "",
+          "CircuitKey": "",
+          "Meeting_Location": "",
+          "Series": "",
+          "OBC": false,
+          "state": "",
+          "TimetableKey": "",
+          "SessionKey": "",
+          "SessionPeriod": "",
+          "Circuit_Official_Name": "",
+          "ActivityDescription": "",
+          "SeriesMeetingSessionIdentifier": "",
+          "sessionEndTime": "",
+          "Meeting_Start_Date": "",
+          "Meeting_End_Date": "",
+          "Track_Length": "",
+          "Scheduled_Lap_Count": "",
+          "Scheduled_Distance": "",
+          "Circuit_Location": "",
+          "Meeting_Sponsor": "",
+          "IsTestEvent": "",
+          "Season_Meeting_Ordinal": 0,
+          "Championship_Meeting_Ordinal": "",
+          "session_index": 0,
+          "Meeting_Official_Name": "",
+          "Meeting_Display_Date": "",
+          "PageID": 1789,
+          "sessionEndDate": 0,
+          "sessionStartDate": 0,
+          "Meeting_Country_Name": "",
+          "Global_Title": "",
+          "Global_Meeting_Country_Name": "",
+          "Global_Meeting_Name": "",
+          "Diplay_In_Schedule": true,
+          "ContentCategory": "",
+          "HeroMainTitleOverride": "",
+          "bug": true
+         },
+         "longDescription": "",
+         "shortDescription": "",
+         "year": "",
+         "contractStartDate": 1657756800000,
+         "contractEndDate": 4102444799000,
+         "externalId": "SHOW_0005_Bundle",
+         "title": "Jolyon Palmer's Analysis",
+         "titleBrief": "",
+         "objectType": "BUNDLE",
+         "duration": 0,
+         "contentSubtype": "EPISODIC_SHOW",
+         "starRating": 0,
+         "pictureUrl": "1000005966-c4863110-1e41-45cc-9be9-18faf422987d/portrait_web",
+         "language": "NA",
+         "pcLevel": 2,
+         "pcExtendedRatings": [],
+         "isCopyProtected": true,
+         "copyProtections": [
+          {
+           "securityCode": "01",
+           "securityOption": "00000010"
+          },
+          {
+           "securityCode": "03",
+           "securityOption": "00000001"
+          },
+          {
+           "securityCode": "05",
+           "securityOption": "00000001"
+          }
+         ],
+         "genres": [
+          "Jolyon Palmer's Analysis"
+         ],
+         "availableAlso": [
+          "MOBILE_HLS",
+          "BIG_SCREEN_HLS",
+          "WEB_DASH",
+          "BIG_SCREEN_DASH",
+          "TABLET_DASH",
+          "TABLET_HLS"
+         ],
+         "contentOptions": [],
+         "uiSeries": ""
+        },
+        "containers": {},
+        "platformVariants": [],
+        "assets": [
+         {
+          "assetId": 49545,
+          "assetType": "TRAILER",
+          "assetSubType": "POSTER",
+          "assetName": "VOD_HD",
+          "videoType": "HD"
+         }
+        ],
+        "uiMetadata": {}
+       }
+      ]
+     },
+     "uriOriginal": "/TRAY/EXTCOLLECTION/5591",
+     "typeOriginal": "REMOTE"
+    },
+    "actions": [
+     {
+      "key": "onTitleClick",
+      "uri": "/2.0/R/ENG/WEB_HLS/ALL/PAGE/410/PREMIUM/5",
+      "targetType": "WALL_PAGE",
+      "type": "LOCAL",
+      "layout": "horizontal_thumbnail",
+      "href": "/page/410/shows"
+     }
+    ]
+   },
+   {
+    "layout": "horizontal_thumbnail",
+    "title": "My List",
+    "id": "395_2154",
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "metadata": {
+     "label": "My List",
+     "imageUrl": "",
+     "id": "395_2154",
+     "hash": "d41d8cd98f00b204e9800998ecf8427e",
+     "tray_background": "",
+     "seriesIndicator": true
+    },
+    "retrieveItems": {
+     "handling": "personalised",
+     "resultObj": {
+      "containers": []
+     },
+     "dataAugmentation": "client",
+     "uriOriginal": "/CONTENT/USERSELECTIONS/MYLIST?maxResults=100&pageID=395_2154",
+     "typeOriginal": "REMOTE",
+     "uri": "/2.0/R/ENG/WEB_HLS/ALL/CONTENT/USERSELECTIONS/MYLIST/PREMIUM/5?maxResults=100&pageID=395_2154"
+    },
+    "actions": [
+     {
+      "key": "onTitleClick",
+      "uri": "/2.0/R/ENG/WEB_HLS/ALL/CONTENT/USERSELECTIONS/MYLIST/PREMIUM/5?pageID=395_2154&layout=horizontal_thumbnail",
+      "targetType": "WALL_PAGE",
+      "type": "REMOTE",
+      "layout": "horizontal_thumbnail",
+      "handling": "personalised",
+      "href": "/content/userselections/mylist?pageID=395_2154"
+     }
+    ]
+   },
+   {
+    "layout": "vertical_thumbnail",
+    "title": "F1 TV Survey",
+    "id": "395_4619",
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "metadata": {
+     "label": "F1 TV Survey",
+     "imageUrl": "",
+     "id": "395_4619",
+     "hash": "d41d8cd98f00b204e9800998ecf8427e",
+     "gridLayout1": "[[\"L\"],[\"M\",\"M\"],[\"S\",\"S\",\"S\"],[\"M\",\"M\",\"M\",\"M\"],[\"M\",\"M\",\"S\",\"S\",\"S\"],[\"S\",\"S\",\"S\",\"S\",\"S\",\"S\"]]",
+     "upgradeButtonDisplay": true,
+     "tray_background": "",
+     "seriesIndicator": true
+    },
+    "retrieveItems": {
+     "resultObj": {
+      "total": 1,
+      "searchResultTotal": 1,
+      "collectionName": "Survey Launcher",
+      "containers": [
+       {
+        "id": "10000014792",
+        "layout": "CONTENT_ITEM",
+        "actions": [
+         {
+          "key": "onClick",
+          "uri": "https://edigitalsurvey.com/survey/enter/s/ESV-fk48-599549377/environment/website",
+          "targetType": "FREE_TEXT",
+          "href": "https://edigitalsurvey.com/survey/enter/s/ESV-fk48-599549377/environment/website"
+         }
+        ],
+        "metadata": {
+         "contentId": 10000014792,
+         "contentType": "LAUNCHER",
+         "FRA": "Dites-nous ce que vous en pensez.",
+         "SPA": "Cuéntanos qué piensas.",
+         "POR": "Conte-nos o que você acha.",
+         "DEU": "Sagen Sie uns, was Sie denken.",
+         "NLD": "Laat ons weten wat je ervan vindt.",
+         "longDescription": "Tell us what you think",
+         "shortDescription": "",
+         "country": "",
+         "year": "",
+         "contractStartDate": 0,
+         "contractEndDate": 4133894400,
+         "externalId": "10000014792",
+         "title": "Tell us what you think",
+         "titleBrief": "",
+         "objectType": "LAUNCHER",
+         "duration": 0,
+         "contentSubtype": "LAUNCHER",
+         "starRating": 0,
+         "cpId": 0,
+         "line1": "Tell us what you think",
+         "line2": [],
+         "line3": "",
+         "pictureUrl": "10000014792/landscape_web",
+         "language": "",
+         "pcLevel": null,
+         "genres": [],
+         "availableAlso": [
+          "WEB_HLS",
+          "WEB_DASH",
+          "MOBILE_HLS",
+          "MOBILE_DASH",
+          "TABLET_HLS",
+          "TABLET_DASH"
+         ],
+         "contentOptions": [],
+         "contentSubtitle": ""
+        },
+        "containers": {
+         "categories": [],
+         "bundles": []
+        },
+        "platformVariants": [],
+        "parents": [],
+        "uiMetadata": {}
+       }
+      ]
+     },
+     "uriOriginal": "/TRAY/EXTCOLLECTION/14292",
+     "typeOriginal": "REMOTE"
+    },
+    "actions": [
+     {
+      "key": "onTitleClick",
+      "uri": "",
+      "targetType": "",
+      "type": "REMOTE",
+      "layout": "horizontal_thumbnail",
+      "href": ""
+     }
+    ],
+    "targeting": {
+     "platform": [
+      "WEB_DASH",
+      "WEB_HLS"
+     ]
+    }
+   }
+  ],
+  "metadata": {
+   "meta-description": "F1 Live Grand Prix Streaming Service"
+  }
+ },
+ "systemTime": 1794526220622,
+ "source": "server"
+}

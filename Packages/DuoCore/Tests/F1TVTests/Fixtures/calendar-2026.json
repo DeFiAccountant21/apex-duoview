@@ -1,0 +1,948 @@
+{
+ "resultCode": "OK",
+ "message": "",
+ "errorDescription": "200-10000",
+ "resultObj": {
+  "total": 25,
+  "searchResultTotal": 25,
+  "collectionName": "",
+  "containers": [
+   {
+    "id": "1500000332",
+    "layout": "CONTENT_ITEM",
+    "actions": [
+     {
+      "key": "onClick",
+      "uri": "/2.0/R/ENG/WEB_HLS/ALL/PAGE/13517/PREMIUM/5",
+      "targetType": "DETAILS_PAGE",
+      "href": "/page/13517/formula-1-aramco-pre-season-testing-1-2026"
+     }
+    ],
+    "properties": [
+     {
+      "meeting_Number": 1,
+      "sessionEndTime": 0,
+      "series": "",
+      "lastUpdatedDate": 1794505045533,
+      "lastIndexedDate": 1794505045533,
+      "season_Meeting_Ordinal": 0,
+      "meeting_Start_Date": 1770768000000,
+      "meeting_End_Date": 1771027199000,
+      "season": 2026,
+      "session_index": 999
+     }
+    ],
+    "metadata": {
+     "contentId": 1500000332,
+     "contentType": "BUNDLE",
+     "emfAttributes": {
+      "VideoType": "meetings",
+      "MeetingKey": "1304",
+      "MeetingSessionKey": "",
+      "Meeting_Name": "Pre-Season Testing",
+      "Meeting_Number": "1",
+      "Circuit_Short_Name": "Sakhir",
+      "Meeting_Code": "F12026T02",
+      "MeetingCountryKey": "36",
+      "CircuitKey": "63",
+      "Meeting_Location": "Bahrain",
+      "Series": "",
+      "OBC": false,
+      "state": "",
+      "TimetableKey": "",
+      "SessionKey": "",
+      "SessionPeriod": "",
+      "Circuit_Official_Name": "",
+      "ActivityDescription": "",
+      "SeriesMeetingSessionIdentifier": "",
+      "sessionEndTime": "",
+      "Meeting_Start_Date": "2026-02-11T00:00:00+00:00",
+      "Meeting_End_Date": "2026-02-13T23:59:59+00:00",
+      "Track_Length": "5.412",
+      "Scheduled_Lap_Count": "",
+      "Scheduled_Distance": "",
+      "Circuit_Location": "Sakhir",
+      "Meeting_Sponsor": "Aramco",
+      "IsTestEvent": "true",
+      "Season_Meeting_Ordinal": 0,
+      "Championship_Meeting_Ordinal": "",
+      "session_index": 0,
+      "Meeting_Official_Name": "FORMULA 1 ARAMCO PRE-SEASON TESTING 1 2026",
+      "Meeting_Display_Date": "11 FEB - 13 FEB",
+      "PageID": 13517,
+      "sessionEndDate": 0,
+      "sessionStartDate": 0,
+      "Meeting_Country_Name": "Bahrain",
+      "Global_Title": "FORMULA 1 ARAMCO PRE-SEASON TESTING 1 2026",
+      "Global_Meeting_Country_Name": "Bahrain",
+      "Global_Meeting_Name": "Pre-Season Testing",
+      "Diplay_In_Schedule": true,
+      "ContentCategory": "",
+      "HeroMainTitleOverride": ""
+     },
+     "longDescription": "Pre-Season Testing 2026",
+     "shortDescription": "Pre-Season Testing 2026",
+     "year": "",
+     "contractStartDate": 1767229200000,
+     "contractEndDate": 4102444799000,
+     "externalId": "FOM_1304_2026_Bundle",
+     "title": "FORMULA 1 ARAMCO PRE-SEASON TESTING 1 2026",
+     "titleBrief": "Pre-Season Testing 2026",
+     "objectType": "BUNDLE",
+     "duration": 0,
+     "contentSubtype": "MEETING",
+     "season": 2026,
+     "starRating": 0,
+     "pictureUrl": "1000010495-ac4bb3bd-238b-4b35-a459-5384d2367f4a/landscape_web",
+     "language": "ENG",
+     "pcLevel": 2,
+     "isCopyProtected": true,
+     "copyProtections": [
+      {
+       "securityCode": "01",
+       "securityOption": "00000010"
+      },
+      {
+       "securityCode": "03",
+       "securityOption": "00000001"
+      },
+      {
+       "securityCode": "05",
+       "securityOption": "00000001"
+      }
+     ],
+     "genres": [
+      "Race"
+     ],
+     "availableAlso": [
+      "MOBILE_HLS",
+      "BIG_SCREEN_HLS",
+      "WEB_DASH",
+      "BIG_SCREEN_DASH",
+      "TABLET_DASH",
+      "TABLET_HLS"
+     ],
+     "contentOptions": [],
+     "uiSeries": ""
+    },
+    "containers": {
+     "bundles": [
+      {
+       "bundleId": 1700000046,
+       "bundleType": "GROUP_OF_BUNDLES",
+       "bundleSubtype": "YEAR",
+       "isParent": true,
+       "orderId": 36
+      }
+     ]
+    },
+    "platformVariants": [
+     {
+      "cpId": 86892,
+      "subtitlesLanguages": [],
+      "pictureUrl": "1000010495-ac4bb3bd-238b-4b35-a459-5384d2367f4a",
+      "videoUrl": "https://f1tv.formula1.com/dummyvideo.m3u8",
+      "audioLanguages": [
+       {
+        "isPreferred": false,
+        "audioLanguageName": "ENG",
+        "audioId": 1
+       }
+      ],
+      "hasTrailer": false,
+      "videoType": "NA"
+     }
+    ],
+    "parents": [
+     {
+      "parentId": 1700000046,
+      "parentType": "GROUP_OF_BUNDLES",
+      "parentSubType": "YEAR"
+     }
+    ],
+    "uiMetadata": {}
+   },
+   {
+    "id": "1500000331",
+    "layout": "CONTENT_ITEM",
+    "actions": [
+     {
+      "key": "onClick",
+      "uri": "/2.0/R/ENG/WEB_HLS/ALL/PAGE/13519/PREMIUM/5",
+      "targetType": "DETAILS_PAGE",
+      "href": "/page/13519/formula-1-aramco-pre-season-testing-2-2026"
+     }
+    ],
+    "properties": [
+     {
+      "meeting_Number": 1,
+      "sessionEndTime": 0,
+      "series": "",
+      "lastUpdatedDate": 1794505045177,
+      "lastIndexedDate": 1794505045177,
+      "season_Meeting_Ordinal": 0,
+      "meeting_Start_Date": 1771372800000,
+      "meeting_End_Date": 1771631999000,
+      "season": 2026,
+      "session_index": 999
+     }
+    ],
+    "metadata": {
+     "contentId": 1500000331,
+     "contentType": "BUNDLE",
+     "emfAttributes": {
+      "VideoType": "meetings",
+      "MeetingKey": "1305",
+      "MeetingSessionKey": "",
+      "Meeting_Name": "Pre-Season Testing",
+      "Meeting_Number": "1",
+      "Circuit_Short_Name": "Sakhir",
+      "Meeting_Code": "F12026T03",
+      "MeetingCountryKey": "36",
+      "CircuitKey": "63",
+      "Meeting_Location": "Bahrain",
+      "Series": "",
+      "OBC": false,
+      "state": "",
+      "TimetableKey": "",
+      "SessionKey": "",
+      "SessionPeriod": "",
+      "Circuit_Official_Name": "",
+      "ActivityDescription": "",
+      "SeriesMeetingSessionIdentifier": "",
+      "sessionEndTime": "",
+      "Meeting_Start_Date": "2026-02-18T00:00:00+00:00",
+      "Meeting_End_Date": "2026-02-20T23:59:59+00:00",
+      "Track_Length": "5.412",
+      "Scheduled_Lap_Count": "",
+      "Scheduled_Distance": "",
+      "Circuit_Location": "Sakhir",
+      "Meeting_Sponsor": "Aramco",
+      "IsTestEvent": "true",
+      "Season_Meeting_Ordinal": 0,
+      "Championship_Meeting_Ordinal": "",
+      "session_index": 0,
+      "Meeting_Official_Name": "FORMULA 1 ARAMCO PRE-SEASON TESTING 2 2026",
+      "Meeting_Display_Date": "18 FEB - 20 FEB",
+      "PageID": 13519,
+      "sessionEndDate": 0,
+      "sessionStartDate": 0,
+      "Meeting_Country_Name": "Bahrain",
+      "Global_Title": "FORMULA 1 ARAMCO PRE-SEASON TESTING 2 2026",
+      "Global_Meeting_Country_Name": "Bahrain",
+      "Global_Meeting_Name": "Pre-Season Testing",
+      "Diplay_In_Schedule": true,
+      "ContentCategory": "",
+      "HeroMainTitleOverride": ""
+     },
+     "longDescription": "Pre-Season Testing 2026",
+     "shortDescription": "Pre-Season Testing 2026",
+     "year": "",
+     "contractStartDate": 1767232800000,
+     "contractEndDate": 4102444799000,
+     "externalId": "FOM_1305_2026_Bundle",
+     "title": "FORMULA 1 ARAMCO PRE-SEASON TESTING 2 2026",
+     "titleBrief": "Pre-Season Testing 2026",
+     "objectType": "BUNDLE",
+     "duration": 0,
+     "contentSubtype": "MEETING",
+     "season": 2026,
+     "starRating": 0,
+     "pictureUrl": "1000010494-2342eb3f-6aeb-46f1-b97d-601c83789e22/landscape_web",
+     "language": "ENG",
+     "pcLevel": 2,
+     "isCopyProtected": true,
+     "copyProtections": [
+      {
+       "securityCode": "01",
+       "securityOption": "00000010"
+      },
+      {
+       "securityCode": "03",
+       "securityOption": "00000001"
+      },
+      {
+       "securityCode": "05",
+       "securityOption": "00000001"
+      }
+     ],
+     "genres": [
+      "Race"
+     ],
+     "availableAlso": [
+      "MOBILE_HLS",
+      "BIG_SCREEN_HLS",
+      "WEB_DASH",
+      "BIG_SCREEN_DASH",
+      "TABLET_DASH",
+      "TABLET_HLS"
+     ],
+     "contentOptions": [],
+     "uiSeries": ""
+    },
+    "containers": {
+     "bundles": [
+      {
+       "bundleId": 1700000046,
+       "bundleType": "GROUP_OF_BUNDLES",
+       "bundleSubtype": "YEAR",
+       "isParent": true,
+       "orderId": 39
+      }
+     ]
+    },
+    "platformVariants": [
+     {
+      "cpId": 86863,
+      "subtitlesLanguages": [],
+      "pictureUrl": "1000010494-2342eb3f-6aeb-46f1-b97d-601c83789e22",
+      "videoUrl": "https://f1tv.formula1.com/dummyvideo.m3u8",
+      "audioLanguages": [
+       {
+        "isPreferred": false,
+        "audioLanguageName": "ENG",
+        "audioId": 1
+       }
+      ],
+      "hasTrailer": false,
+      "videoType": "NA"
+     }
+    ],
+    "parents": [
+     {
+      "parentId": 1700000046,
+      "parentType": "GROUP_OF_BUNDLES",
+      "parentSubType": "YEAR"
+     }
+    ],
+    "uiMetadata": {}
+   },
+   {
+    "id": "1500000317",
+    "layout": "CONTENT_ITEM",
+    "actions": [
+     {
+      "key": "onClick",
+      "uri": "/2.0/R/ENG/WEB_HLS/ALL/PAGE/12292/PREMIUM/5",
+      "targetType": "DETAILS_PAGE",
+      "href": "/page/12292/formula-1-qatar-airways-australian-grand-prix-2026"
+     }
+    ],
+    "properties": [
+     {
+      "meeting_Number": 1,
+      "sessionEndTime": 0,
+      "series": "",
+      "lastUpdatedDate": 1794505056881,
+      "lastIndexedDate": 1794505056881,
+      "season_Meeting_Ordinal": 0,
+      "meeting_Start_Date": 1772755200000,
+      "meeting_End_Date": 1773014399000,
+      "season": 2026,
+      "session_index": 999
+     }
+    ],
+    "metadata": {
+     "contentId": 1500000317,
+     "contentType": "BUNDLE",
+     "emfAttributes": {
+      "VideoType": "meetings",
+      "MeetingKey": "1279",
+      "MeetingSessionKey": "",
+      "Meeting_Name": "Australian Grand Prix",
+      "Meeting_Number": "1",
+      "Circuit_Short_Name": "Melbourne",
+      "Meeting_Code": "F1202601",
+      "MeetingCountryKey": "5",
+      "CircuitKey": "10",
+      "Meeting_Location": "Melbourne",
+      "Series": "",
+      "OBC": false,
+      "state": "",
+      "TimetableKey": "",
+      "SessionKey": "",
+      "SessionPeriod": "",
+      "Circuit_Official_Name": "",
+      "ActivityDescription": "",
+      "SeriesMeetingSessionIdentifier": "",
+      "sessionEndTime": "",
+      "Meeting_Start_Date": "2026-03-06T00:00:00+00:00",
+      "Meeting_End_Date": "2026-03-08T23:59:59+00:00",
+      "Track_Length": "5.278",
+      "Scheduled_Lap_Count": "58",
+      "Scheduled_Distance": "306.124",
+      "Circuit_Location": "Australia",
+      "Meeting_Sponsor": "QATAR AIRWAYS",
+      "IsTestEvent": "false",
+      "Season_Meeting_Ordinal": 0,
+      "Championship_Meeting_Ordinal": "1",
+      "session_index": 0,
+      "Meeting_Official_Name": "FORMULA 1 QATAR AIRWAYS AUSTRALIAN GRAND PRIX 2026",
+      "Meeting_Display_Date": "6 MAR - 8 MAR",
+      "PageID": 12292,
+      "sessionEndDate": 0,
+      "sessionStartDate": 0,
+      "Meeting_Country_Name": "Australia",
+      "Global_Title": "FORMULA 1 QATAR AIRWAYS AUSTRALIAN GRAND PRIX 2026",
+      "Global_Meeting_Country_Name": "Australia",
+      "Global_Meeting_Name": "Australian Grand Prix",
+      "Diplay_In_Schedule": true,
+      "ContentCategory": "",
+      "HeroMainTitleOverride": "",
+      "dalMeetingLocation": "Australia"
+     },
+     "longDescription": "Australian Grand Prix 2026",
+     "shortDescription": "Australian Grand Prix 2026",
+     "year": "",
+     "contractStartDate": 1767236400000,
+     "contractEndDate": 4102444799000,
+     "externalId": "FOM_1279_2026_Bundle",
+     "title": "FORMULA 1 QATAR AIRWAYS AUSTRALIAN GRAND PRIX 2026",
+     "titleBrief": "Australian Grand Prix 2026",
+     "objectType": "BUNDLE",
+     "duration": 0,
+     "contentSubtype": "MEETING",
+     "season": 2026,
+     "starRating": 0,
+     "pictureUrl": "1000010340-6426de14-743d-46e4-b8f1-5589624c7624/landscape_web",
+     "language": "ENG",
+     "pcLevel": 2,
+     "isCopyProtected": true,
+     "copyProtections": [
+      {
+       "securityCode": "01",
+       "securityOption": "00000010"
+      },
+      {
+       "securityCode": "03",
+       "securityOption": "00000001"
+      },
+      {
+       "securityCode": "05",
+       "securityOption": "00000001"
+      }
+     ],
+     "genres": [
+      "Race"
+     ],
+     "availableAlso": [
+      "MOBILE_HLS",
+      "BIG_SCREEN_HLS",
+      "WEB_DASH",
+      "BIG_SCREEN_DASH",
+      "TABLET_DASH",
+      "TABLET_HLS"
+     ],
+     "contentOptions": [],
+     "uiSeries": ""
+    },
+    "containers": {
+     "bundles": [
+      {
+       "bundleId": 1700000046,
+       "bundleType": "GROUP_OF_BUNDLES",
+       "bundleSubtype": "YEAR",
+       "isParent": true,
+       "orderId": 38
+      }
+     ]
+    },
+    "platformVariants": [
+     {
+      "cpId": 85400,
+      "subtitlesLanguages": [],
+      "pictureUrl": "1000010340-6426de14-743d-46e4-b8f1-5589624c7624",
+      "videoUrl": "https://f1tv.formula1.com/dummyvideo.m3u8",
+      "audioLanguages": [
+       {
+        "isPreferred": false,
+        "audioLanguageName": "ENG",
+        "audioId": 1
+       }
+      ],
+      "hasTrailer": false,
+      "videoType": "NA"
+     }
+    ],
+    "parents": [
+     {
+      "parentId": 1700000046,
+      "parentType": "GROUP_OF_BUNDLES",
+      "parentSubType": "YEAR"
+     }
+    ],
+    "uiMetadata": {}
+   },
+   {
+    "id": "1500000318",
+    "layout": "CONTENT_ITEM",
+    "actions": [
+     {
+      "key": "onClick",
+      "uri": "/2.0/R/ENG/WEB_HLS/ALL/PAGE/12293/PREMIUM/5",
+      "targetType": "DETAILS_PAGE",
+      "href": "/page/12293/formula-1-heineken-chinese-grand-prix-2026"
+     }
+    ],
+    "properties": [
+     {
+      "meeting_Number": 2,
+      "sessionEndTime": 0,
+      "series": "",
+      "lastUpdatedDate": 1794505057237,
+      "lastIndexedDate": 1794505057237,
+      "season_Meeting_Ordinal": 0,
+      "meeting_Start_Date": 1773360000000,
+      "meeting_End_Date": 1773619199000,
+      "season": 2026,
+      "session_index": 999
+     }
+    ],
+    "metadata": {
+     "contentId": 1500000318,
+     "contentType": "BUNDLE",
+     "emfAttributes": {
+      "VideoType": "meetings",
+      "MeetingKey": "1280",
+      "MeetingSessionKey": "",
+      "Meeting_Name": "Chinese Grand Prix",
+      "Meeting_Number": "2",
+      "Circuit_Short_Name": "Shanghai",
+      "Meeting_Code": "F1202602",
+      "MeetingCountryKey": "53",
+      "CircuitKey": "49",
+      "Meeting_Location": "Shanghai",
+      "Series": "",
+      "OBC": false,
+      "state": "",
+      "TimetableKey": "",
+      "SessionKey": "",
+      "SessionPeriod": "",
+      "Circuit_Official_Name": "",
+      "ActivityDescription": "",
+      "SeriesMeetingSessionIdentifier": "",
+      "sessionEndTime": "",
+      "Meeting_Start_Date": "2026-03-13T00:00:00+00:00",
+      "Meeting_End_Date": "2026-03-15T23:59:59+00:00",
+      "Track_Length": "5.451",
+      "Scheduled_Lap_Count": "56",
+      "Scheduled_Distance": "305.066",
+      "Circuit_Location": "China",
+      "Meeting_Sponsor": "HEINEKEN",
+      "IsTestEvent": "false",
+      "Season_Meeting_Ordinal": 0,
+      "Championship_Meeting_Ordinal": "2",
+      "session_index": 0,
+      "Meeting_Official_Name": "FORMULA 1 HEINEKEN CHINESE GRAND PRIX 2026",
+      "Meeting_Display_Date": "13 MAR - 15 MAR",
+      "PageID": 12293,
+      "sessionEndDate": 0,
+      "sessionStartDate": 0,
+      "Meeting_Country_Name": "China",
+      "Global_Title": "FORMULA 1 HEINEKEN CHINESE GRAND PRIX 2026",
+      "Global_Meeting_Country_Name": "China",
+      "Global_Meeting_Name": "Chinese Grand Prix",
+      "Diplay_In_Schedule": true,
+      "ContentCategory": "",
+      "HeroMainTitleOverride": "",
+      "dalMeetingLocation": "China"
+     },
+     "longDescription": "Chinese Grand Prix 2026",
+     "shortDescription": "Chinese Grand Prix 2026",
+     "year": "",
+     "contractStartDate": 1767240000000,
+     "contractEndDate": 4102444799000,
+     "externalId": "FOM_1280_2026_Bundle",
+     "title": "FORMULA 1 HEINEKEN CHINESE GRAND PRIX 2026",
+     "titleBrief": "Chinese Grand Prix 2026",
+     "objectType": "BUNDLE",
+     "duration": 0,
+     "contentSubtype": "MEETING",
+     "season": 2026,
+     "starRating": 0,
+     "pictureUrl": "1000010341-f8135818-eb77-42ff-9436-a3c9677c5cc5/landscape_web",
+     "language": "ENG",
+     "pcLevel": 2,
+     "isCopyProtected": true,
+     "copyProtections": [
+      {
+       "securityCode": "01",
+       "securityOption": "00000010"
+      },
+      {
+       "securityCode": "03",
+       "securityOption": "00000001"
+      },
+      {
+       "securityCode": "05",
+       "securityOption": "00000001"
+      }
+     ],
+     "genres": [
+      "Race"
+     ],
+     "availableAlso": [
+      "MOBILE_HLS",
+      "BIG_SCREEN_HLS",
+      "WEB_DASH",
+      "BIG_SCREEN_DASH",
+      "TABLET_DASH",
+      "TABLET_HLS"
+     ],
+     "contentOptions": [],
+     "uiSeries": ""
+    },
+    "containers": {
+     "bundles": [
+      {
+       "bundleId": 1700000046,
+       "bundleType": "GROUP_OF_BUNDLES",
+       "bundleSubtype": "YEAR",
+       "isParent": true,
+       "orderId": 33
+      }
+     ]
+    },
+    "platformVariants": [
+     {
+      "cpId": 85445,
+      "subtitlesLanguages": [],
+      "pictureUrl": "1000010341-f8135818-eb77-42ff-9436-a3c9677c5cc5",
+      "videoUrl": "https://f1tv.formula1.com/dummyvideo.m3u8",
+      "audioLanguages": [
+       {
+        "isPreferred": false,
+        "audioLanguageName": "ENG",
+        "audioId": 1
+       }
+      ],
+      "hasTrailer": false,
+      "videoType": "NA"
+     }
+    ],
+    "parents": [
+     {
+      "parentId": 1700000046,
+      "parentType": "GROUP_OF_BUNDLES",
+      "parentSubType": "YEAR"
+     }
+    ],
+    "uiMetadata": {}
+   },
+   {
+    "id": "1500000307",
+    "layout": "CONTENT_ITEM",
+    "actions": [
+     {
+      "key": "onClick",
+      "uri": "/2.0/R/ENG/WEB_HLS/ALL/PAGE/12294/PREMIUM/5",
+      "targetType": "DETAILS_PAGE",
+      "href": "/page/12294/formula-1-aramco-japanese-grand-prix-2026"
+     }
+    ],
+    "properties": [
+     {
+      "meeting_Number": 3,
+      "sessionEndTime": 0,
+      "series": "",
+      "lastUpdatedDate": 1794505058564,
+      "lastIndexedDate": 1794505058564,
+      "season_Meeting_Ordinal": 0,
+      "meeting_Start_Date": 1774569600000,
+      "meeting_End_Date": 1774828799000,
+      "season": 2026,
+      "session_index": 999
+     }
+    ],
+    "metadata": {
+     "contentId": 1500000307,
+     "contentType": "BUNDLE",
+     "emfAttributes": {
+      "VideoType": "meetings",
+      "MeetingKey": "1281",
+      "MeetingSessionKey": "",
+      "Meeting_Name": "Japanese Grand Prix",
+      "Meeting_Number": "3",
+      "Circuit_Short_Name": "Suzuka",
+      "Meeting_Code": "F1202603",
+      "MeetingCountryKey": "4",
+      "CircuitKey": "46",
+      "Meeting_Location": "Suzuka",
+      "Series": "",
+      "OBC": false,
+      "state": "",
+      "TimetableKey": "",
+      "SessionKey": "",
+      "SessionPeriod": "",
+      "Circuit_Official_Name": "",
+      "ActivityDescription": "",
+      "SeriesMeetingSessionIdentifier": "",
+      "sessionEndTime": "",
+      "Meeting_Start_Date": "2026-03-27T00:00:00+00:00",
+      "Meeting_End_Date": "2026-03-29T23:59:59+00:00",
+      "Track_Length": "5.807",
+      "Scheduled_Lap_Count": "53",
+      "Scheduled_Distance": "307.471",
+      "Circuit_Location": "Japan",
+      "Meeting_Sponsor": "ARAMCO",
+      "IsTestEvent": "false",
+      "Season_Meeting_Ordinal": 0,
+      "Championship_Meeting_Ordinal": "3",
+      "session_index": 0,
+      "Meeting_Official_Name": "FORMULA 1 ARAMCO JAPANESE GRAND PRIX 2026",
+      "Meeting_Display_Date": "27 MAR - 29 MAR",
+      "PageID": 12294,
+      "sessionEndDate": 0,
+      "sessionStartDate": 0,
+      "Meeting_Country_Name": "Japan",
+      "Global_Title": "FORMULA 1 ARAMCO JAPANESE GRAND PRIX 2026",
+      "Global_Meeting_Country_Name": "Japan",
+      "Global_Meeting_Name": "Japanese Grand Prix",
+      "Diplay_In_Schedule": true,
+      "ContentCategory": "",
+      "HeroMainTitleOverride": "",
+      "dalMeetingLocation": "Japan"
+     },
+     "longDescription": "Japanese Grand Prix 2026",
+     "shortDescription": "Japanese Grand Prix 2026",
+     "year": "",
+     "contractStartDate": 1767243600000,
+     "contractEndDate": 4102444799000,
+     "externalId": "FOM_1281_2026_Bundle",
+     "title": "FORMULA 1 ARAMCO JAPANESE GRAND PRIX 2026",
+     "titleBrief": "Japanese Grand Prix 2026",
+     "objectType": "BUNDLE",
+     "duration": 0,
+     "contentSubtype": "MEETING",
+     "season": 2026,
+     "starRating": 0,
+     "pictureUrl": "1000010330-2e866ef5-fd54-4ee0-9d1b-55f6d06a223d/landscape_web",
+     "language": "ENG",
+     "pcLevel": 2,
+     "isCopyProtected": true,
+     "copyProtections": [
+      {
+       "securityCode": "01",
+       "securityOption": "00000010"
+      },
+      {
+       "securityCode": "03",
+       "securityOption": "00000001"
+      },
+      {
+       "securityCode": "05",
+       "securityOption": "00000001"
+      }
+     ],
+     "genres": [
+      "Race"
+     ],
+     "availableAlso": [
+      "MOBILE_HLS",
+      "BIG_SCREEN_HLS",
+      "WEB_DASH",
+      "BIG_SCREEN_DASH",
+      "TABLET_DASH",
+      "TABLET_HLS"
+     ],
+     "contentOptions": [],
+     "uiSeries": ""
+    },
+    "containers": {
+     "bundles": [
+      {
+       "bundleId": 1700000046,
+       "bundleType": "GROUP_OF_BUNDLES",
+       "bundleSubtype": "YEAR",
+       "isParent": true,
+       "orderId": 40
+      }
+     ]
+    },
+    "platformVariants": [
+     {
+      "cpId": 86560,
+      "subtitlesLanguages": [],
+      "pictureUrl": "1000010330-2e866ef5-fd54-4ee0-9d1b-55f6d06a223d",
+      "videoUrl": "https://f1tv.formula1.com/dummyvideo.m3u8",
+      "audioLanguages": [
+       {
+        "isPreferred": false,
+        "audioLanguageName": "ENG",
+        "audioId": 1
+       }
+      ],
+      "hasTrailer": false,
+      "videoType": "NA"
+     }
+    ],
+    "parents": [
+     {
+      "parentId": 1700000046,
+      "parentType": "GROUP_OF_BUNDLES",
+      "parentSubType": "YEAR"
+     }
+    ],
+    "uiMetadata": {}
+   },
+   {
+    "id": "1500000310",
+    "layout": "CONTENT_ITEM",
+    "actions": [
+     {
+      "key": "onClick",
+      "uri": "/2.0/R/ENG/WEB_HLS/ALL/PAGE/12297/PREMIUM/5",
+      "targetType": "DETAILS_PAGE",
+      "href": "/page/12297/formula-1-crypto-com-miami-grand-prix-2026"
+     }
+    ],
+    "properties": [
+     {
+      "meeting_Number": 4,
+      "sessionEndTime": 0,
+      "series": "",
+      "lastUpdatedDate": 1794505058929,
+      "lastIndexedDate": 1794505058929,
+      "season_Meeting_Ordinal": 0,
+      "meeting_Start_Date": 1777593600000,
+      "meeting_End_Date": 1777852799000,
+      "season": 2026,
+      "session_index": 999
+     }
+    ],
+    "metadata": {
+     "contentId": 1500000310,
+     "contentType": "BUNDLE",
+     "emfAttributes": {
+      "VideoType": "meetings",
+      "MeetingKey": "1284",
+      "MeetingSessionKey": "",
+      "Meeting_Name": "Miami Grand Prix",
+      "Meeting_Number": "4",
+      "Circuit_Short_Name": "Miami",
+      "Meeting_Code": "F1202604",
+      "MeetingCountryKey": "19",
+      "CircuitKey": "151",
+      "Meeting_Location": "Miami Gardens",
+      "Series": "",
+      "OBC": false,
+      "state": "",
+      "TimetableKey": "",
+      "SessionKey": "",
+      "SessionPeriod": "",
+      "Circuit_Official_Name": "",
+      "ActivityDescription": "",
+      "SeriesMeetingSessionIdentifier": "",
+      "sessionEndTime": "",
+      "Meeting_Start_Date": "2026-05-01T00:00:00+00:00",
+      "Meeting_End_Date": "2026-05-03T23:59:59+00:00",
+      "Track_Length": "5.412",
+      "Scheduled_Lap_Count": "57",
+      "Scheduled_Distance": "308.326",
+      "Circuit_Location": "Miami",
+      "Meeting_Sponsor": "CRYPTO.COM",
+      "IsTestEvent": "false",
+      "Season_Meeting_Ordinal": 0,
+      "Championship_Meeting_Ordinal": "4",
+      "session_index": 0,
+      "Meeting_Official_Name": "FORMULA 1 CRYPTO.COM MIAMI GRAND PRIX 2026",
+      "Meeting_Display_Date": "1 MAY - 3 MAY",
+      "PageID": 12297,
+      "sessionEndDate": 0,
+      "sessionStartDate": 0,
+      "Meeting_Country_Name": "United States",
+      "Global_Title": "FORMULA 1 CRYPTO.COM MIAMI GRAND PRIX 2026",
+      "Global_Meeting_Country_Name": "United States",
+      "Global_Meeting_Name": "Miami Grand Prix",
+      "Diplay_In_Schedule": true,
+      "ContentCategory": "",
+      "HeroMainTitleOverride": "",
+      "dalMeetingLocation": "Miami"
+     },
+     "longDescription": "Miami Grand Prix 2026",
+     "shortDescription": "Miami Grand Prix 2026",
+     "year": "",
+     "contractStartDate": 1767225600000,
+     "contractEndDate": 4102444799000,
+     "externalId": "FOM_1284_2026_Bundle",
+     "title": "FORMULA 1 CRYPTO.COM MIAMI GRAND PRIX 2026",
+     "titleBrief": "Miami Grand Prix 2026",
+     "objectType": "BUNDLE",
+     "duration": 0,
+     "contentSubtype": "MEETING",
+     "season": 2026,
+     "starRating": 0,
+     "pictureUrl": "1000010333-fa0c1aec-35ec-4d1f-80ea-8cd85f373b41/landscape_web",
+     "language": "ENG",
+     "pcLevel": 2,
+     "isCopyProtected": true,
+     "copyProtections": [
+      {
+       "securityCode": "01",
+       "securityOption": "00000010"
+      },
+      {
+       "securityCode": "03",
+       "securityOption": "00000001"
+      },
+      {
+       "securityCode": "05",
+       "securityOption": "00000001"
+      }
+     ],
+     "genres": [
+      "Race"
+     ],
+     "availableAlso": [
+      "MOBILE_HLS",
+      "BIG_SCREEN_HLS",
+      "WEB_DASH",
+      "BIG_SCREEN_DASH",
+      "TABLET_DASH",
+      "TABLET_HLS"
+     ],
+     "contentOptions": [],
+     "uiSeries": ""
+    },
+    "containers": {
+     "bundles": [
+      {
+       "bundleId": 1700000046,
+       "bundleType": "GROUP_OF_BUNDLES",
+       "bundleSubtype": "YEAR",
+       "isParent": true,
+       "orderId": 70
+      }
+     ]
+    },
+    "platformVariants": [
+     {
+      "cpId": 85176,
+      "subtitlesLanguages": [],
+      "pictureUrl": "1000010333-fa0c1aec-35ec-4d1f-80ea-8cd85f373b41",
+      "videoUrl": "https://f1tv.formula1.com/dummyvideo.m3u8",
+      "audioLanguages": [
+       {
+        "isPreferred": false,
+        "audioLanguageName": "ENG",
+        "audioId": 1
+       }
+      ],
+      "hasTrailer": false,
+      "videoType": "NA"
+     }
+    ],
+    "parents": [
+     {
+      "parentId": 1700000046,
+      "parentType": "GROUP_OF_BUNDLES",
+      "parentSubType": "YEAR"
+     }
+    ],
+    "uiMetadata": {}
+   }
+  ]
+ },
+ "systemTime": 1794526278397,
+ "source": "server"
+}

@@ -1,0 +1,290 @@
+{
+ "apiConfig": {
+  "proto": "https",
+  "domain": "",
+  "prefix": "AGL",
+  "version": "1.0",
+  "channel": "ALL",
+  "playAPIVersion": "3.0",
+  "videoAPIVersion": "4.0"
+ },
+ "appIsoCode": "KA",
+ "appBanner": {
+  "enabled": true,
+  "hideAfterDismissPeriodMinutes": 4320
+ },
+ "bitmovin": {
+  "playbackOffsets": {
+   "wif": {
+    "obc": 0,
+    "other": 0
+   },
+   "obc": {
+    "wif": 0,
+    "other": 0
+   },
+   "other": {
+    "wif": 0,
+    "obc": 0
+   }
+  },
+  "bitmovinKeys": {
+   "player": "f142443f-c4c6-4b76-852f-bd1962c06732",
+   "analytics": "ca24a2e0-aa36-4e2b-baa8-f7540cf1fa79"
+  },
+  "chromecast": {
+   "receiverApplicationId": "B3E81094",
+   "messageNamespace": "urn:x-cast:com.formula1.player.caf",
+   "customPlayApiHeaders": {}
+  },
+  "emptyManifestsManagement": false,
+  "playProgressCapture": {
+   "enabled": true,
+   "interval": 300000,
+   "minResumeSeconds": 10
+  },
+  "buffer": {
+   "video": {
+    "forwardduration": 10,
+    "backwardduration": 10
+   },
+   "audio": {
+    "forwardduration": 10,
+    "backwardduration": 10
+   }
+  },
+  "drm": {
+   "certUrl": "https://f1tv.formula1.com/fairplay01.der"
+  },
+  "watchLiveOverlay": true,
+  "httpRequestRetriesOverride": {
+   "enabled": false,
+   "config": {
+    "reqLimit": 100,
+    "reqTimeout": 1000,
+    "httpReqAttempts": 20
+   }
+  },
+  "limitMaxBitrateByPlayerResolution": false,
+  "enableMediaKeySystemConfig": false
+ },
+ "player": {
+  "tm": {
+   "license": "CgIIAxI2CIf/nbYGEiRiNjBiZTUxYS04N2E1LTRjMDItOWFiNi1hMDFiOWM1M2NhZTAaAmYxIM+IjZgOGoACeVP7Lw3Sy3cnOcyU1wob3Pfu64xWj35rimTm1L7PnFIvLQzRwA/G/LWk3gLTFsyaHO8ElDKnlQg8OZ80On2uKIvpNpCRJFUdgARki8oMDflTJ5ith2w0DyfcV8wAUOkbfmPYkKZIjNYyGljLr8cxy8frqlF05XSvz4AjWgeNcGpYSCrv2o/eVrvBrLl7R/N7wlXb7/6qxIxOBqt7QAXmdpc3bu4T3vvoOdrki/Ot0CP417LYF3jLHyHQuzm34O7WJ+YGkYtSv4xf1gEWklfqDH2Y3uhiStgg8lI+khvNfirw/QSuggclr2E/AECVK2UR4++c2BKrLYKAQFJlOqt/qyAB",
+   "driver20ItemGridEnabled": false,
+   "chromecastEnabled": true
+  }
+ },
+ "newRelic": {
+  "licenseKey": "NRJS-0824a09d21af6db759a",
+  "applicationID": "379418656",
+  "accountID": "<removed>"
+ },
+ "ENABLE_ASCENDON_PANIC_MODE": "<removed>",
+ "env": "prod",
+ "debugEnabled": false,
+ "appLanguage": "en",
+ "betaPagePassCheckUrl": "/check-betacode",
+ "authLinks": {
+  "login": "https://account.formula1.com/{lang}/login?redirect=",
+  "subscribe": "https://www.formula1.com/subscribe-to-f1-tv",
+  "manageAccount": "https://account.formula1.com/{lang}/my-account",
+  "subscription": "https://account.formula1.com/{lang}/my-subscription",
+  "verify": "https://account.formula1.com/{lang}/verify",
+  "cancelSubscription": "https://account.formula1.com/{lang}/quick-cancel?redirect="
+ },
+ "SSO_Ping": "<removed>",
+ "enableCancelSubscriptionFooterCTA": true,
+ "drConfig": {
+  "endpoint": "/?drmode=webv2",
+  "redirectUrl": "/dr/index.html",
+  "delay": 120000
+ },
+ "supportedLanguages": [
+  "en",
+  "de",
+  "nl",
+  "es",
+  "fr",
+  "pt"
+ ],
+ "groupIdVip": 1,
+ "requestTimeout": 30000,
+ "ga": {
+  "gtmId": "GTM-TBGZL2F"
+ },
+ "firebaseConfig": {
+  "apiKey": "<removed>",
+  "authDomain": "formula-1-1236.firebaseapp.com",
+  "databaseURL": "https://formula-1-1236.firebaseio.com",
+  "projectId": "formula-1-1236",
+  "storageBucket": "formula-1-1236.appspot.com",
+  "messagingSenderId": "782337978959",
+  "appId": "1:782337978959:web:4a66738cc25744cabc303a",
+  "measurementId": "G-D9BP6Y3R6M"
+ },
+ "showStats": false,
+ "browsers": {
+  "allow": {
+   "Chrome": "85",
+   "Mobile Chrome": "85",
+   "Edge": "85",
+   "Safari": "14",
+   "Mobile Safari": "12"
+  },
+  "crawlers": [
+   "googlebot",
+   "Yahoo! Slurp",
+   "bingbot",
+   "yandex",
+   "baiduspider",
+   "facebookexternalhit"
+  ],
+  "imageURLs": {
+   "unsupportedBrowser": "https://media.formula1.com/image/upload/c_scale,w_[width]/f_auto/F1TV/Furniture/Unsupported%20Browser/unsupported_browser%203.png"
+  }
+ },
+ "imgCDNResize": "https://f1tv.formula1.com/",
+ "imgCDNFlags": "https://ott-img.formula1.com/",
+ "enableMonitoringHeaders": true,
+ "pageCacheTimeoutInSeconds": 300,
+ "configCacheTimeoutInSeconds": 30,
+ "subPriorityMap": {
+  "OPS": "F1 TV OPS",
+  "VIP": "F1 TV VIP",
+  "VIP Annual": "F1 TV VIP Annual",
+  "VIP Monthly": "F1 TV VIP Monthly",
+  "Premium Annual": "F1 TV Premium Annual",
+  "Premium Monthly": "F1 TV Premium Monthly",
+  "Pro Annual": "F1 TV Pro Annual",
+  "Pro Monthly": "F1 TV Pro Monthly",
+  "Access Annual": "F1 TV Access Annual",
+  "Access Monthly": "F1 TV Access Monthly"
+ },
+ "robots": {
+  "enabled": true,
+  "allowRules": {
+   "userAgent": "*",
+   "routes": "/"
+  },
+  "disallowRules": {
+   "userAgent": "",
+   "routes": ""
+  }
+ },
+ "meta": {
+  "ogtitle": "Formula 1",
+  "ogdescription": "F1 Live Grand Prix Streaming Service",
+  "ogsitename": "F1 TV",
+  "keywords": "f1 tv, formula 1, formula one, f1 live, formula 1 live, formula 1 grand prix, grand prix, grand prix live, grand prix racing, grand prix driver, grand prix car"
+ },
+ "cmp": {
+  "enabled": true,
+  "domain": "formula1-iab.com",
+  "vendorIds": {
+   "bitmovinId": "5f5a19f3a03cb64ce5c13262",
+   "newRelicId": "5e7f6267b8e05c54a85c52df",
+   "firebaseId": "5f6123d6c35b51195c3e17be",
+   "abTastyId": "5f4fc0eb9c759936073f44b4"
+  },
+  "accountId": "<removed>",
+  "privacyManagerModalId": 814264,
+  "propertyId": 31416,
+  "propertyHref": "https://formula1.com",
+  "baseEndpoint": "https://consent.formula1.com"
+ },
+ "emailVerification": "<removed>",
+ "hintOverlay": {
+  "enabled": true,
+  "fallbackTime": 8000
+ },
+ "search": {
+  "enabled": true,
+  "minLength": 3,
+  "maxLength": 100
+ },
+ "liveNow": {
+  "enabled": true,
+  "bannerTimeoutSeconds": 30
+ },
+ "UPNEXT": {
+  "enabled": true,
+  "apiVersion": "2.0",
+  "pathVariable": "UPNEXT",
+  "inPlayerRailEnabled": true,
+  "autoPlayEnabled": true,
+  "autoPlaySeconds": 10,
+  "vodAutoPlaySeconds": 10,
+  "vodSecondsFromEnd": 2,
+  "secondsFromCoverageStarted": 300
+ },
+ "myList": {
+  "enabled": true
+ },
+ "albTimeoutInSecs": 60,
+ "timeAfterLivePlaybackStartsToKickUserOutMs": 86400000,
+ "authentication": {
+  "domain": "api.formula1.com",
+  "apiKey": "<removed>",
+  "distributionChannel": "95d6cc7d-63fe-453b-b734-1cde4fa3d08c",
+  "systemID": "60a9ad84-e93d-480f-80d6-af37494f2e22",
+  "deviceType": 4,
+  "url": {
+   "rendezvousRegisterDevice": "/v1/account/Subscriber/RegisterDevice"
+  },
+  "imperva": {
+   "enabled": true,
+   "challengeUrl": "https://api.formula1.com/6657193977244c13"
+  }
+ },
+ "pinPairing": {
+  "enabled": true
+ },
+ "locationDefaults": {
+  "groupId": "90",
+  "entitlement": "VIP",
+  "userCountry": "Not Applicable"
+ },
+ "registeredCountryTargetedPopUp": {
+  "enabled": true,
+  "registeredCountries": [
+   "FR",
+   "MC",
+   "BL",
+   "MF",
+   "GP",
+   "MQ"
+  ],
+  "stateChangeDate": "2024-07-11T00:00:00.000Z",
+  "supportPage": "https://support.formula1.com/s/f1-tv/category?…"
+ },
+ "accessibilityStatement": {
+  "enabled": true
+ },
+ "abTasty": {
+  "accountID": "<removed>"
+ },
+ "appLogLevel": "silent",
+ "syndications": {
+  "apple": {
+   "enabled": true,
+   "syndicationJourneyURL": "https://account.formula1.com/",
+   "territories": [
+    "US",
+    "GU",
+    "VI",
+    "PR",
+    "AS",
+    "MP"
+   ]
+  },
+  "fancode": {
+   "enabled": true,
+   "syndicationJourneyURL": "https://account.formula1.com/",
+   "territories": [
+    "IN"
+   ]
+  }
+ },
+ "version": "release-R55.0.6"
+}

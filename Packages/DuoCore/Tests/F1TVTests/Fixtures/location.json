@@ -1,0 +1,14 @@
+{
+ "resultObj": {
+  "userLocation": [
+   {
+    "detectedCountryIsoCode": "US",
+    "registeredCountryIsoCode": "US",
+    "detectedCountryIsoCodeAlpha3": "USA",
+    "registeredCountryIsoCodeAlpha3": "USA",
+    "groupId": 5,
+    "entitlement": "PREMIUM"
+   }
+  ]
+ }
+}

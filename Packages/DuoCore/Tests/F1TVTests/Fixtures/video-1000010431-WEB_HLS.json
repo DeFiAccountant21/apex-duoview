@@ -1,0 +1,451 @@
+{
+ "resultCode": "OK",
+ "message": "",
+ "errorDescription": "200",
+ "resultObj": {
+  "personalisation": {
+   "uri": "/2.0/R/ENG/WEB_HLS/ALL/CONTENT/USERSELECTIONS/PREMIUM/5",
+   "httpMethod": "POST",
+   "body": "{\"1000010431\":{\"duration\":8052}}"
+  },
+  "steering": {
+   "uri": "/3.0/R/ENG/WEB_HLS/ALL/FEATURESTEERING/PREMIUM/5?techPack=F1_FER&obc=true&videoType=FER&contentId=1000010431",
+   "httpMethod": "GET"
+  },
+  "total": 1,
+  "containers": [
+   {
+    "id": 1000010431,
+    "layout": "CONTENT_ITEM",
+    "contentId": 1000010431,
+    "properties": [
+     {
+      "meeting_Number": 20,
+      "sessionEndTime": 1794164400000,
+      "series": "FORMULA 1",
+      "lastUpdatedDate": 1794505045536,
+      "lastIndexedDate": 1794505045536,
+      "season_Meeting_Ordinal": 0,
+      "meeting_Start_Date": 0,
+      "meeting_End_Date": 0,
+      "season": 2026,
+      "session_index": 110,
+      "meetingSessionKey": 11412,
+      "sessionStartDate": 1794157200000,
+      "sessionEndDate": 1794164400000
+     }
+    ],
+    "metadata": {
+     "contentId": 1000010431,
+     "advTags": "0",
+     "availableLanguages": [
+      {
+       "languageCode": "SPA",
+       "languageName": "Spanish"
+      },
+      {
+       "languageCode": "POR",
+       "languageName": "Portuguese"
+      },
+      {
+       "languageCode": "FRA",
+       "languageName": "French"
+      },
+      {
+       "languageCode": "DEU",
+       "languageName": "German"
+      },
+      {
+       "languageCode": "NLD",
+       "languageName": "Dutch"
+      },
+      {
+       "languageCode": "JPN",
+       "languageName": "Japanese"
+      }
+     ],
+     "contentType": "VIDEO",
+     "contentProvider": "F1",
+     "longDescription": "Race",
+     "country": "BRA",
+     "year": "2026",
+     "contractStartDate": 1788973200000,
+     "contractEndDate": 4102444799000,
+     "externalId": "FOM_SESSION_11412",
+     "title": "2026 São Paulo Grand Prix",
+     "duration": 8052,
+     "objectSubtype": "REPLAY",
+     "contentSubtype": "REPLAY",
+     "starRating": 0,
+     "pictureUrl": "1000010431-bbce179f-cda6-4fbd-957d-00b2e98a334d/landscape_web",
+     "language": "ENG",
+     "metadataLanguage": "ENG",
+     "season": 2026,
+     "isADVAllowed": false,
+     "isEncrypted": false,
+     "isLatest": false,
+     "isOnAir": true,
+     "isParent": true,
+     "isPopularEpisode": false,
+     "episodeNumber": 20,
+     "filter": "0",
+     "isGeoBlocked": false,
+     "pcLevelVod": "2",
+     "pcLevel": 2,
+     "pcVodLabel": "G",
+     "pcExtendedRatings": [],
+     "isCopyProtected": true,
+     "copyProtections": [
+      {
+       "securityCode": "01",
+       "securityOption": "00000010"
+      },
+      {
+       "securityCode": "03",
+       "securityOption": "00000001"
+      },
+      {
+       "securityCode": "05",
+       "securityOption": "00000001"
+      }
+     ],
+     "actors": [],
+     "authors": [],
+     "directors": [],
+     "genres": [
+      "Race"
+     ],
+     "anchors": [],
+     "availableAlso": [
+      "MOBILE_HLS",
+      "BIG_SCREEN_HLS",
+      "WEB_DASH",
+      "BIG_SCREEN_DASH",
+      "TABLET_DASH",
+      "TABLET_HLS"
+     ],
+     "contentOptions": [],
+     "recentlyAdded": false,
+     "emfAttributes": {
+      "sessionEndTime": "2026-11-08T16:00:00-03:00",
+      "multipartEventIndex": "2",
+      "session_index": "110",
+      "MeetingSessionKey": "11412",
+      "multipartEvent": "true",
+      "multipartEventNextHouseId": "FOM_SESSION_11412003",
+      "sessionStartDate": "1794157200000",
+      "VideoType": "meetingSession",
+      "OBC": true,
+      "multipartEventMainMSK": "11412",
+      "MeetingCountryKey": "10",
+      "Meeting_Country_Name": "Brazil",
+      "multipartEventTotal": "3",
+      "Diplay_In_Schedule": "true",
+      "Global_Title": "2620 São Paulo GP - F1 Race",
+      "state": "Pre-Live",
+      "Circuit_Short_Name": "Interlagos",
+      "Meeting_Name": "São Paulo Grand Prix",
+      "Meeting_Number": "20",
+      "multipartEventMainHouseId": "FOM_SESSION_11412",
+      "Global_Meeting_Name": "São Paulo Grand Prix",
+      "CircuitKey": "14",
+      "Global_Meeting_Country_Name": "Brazil",
+      "MeetingKey": "1299",
+      "Series": "FORMULA 1",
+      "Meeting_Location": "São Paulo",
+      "bug": "true",
+      "ContentCategory": "RACE",
+      "sessionEndDate": "1794164400000",
+      "Meeting_Code": "F1202620"
+     },
+     "comingSoon": false,
+     "leavingSoon": false,
+     "objectType": "VIDEO",
+     "shortDescription": "Race",
+     "titleBrief": "Race",
+     "uiDuration": "02:14:12",
+     "meetingKey": "1299",
+     "entitlement": "Access",
+     "locked": false,
+     "videoType": "FER",
+     "parentalAdvisory": "S,L,PPS",
+     "additionalStreams": [
+      {
+       "racingNumber": 0,
+       "teamName": "",
+       "type": "additional",
+       "playbackUrl": "CONTENT/PLAY?channelId=1033&contentId=1000010431",
+       "driverImg": "",
+       "teamImg": "",
+       "channelId": 1033,
+       "title": "F1 LIVE",
+       "reportingName": "PRES",
+       "default": true,
+       "identifier": "PRES",
+       "audioDefault": "1033.eng",
+       "subtitleTrackNames": {
+        "eng_subtitle": "English F1 Live",
+        "spa_subtitle": "Espanol F1 Live"
+       }
+      },
+      {
+       "racingNumber": 0,
+       "teamName": "",
+       "type": "additional",
+       "playbackUrl": "CONTENT/PLAY?contentId=1000010431",
+       "driverImg": "",
+       "teamImg": "",
+       "channelId": 1025,
+       "title": "INTERNATIONAL",
+       "reportingName": "WIF",
+       "default": false,
+       "identifier": "WIF",
+       "audioDefault": "1025.eng",
+       "audioTrackNames": {
+        "eng": "English Int.",
+        "deu": "Deutsch",
+        "fra": "Francais",
+        "nld": "Nederlands",
+        "por": "Portugues",
+        "jpn": "日本語",
+        "fx": "Track FX"
+       },
+       "subtitleTrackNames": {
+        "eng_subtitle": "English Int.",
+        "fra_subtitle": "Francais"
+       }
+      },
+      {
+       "racingNumber": 0,
+       "teamName": "",
+       "type": "additional",
+       "playbackUrl": "CONTENT/PLAY?channelId=1003&contentId=1000010431",
+       "driverImg": "",
+       "teamImg": "",
+       "channelId": 1003,
+       "title": "TRACKER",
+       "reportingName": "TRACKER",
+       "identifier": "TRACKER",
+       "audioDefault": "1033.eng",
+       "default": false
+      },
+      {
+       "racingNumber": 0,
+       "teamName": "",
+       "type": "additional",
+       "playbackUrl": "CONTENT/PLAY?channelId=1004&contentId=1000010431",
+       "driverImg": "",
+       "teamImg": "",
+       "channelId": 1004,
+       "title": "DATA",
+       "reportingName": "DATA",
+       "identifier": "DATA",
+       "audioDefault": "1033.eng",
+       "default": false
+      },
+      {
+       "racingNumber": 1,
+       "title": "NOR",
+       "reportingName": "NOR|1",
+       "driverFirstName": "Lando",
+       "driverLastName": "Norris",
+       "teamName": "McLaren",
+       "constructorName": "McLaren",
+       "type": "obc",
+       "playbackUrl": "CONTENT/PLAY?channelId=1016&contentId=1000010431",
+       "driverImg": "",
+       "teamImg": "",
+       "hex": "#FF8000",
+       "channelId": 1016,
+       "identifier": "OBC",
+       "audioDefault": "1016",
+       "audioTrackNames": {
+        "tea": "NOR",
+        "eng": "English",
+        "deu": "Deutsch",
+        "fra": "Francais",
+        "spa": "Espanol",
+        "nld": "Nederlands",
+        "por": "Portugues",
+        "jpn": "日本語"
+       },
+       "default": false
+      },
+      {
+       "racingNumber": 3,
+       "title": "VER",
+       "reportingName": "VER|3",
+       "driverFirstName": "Max",
+       "driverLastName": "Verstappen",
+       "teamName": "Red Bull Racing",
+       "constructorName": "Red Bull Racing",
+       "type": "obc",
+       "playbackUrl": "CONTENT/PLAY?channelId=1009&contentId=1000010431",
+       "driverImg": "",
+       "teamImg": "",
+       "hex": "#3671C6",
+       "channelId": 1009,
+       "identifier": "OBC",
+       "audioDefault": "1009",
+       "audioTrackNames": {
+        "tea": "VER",
+        "eng": "English",
+        "deu": "Deutsch",
+        "fra": "Francais",
+        "spa": "Espanol",
+        "nld": "Nederlands",
+        "por": "Portugues",
+        "jpn": "日本語"
+       },
+       "default": false
+      }
+     ]
+    },
+    "assets": [
+     {
+      "assetId": 86003,
+      "assetType": "MASTER",
+      "assetName": "VOD_HD",
+      "videoType": "HD",
+      "audioLanguages": [
+       {
+        "audioId": 1,
+        "audioLanguageName": "ENG",
+        "isPreferred": false
+       }
+      ]
+     }
+    ],
+    "parents": [
+     {
+      "parentId": 1500000325,
+      "parentType": "BUNDLE",
+      "parentSubType": "MEETING"
+     },
+     {
+      "parentId": 1700000046,
+      "parentType": "GROUP_OF_BUNDLES",
+      "parentSubType": "YEAR"
+     }
+    ],
+    "platformVariants": [
+     {
+      "cpId": 86003,
+      "subtitlesLanguages": [],
+      "pictureUrl": "1000010431-bbce179f-cda6-4fbd-957d-00b2e98a334d",
+      "audioLanguages": [
+       {
+        "isPreferred": false,
+        "audioLanguageName": "ENG",
+        "audioId": 1
+       }
+      ],
+      "hasTrailer": false,
+      "videoType": "HD",
+      "technicalPackages": [
+       {
+        "packageId": 1000,
+        "packageName": "F1_Live",
+        "packageType": "SVOD"
+       }
+      ]
+     }
+    ],
+    "containers": {
+     "bundles": [
+      {
+       "bundleId": 1500000325,
+       "bundleType": "BUNDLE",
+       "bundleSubtype": "MEETING",
+       "isParent": true,
+       "orderId": 0
+      },
+      {
+       "bundleId": 1700000046,
+       "bundleType": "GROUP_OF_BUNDLES",
+       "bundleSubtype": "YEAR",
+       "isParent": false,
+       "orderId": 86
+      }
+     ]
+    },
+    "platformName": "web_hls",
+    "popularity": {
+     "shortPeriod": 3246686,
+     "longPeriod": 3246694,
+     "allTime": 3246694
+    },
+    "playbackOffsetsVersion": "default",
+    "playbackOffsets": [
+     {
+      "channels": [
+       "DATA",
+       "PRES"
+      ],
+      "channelToAdjust": "DATA",
+      "delaySeconds": 1
+     },
+     {
+      "channels": [
+       "DATA",
+       "WIF"
+      ],
+      "channelToAdjust": "DATA",
+      "delaySeconds": 6
+     },
+     {
+      "channels": [
+       "DATA",
+       "TRACKER"
+      ],
+      "channelToAdjust": "TRACKER",
+      "delaySeconds": 0
+     },
+     {
+      "channels": [
+       "DATA",
+       "OBC"
+      ],
+      "channelToAdjust": "OBC",
+      "delaySeconds": 4
+     },
+     {
+      "channels": [
+       "PRES",
+       "WIF"
+      ],
+      "channelToAdjust": "PRES",
+      "delaySeconds": 5
+     },
+     {
+      "channels": [
+       "PRES",
+       "TRACKER"
+      ],
+      "channelToAdjust": "TRACKER",
+      "delaySeconds": 1
+     }
+    ],
+    "liveNow": {
+     "enabled": {
+      "AMAZONFIRE": false,
+      "AMAZONFIRETV": false,
+      "ANDROID": false,
+      "ANDROIDTV": false,
+      "IOS": false,
+      "ROKU": false,
+      "SAMSUNG": false,
+      "TVOS": false,
+      "WEB": false
+     },
+     "url": "https://f1tv.formula1.com/1.0/R/ENG/WEB_HLS/ALL/EVENTS/LIVENOW/PREMIUM/5"
+    },
+    "uiMetadata": {
+     "contentSubtype": "Replay"
+    }
+   }
+  ]
+ },
+ "source": "server",
+ "systemTime": 1794526281322
+}
