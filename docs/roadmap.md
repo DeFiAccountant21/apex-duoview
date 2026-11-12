@@ -88,7 +88,11 @@ Release titles: "v1.0-beta.1 — Foundation", "v1.0-rc.1 — Release candidate",
 
 - Sign-in and play requests work from a plain client; the `WEB_DASH` request style returns HLS.
 - Single feed and all 26 multiview feeds came back as HLS with no DRM key tags (first feed's
-  playlists checked only). Not yet verified: actual playback in AVPlayer, live sessions.
+  playlists checked only). Not yet verified: live sessions.
+- 2026-11-12: the São Paulo race stream (world feed, signed link from the play API) played in
+  Safari on the owner's Mac, which uses the same Apple video engine as the app.
+- An older pipeline-1 video carried six commentary languages plus an "FX" track (race sound
+  without commentary) and no #EXT-X-PROGRAM-DATE-TIME.
 - F1 TV's config publishes a FairPlay certificate, so protected content may exist elsewhere.
 
 ## Screenshots
