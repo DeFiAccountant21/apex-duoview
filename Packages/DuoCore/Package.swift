@@ -11,7 +11,7 @@ let package = Package(
     targets: [
         .target(name: "F1TV"),
         .target(name: "Library"),
-        .testTarget(name: "F1TVTests", dependencies: ["F1TV"]),
+        .testTarget(name: "F1TVTests", dependencies: ["F1TV"], resources: [.copy("Fixtures")]),
         .testTarget(name: "LibraryTests", dependencies: ["Library"]),
     ],
     swiftLanguageModes: [.v6]
