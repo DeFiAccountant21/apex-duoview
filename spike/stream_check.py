@@ -580,8 +580,9 @@ def step_config():
     return play_v
 
 
-def sign_in(token, platform, ua, verbose):
-    """ENTITLEMENT then LOCATION, as F1TvApi.login() does. Returns (entitlement, tier, groupId)."""
+def sign_in(token, platform, ua, verbose, capture=None):
+    """ENTITLEMENT then LOCATION, as F1TvApi.login() does. Returns (entitlement, tier, groupId).
+    capture: optional dict; when given, capture["location"] receives the raw userLocation[0]."""
     url = "%s/2.0/R/%s/%s/ALL/USER/ENTITLEMENT" % (BASE, LANGUAGE, platform)
     status, body = f1_get(url, ua, {"ascendontoken": token})
     result = body.get("resultObj") if isinstance(body, dict) else None
@@ -601,6 +602,8 @@ def sign_in(token, platform, ua, verbose):
         loc = body["resultObj"]["userLocation"][0]
     except (KeyError, IndexError, TypeError):
         raise HttpError(status, json.dumps(body)[:600], "LOCATION response had no resultObj.userLocation[0]")
+    if capture is not None:
+        capture["location"] = loc
     tier = str(loc.get("entitlement", ""))
     group = loc.get("groupId", 0)
     if verbose:
@@ -1216,14 +1219,249 @@ def run_live_section(single, multi, ua, f1live_channel, onboard_channel, box):
     return specs, drm_hints
 
 
+# --- Fixture recording (--dump-catalogue) ------------------------------------------------------
+
+import unicodedata
+import zipfile
+
+FIXTURE_CONTENT_ID = 1000010431   # 2026 Sao Paulo race
+FIXTURE_ONBOARD_CHANNEL = 1016    # its first onboard
+FIXTURE_MISSING_ID = 1000009999
+FIXTURE_HOME_PAGE = 395
+FIXTURE_LIST_LIMIT = 6
+FIXTURE_GAP_S = 2
+FIXTURE_NAMES = [
+    "config", "location", "home", "livenow", "calendar-2026", "weekend-saopaulo", "archive-races",
+    "season-1998", "video-1000010431-WEB_HLS", "video-1000010431-WEB_DASH", "play-1000010431-WEB_HLS",
+    "play-1000010431-onboard-WEB_HLS", "play-1000010431-iosheader-WEB_HLS", "play-1000009999-WEB_HLS",
+]
+SENSITIVE_KEY = re.compile(r"token|ascendon|entitlement|subscriber|email|session", re.I)
+URL_KEY = re.compile(r"^(url|laurl)$", re.I)
+REMOVED = "<removed>"
+EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
+
+
+def sanitize(obj):
+    """Returns a sanitised copy: sensitive keys removed, URL strings masked (mask_url via scrub),
+    known tokens, JWTs and long blobs masked, and every list cut to its first 6 items."""
+    if isinstance(obj, dict):
+        return {k: (REMOVED if SENSITIVE_KEY.search(str(k)) else sanitize(v)) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [sanitize(v) for v in obj[:FIXTURE_LIST_LIMIT]]
+    if isinstance(obj, str):
+        return EMAIL_RE.sub(REMOVED, scrub(obj))
+    return obj
+
+
+def remove_urls(obj):
+    """Copy with every `url` / `laURL` value replaced (play responses: signed stream links)."""
+    if isinstance(obj, dict):
+        return {k: (REMOVED if URL_KEY.match(str(k)) and isinstance(v, str) else remove_urls(v)) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [remove_urls(v) for v in obj]
+    return obj
+
+
+def sanitize_location(loc):
+    """Only entitlement (the tier), groupId and the country codes of userLocation[0]."""
+    keep = {}
+    if isinstance(loc, dict):
+        for k, v in loc.items():
+            if k in ("entitlement", "groupId") or "country" in str(k).lower():
+                keep[k] = sanitize(v)
+    return {"resultObj": {"userLocation": [keep]}}
+
+
+def fold(text):
+    return "".join(c for c in unicodedata.normalize("NFKD", str(text)) if not unicodedata.combining(c)).lower()
+
+
+def find_meeting_page_id(calendar_body, needle="paulo"):
+    """PageID of the first calendar meeting whose name, circuit or country mentions the needle."""
+    result = calendar_body.get("resultObj") if isinstance(calendar_body, dict) else None
+    for container in (result.get("containers") if isinstance(result, dict) else None) or []:
+        meta = container.get("metadata") if isinstance(container, dict) else None
+        emf = meta.get("emfAttributes") if isinstance(meta, dict) else None
+        if not isinstance(emf, dict):
+            continue
+        names = " ".join(str(emf.get(k) or "") for k in ("Meeting_Name", "Circuit_Short_Name", "Meeting_Country_Name"))
+        if needle in fold(names):
+            try:
+                page_id = int(emf.get("PageID") or 0)
+            except (TypeError, ValueError):
+                page_id = 0
+            if page_id > 0:
+                return page_id
+    return None
+
+
+def url_kind(url):
+    if not isinstance(url, str) or not url:
+        return "absent"
+    try:
+        path = urllib.parse.urlsplit(url).path.lower()
+    except ValueError:
+        return "other"
+    return "m3u8" if path.endswith(".m3u8") else ("mpd" if path.endswith(".mpd") else "other")
+
+
+def search_path(params):
+    return "PAGE/SEARCH/VOD/{tier}/{group}?" + urllib.parse.urlencode(params)  # Java URLEncoder style
+
+
+def dump_catalogue(token, base_dir=None):
+    """Records the sanitised responses named in FIXTURE_NAMES into <base_dir>/fixtures and zips them
+    to <base_dir>/fixtures.zip. A failed request is recorded as an error file; the run goes on."""
+    base_dir = base_dir or os.path.dirname(os.path.abspath(__file__))
+    fx_dir = os.path.join(base_dir, "fixtures")
+    os.makedirs(fx_dir, exist_ok=True)
+    written = []
+    sessions = {}   # platform -> (entitlement, tier, groupId) or the HttpError that stopped it
+    raw_location = {}
+    versions = {"play": "3.0", "video": "4.0"}
+
+    def save(name, doc):
+        with open(os.path.join(fx_dir, name + ".json"), "w", encoding="utf-8") as f:
+            json.dump(doc, f, indent=1, ensure_ascii=False)
+            f.write("\n")
+        written.append(name)
+        out("  %s.json %s" % (name, "ERROR %s" % doc["error"] if isinstance(doc, dict) and "error" in doc else "ok"))
+
+    def record(name, fn):
+        try:
+            doc = fn()
+        except HttpError as e:
+            doc = {"error": e.status, "body": scrub(e.body or str(e))[:600]}
+        except Exception as e:  # one bad request must never stop the run
+            doc = {"error": type(e).__name__, "body": scrub(str(e))[:600]}
+        save(name, doc)
+
+    def session(platform):
+        if platform not in sessions:
+            try:
+                sessions[platform] = sign_in(token, platform, SAFARI_UA, False,
+                                             raw_location if platform == "WEB_HLS" else None)
+            except HttpError as e:
+                sessions[platform] = e
+        got = sessions[platform]
+        if isinstance(got, HttpError):
+            raise HttpError(got.status, got.body, "sign-in on %s failed: %s" % (platform, got))
+        return got
+
+    def catalogue(path, platform="WEB_HLS", version="2.0", with_entitlement=False):
+        def run():
+            ent, tier, group = session(platform)
+            headers = {"entitlementtoken": ent} if with_entitlement else None
+            _, body = f1_get(api_url(version, platform, path.format(tier=tier, group=group)), SAFARI_UA, headers)
+            return sanitize(body)
+        return run
+
+    def play(content_id, platform="WEB_HLS", channel_id=None, device=None):
+        def run():
+            ent, tier, _ = session(platform)
+            query = "contentId=%d&player=player_bm" % content_id
+            if channel_id is not None:
+                query += "&channelId=%d" % channel_id
+            multiview = tier in MULTIVIEW_TIERS
+            info = device(multiview) if device else safari_device_info(multiview)
+            headers = {"ascendontoken": token, "entitlementtoken": ent, "x-f1-device-info": info}
+            _, body = f1_get(api_url(versions["play"], platform, "CONTENT/PLAY") + "?" + query, SAFARI_UA, headers)
+            result = body.get("resultObj") if isinstance(body, dict) else None
+            result = result if isinstance(result, dict) else {}
+            doc = sanitize(remove_urls(body))
+            if not isinstance(doc, dict):
+                doc = {"_body": doc}
+            doc["_url_kind"] = url_kind(result.get("url"))
+            doc["_has_laURL"] = bool(result.get("laURL"))
+            return doc
+        return run
+
+    def ios_device(multiview):
+        return device_info("ios", "safari", "27", "27.2", multiview)
+
+    out("== Recording fixtures into spike/fixtures (sanitised) ==")
+
+    def config():
+        _, cfg = f1_get(BASE + "/config", SAFARI_UA)
+        api = cfg.get("apiConfig") if isinstance(cfg, dict) else None
+        if isinstance(api, dict):
+            for key, field in (("play", "playAPIVersion"), ("video", "videoAPIVersion")):
+                v = str(api.get(field, "")).strip()
+                if API_VERSION.match(v):
+                    versions[key] = v
+        return sanitize(cfg)
+    record("config", config)
+
+    def location():
+        session("WEB_HLS")
+        return sanitize_location(raw_location.get("location"))
+    record("location", location)
+
+    record("home", catalogue("PAGE/%d/{tier}/{group}" % FIXTURE_HOME_PAGE))
+    record("livenow", catalogue("EVENTS/LIVENOW/{tier}/{group}", version="1.0"))
+
+    calendar_params = [("orderBy", "meeting_End_Date"), ("sortOrder", "asc"), ("filter_objectSubtype", "Meeting"),
+                       ("filter_season", "2026"), ("filter_orderByFom", "Y"), ("maxResults", "100")]
+    calendar_raw = {}
+
+    def calendar():
+        ent, tier, group = session("WEB_HLS")
+        _, body = f1_get(api_url("2.0", "WEB_HLS", search_path(calendar_params).format(tier=tier, group=group)), SAFARI_UA)
+        calendar_raw["body"] = body  # unsanitised, in memory only: the weekend's page id is read from it
+        return sanitize(body)
+    record("calendar-2026", calendar)
+
+    def weekend():
+        page_id = find_meeting_page_id(calendar_raw.get("body"))
+        if page_id is None:
+            raise HttpError("not_found", "", "no Sao Paulo meeting with a PageID in the 2026 calendar response")
+        return catalogue("PAGE/%d/{tier}/{group}" % page_id)()
+    record("weekend-saopaulo", weekend)
+
+    record("archive-races", catalogue(search_path([
+        ("filter_Series", "Formula 1"), ("filter_genres", "Full Race,Race"), ("filter_objectSubtype", "Replay"),
+        ("filter_objectType", "Video"), ("orderBy", "shortPeriod"), ("sortOrder", "desc"), ("maxResults", "100")])))
+    record("season-1998", catalogue(search_path([("filter_season", "1998"), ("maxResults", "100")])))
+
+    for platform in ("WEB_HLS", "WEB_DASH"):
+        record("video-%d-%s" % (FIXTURE_CONTENT_ID, platform),
+               catalogue("CONTENT/VIDEO/%d/{tier}/{group}" % FIXTURE_CONTENT_ID, platform,
+                         versions["video"], with_entitlement=True))
+
+    plays = [
+        ("play-%d-WEB_HLS" % FIXTURE_CONTENT_ID, play(FIXTURE_CONTENT_ID)),
+        ("play-%d-onboard-WEB_HLS" % FIXTURE_CONTENT_ID, play(FIXTURE_CONTENT_ID, channel_id=FIXTURE_ONBOARD_CHANNEL)),
+        ("play-%d-iosheader-WEB_HLS" % FIXTURE_CONTENT_ID, play(FIXTURE_CONTENT_ID, device=ios_device)),
+        ("play-%d-WEB_HLS" % FIXTURE_MISSING_ID, play(FIXTURE_MISSING_ID)),
+    ]
+    for i, (name, fn) in enumerate(plays):
+        if i:
+            time.sleep(FIXTURE_GAP_S)
+        record(name, fn)
+
+    zip_path = os.path.join(base_dir, "fixtures.zip")
+    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
+        for name in written:
+            z.write(os.path.join(fx_dir, name + ".json"), name + ".json")
+    out("Wrote %d files and fixtures.zip (%d bytes)." % (len(written), os.path.getsize(zip_path)))
+    return written
+
+
 # --- Main ------------------------------------------------------------------------------------
 
 def main():
     parser = argparse.ArgumentParser(
         description="Throwaway spike: ask F1 TV for one replay on several platform strings and "
                     "report whether a FairPlay HLS stream is offered. Reads JSON and manifest text only.",
-        usage="python3 stream_check.py [--live] [--save-urls] <F1 TV page URL or numeric contentId>")
-    parser.add_argument("content", help="e.g. https://f1tv.formula1.com/detail/1000009999/some-title or 1000009999")
+        usage="python3 stream_check.py [--live] [--save-urls] <F1 TV page URL or numeric contentId>\n"
+              "       python3 stream_check.py --dump-catalogue")
+    parser.add_argument("content", nargs="?",
+                        help="e.g. https://f1tv.formula1.com/detail/1000009999/some-title or 1000009999 "
+                             "(not needed with --dump-catalogue)")
+    parser.add_argument("--dump-catalogue", action="store_true",
+                        help="record sanitised F1 TV responses as JSON fixtures in fixtures/ (zipped to "
+                             "fixtures.zip) next to this script, for the app's parser tests. Fixed requests; "
+                             "no contentId needed.")
     parser.add_argument("--save-urls", action="store_true",
                         help="also write the UNMASKED signed stream URLs to stream_urls_PRIVATE.txt next to "
                              "this script, for a local playback test. Never printed, never in the result file; "
@@ -1238,9 +1476,13 @@ def main():
                         help="--live: the multiview channel_id to use as the onboard, if none is recognised")
     args = parser.parse_args()
 
-    content_id = extract_content_id(args.content)
-    if content_id is None:
-        parser.error("couldn't find a contentId in %r" % args.content)
+    content_id = None
+    if not args.dump_catalogue:
+        if not args.content:
+            parser.error("a contentId or F1 TV page URL is required (or use --dump-catalogue)")
+        content_id = extract_content_id(args.content)
+        if content_id is None:
+            parser.error("couldn't find a contentId in %r" % args.content)
 
     # The cookie is longer than the 1024 characters a macOS terminal accepts on one typed
     # line, so the normal way in is the clipboard:  pbpaste | python3 stream_check.py <url>
@@ -1263,6 +1505,15 @@ def main():
         return 1
     add_secret(token)
     add_secret(raw.strip())
+
+    if args.dump_catalogue:
+        try:
+            dump_catalogue(token)
+        except KeyboardInterrupt:
+            out("Interrupted.")
+            return 1
+        print("fixtures.zip holds sanitised responses only; it is git-ignored. Send it back, do not post it elsewhere.")
+        return 0
 
     out("F1 TV stream check (throwaway spike for the iOS-port assessment)%s" % ("  [LIVE MODE]" if args.live else ""))
     out("This output is SAFE TO SHARE: subscription/entitlement tokens and URL query strings are masked.")
