@@ -1,3 +1,6 @@
 stream_check_result.txt
+stream_check_live_result.txt
 stream_urls_PRIVATE.txt
+timing_*.jsonl
+archive_*/
 __pycache__/
