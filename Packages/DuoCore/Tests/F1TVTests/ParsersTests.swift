@@ -145,8 +145,8 @@ private let now = Date(timeIntervalSince1970: 1_794_526_278)  // 2026-11-12, the
         #expect(shows.items.allSatisfy { $0.pageId != nil })
         let weekend = try #require(home.rows.first { $0.tag == .weekend })
         #expect(weekend.title == "2026 São Paulo Grand Prix")
-        // The recorded home has a "hero" layout, not "super_hero": nothing is featured.
-        #expect(home.featured.isEmpty)
+        // The recorded home uses a "hero" layout, treated like "super_hero".
+        #expect(home.featured.map(\.contentId).contains(1000079724))
     }
 
     @Test func homeFeaturedFromSuperHero() {

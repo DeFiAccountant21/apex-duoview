@@ -167,7 +167,7 @@ public enum Parsers {
             let uri = container["retrieveItems"]["uriOriginal"].string
             let layout = container["layout"].string
             switch layout {
-            case "super_hero":
+            case "super_hero", "hero":
                 featured = items.filter { $0.pageId == nil }
             case "horizontal_thumbnail", "vertical_thumbnail", "horizontal_simple_poster":
                 if items.isEmpty || isBlank(label) || uri.contains("MYLIST")
