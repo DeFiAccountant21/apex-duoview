@@ -1235,7 +1235,7 @@ FIXTURE_NAMES = [
     "season-1998", "video-1000010431-WEB_HLS", "video-1000010431-WEB_DASH", "play-1000010431-WEB_HLS",
     "play-1000010431-onboard-WEB_HLS", "play-1000010431-iosheader-WEB_HLS", "play-1000009999-WEB_HLS",
 ]
-SENSITIVE_KEY = re.compile(r"token|ascendon|entitlement|subscriber|email|session", re.I)
+SENSITIVE_KEY = re.compile(r"token|ascendon|subscriber|email|password|cookie", re.I)
 URL_KEY = re.compile(r"^(url|laurl)$", re.I)
 REMOVED = "<removed>"
 EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
