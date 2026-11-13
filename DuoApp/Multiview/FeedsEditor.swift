@@ -211,7 +211,7 @@ struct PresetNameView: View {
                 TextField("Name", text: $name)
                     .focused($focused)
                     .submitLabel(.done)
-                    .onSubmit(save)
+                    .onSubmit { save() }
             } footer: {
                 if let problem {
                     Text(problem).foregroundStyle(Theme.textPrimary)
