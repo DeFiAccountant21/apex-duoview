@@ -47,6 +47,28 @@ import Foundation
         #expect(SyncPolicy.action(offset: nil, baseRate: 1.5) == .none)
     }
 
+    @Test func nonFiniteOffsetDoesNothing() {
+        #expect(SyncPolicy.action(offset: .nan, baseRate: 1) == .none)
+        #expect(SyncPolicy.action(offset: .infinity, baseRate: 1) == .none)
+        #expect(SyncPolicy.action(offset: -.infinity, baseRate: 1) == .none)
+    }
+
+    @Test func negativeDroppedFramesCannotCancelRealDrops() {
+        var monitor = StruggleMonitor()
+        monitor.record(droppedFrames: 150, over: 1, at: Self.t0)
+        monitor.record(droppedFrames: -1000, over: 1, at: Self.t0.addingTimeInterval(1))
+        #expect(monitor.shouldFreezeOthers(at: Self.t0.addingTimeInterval(1)) == true)
+    }
+
+    @Test func futureTimestampsDoNotCountOrCrash() {
+        var monitor = StruggleMonitor()
+        monitor.record(stall: Self.t0)
+        monitor.record(stall: Self.t0.addingTimeInterval(100))
+        monitor.record(droppedFrames: 500, over: 1, at: Self.t0.addingTimeInterval(100))
+        #expect(monitor.shouldFreezeOthers(at: Self.t0.addingTimeInterval(5)) == false)
+        #expect(monitor.shouldFreezeOthers(at: Self.t0.addingTimeInterval(100)) == true)
+    }
+
     @Test func twoStallsFreeze() {
         var monitor = StruggleMonitor()
         monitor.record(stall: Self.t0)

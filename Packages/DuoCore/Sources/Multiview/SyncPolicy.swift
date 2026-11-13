@@ -21,8 +21,10 @@ public enum SyncPolicy {
     /// - Parameters:
     ///   - offset: this feed's time minus the main feed's, in seconds (positive = ahead). nil when no comparable time exists.
     ///   - baseRate: the playback rate the user chose for this feed.
+    /// `.none` means the caller should play at `baseRate`, restoring any earlier nudge.
+    /// A nil or non-finite offset also returns `.none`.
     public static func action(offset: Double?, baseRate: Double) -> SyncAction {
-        guard let offset else { return .none }
+        guard let offset, offset.isFinite else { return .none }
         let magnitude = abs(offset)
         if magnitude <= tolerance { return .none }
         if magnitude <= seekThreshold {
@@ -54,7 +56,7 @@ public struct StruggleMonitor: Sendable {
     /// `seconds` is accepted for the caller's sampling interval; the rate is always averaged over a fixed 10 s window.
     public mutating func record(droppedFrames: Int, over seconds: Double, at: Date) {
         prune(at)
-        drops.append((droppedFrames, at))
+        drops.append((max(0, droppedFrames), at))
     }
 
     public func shouldFreezeOthers(at: Date) -> Bool {
