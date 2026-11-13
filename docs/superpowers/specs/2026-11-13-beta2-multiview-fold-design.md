@@ -84,7 +84,9 @@ panel).
 - Combining the feeds into one video: impossible for live HLS; dropped.
 
 **Safety step:** the plan's first task checks the multiview request inside the app (see Open
-items O1). If F1 TV refuses it, stop and fall back to B before anything is built on top.
+items O1). If F1 TV refuses it, the plan stops there and comes back to the owner: under B, instant
+swaps and presets that load without a new request can't hold, so the promises need the owner's
+say before anything is built on top.
 
 ## What the owner decided
 
@@ -113,6 +115,21 @@ region x 456–496) and are what the sketch showed. All tiles are 16:9, aspect-f
 - **Every change of posture or layout animates**: the same tile views move to their new frames
   (one view per feed, keyed by the feed, frames animated), never removed and recreated.
 - Narrow screens (a phone in portrait, the outer screen) use the closed layout.
+- **Geometry rules (builder's call, recorded here):** 6 pt from the screen edges and 6 pt between
+  tiles; tiles never enter the fold region in book "two per screen" or laptop. Laptop is the inner
+  screen turned (669 × 951 in the simulator) with the fold across at y 456–496. The screen-use
+  figures in the table are floors under those rules (tests assert at least that figure), not exact
+  values. Tiles stay inside the safe area where it touches them, except a full-width main feed may
+  run edge to edge horizontally.
+
+### Fewer than four feeds (builder's call)
+
+- Layouts always have four slots. An empty slot (a remembered feed missing from this session, or
+  after Clear all) shows a "Pick a feed" placeholder in that tile's place, the same size.
+- One feed can't fill two slots.
+- If the main slot is empty, the sound and the main spot go to the first filled slot.
+- A session with only two or three feeds offers that many; the remaining slots stay placeholders
+  and are left out of the closed-screen swipe.
 
 ### Choosing feeds
 
@@ -147,6 +164,24 @@ show, auto-hide after a few seconds:
   live edge.
 - The single-feed player (non-Premium accounts, sessions with one feed, or the existing feed list)
   stays Apple's player as in beta.1.
+
+### Where the players live (builder's call)
+
+The four `AVPlayer`s belong to a multiview coordinator owned by the app model, not by any view, as
+beta.1's `PlayerController` is. Tile views only show a player's picture. So a posture change, a
+switch between the inner and outer screen, or a scene rebuild never stops or recreates a player;
+if the system pauses playback during such a change, the coordinator resumes it, in step. Task 1
+also records, in the simulator, what actually happens to the app when it closes to the outer screen
+and when it turns into laptop (whether laptop is reachable with the real hinge or only with the
+fake fold).
+
+### Expired links (builder's call)
+
+The signed feed URLs from `player_tm` expire after a while. Players already running keep playing.
+If opening a feed (a swap, a preset, resuming after a long pause) fails because its link has
+expired, the coordinator makes one fresh `player_tm` PLAY and reattaches all four feeds at the
+current position, in step. That is the only case where feeds reload; fold changes never do. Task 1
+notes how long the links last if it can tell.
 
 ### Keeping feeds in step
 
