@@ -162,7 +162,6 @@ struct MultiviewView: View {
             controller: controller,
             channel: entry.channel,
             slot: entry.slot,
-            isVisible: visible,
             showsPickPrompt: !controller.isLoading)
             .frame(width: rect.width, height: rect.height)
             .contentShape(Rectangle())

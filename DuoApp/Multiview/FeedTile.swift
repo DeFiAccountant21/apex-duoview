@@ -11,9 +11,6 @@ struct FeedTile: View {
     let controller: MultiviewController
     let channel: Channel?
     let slot: Int
-    /// False while the layout hides this feed (it plays on, out of sight): it then asks for the
-    /// lowest quality instead of its tile's size.
-    let isVisible: Bool
     /// While the multiview loads, empty tiles stay blank rather than ask for a pick.
     let showsPickPrompt: Bool
 
@@ -58,8 +55,8 @@ struct FeedTile: View {
         // `onChange` runs on the main actor.
         .background {
             GeometryReader { proxy in
-                // A hidden feed needs no picture: the smallest size asks for the lowest quality.
-                let size = isVisible ? proxy.size : CGSize(width: 1, height: 1)
+                // A hidden tile has the main tile's size: the size it shows at when swiped in.
+                let size = proxy.size
                 Color.clear
                     .onChange(of: size, initial: true) { _, newSize in
                         controller.setTileSize(
