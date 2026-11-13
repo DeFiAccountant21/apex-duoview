@@ -154,6 +154,12 @@ struct RootView: View {
             ) {
                 PlayerCover(controller: model.playback)
             }
+            .fullScreenCover(isPresented: Binding(
+                get: { model.multiview.isPresented },
+                set: { if !$0 { model.multiview.close() } })
+            ) {
+                MultiviewView(controller: model.multiview)
+            }
             .onChange(of: model.auth) { _, auth in
                 if case .signedIn(let account) = auth {
                     if !account.hasVideoPlan && !planDismissed {

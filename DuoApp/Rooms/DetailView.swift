@@ -52,6 +52,7 @@ struct DetailView: View {
                 LoadStateView(state: state, retry: retry) { detail in
                     // No per-feed play buttons while signed out.
                     if context.isSignedIn {
+                        multiviewEntry(detail)
                         feeds(detail)
                     }
                 }
@@ -90,6 +91,37 @@ struct DetailView: View {
         var playing = item
         if playing.title.isEmpty { playing.title = detail.title }
         context.onPlay(playing, channel)
+    }
+
+    /// Multiview for sessions with two feeds or more: the button for accounts that have it, a
+    /// line saying what it needs for the others.
+    @ViewBuilder
+    private func multiviewEntry(_ detail: VideoDetail) -> some View {
+        if detail.channels.count >= 2, case .signedIn(let account) = context.model.auth {
+            if account.hasMultiview {
+                Button {
+                    watchMultiview(detail)
+                } label: {
+                    Label("Watch multiview", systemImage: "rectangle.split.2x2").frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(Theme.accent)
+                .controlSize(.large)
+            } else {
+                Text("Multiview needs F1 TV Premium")
+                    .font(.subheadline)
+                    .foregroundStyle(Theme.textSecondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+
+    private func watchMultiview(_ detail: VideoDetail) {
+        var titled = item
+        if titled.title.isEmpty { titled.title = detail.title }
+        let playing = titled
+        let model = context.model
+        Task { await model.openMultiview(item: playing, detail: detail) }
     }
 
     @ViewBuilder

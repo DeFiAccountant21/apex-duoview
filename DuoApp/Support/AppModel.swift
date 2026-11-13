@@ -1,6 +1,7 @@
 import F1TV
 import Foundation
 import Library
+import Multiview
 import Observation
 
 enum AuthState: Equatable {
@@ -28,6 +29,10 @@ final class AppModel {
     @ObservationIgnored let history: WatchHistory
     /// The one player, shown full screen by the root while it has something to show.
     @ObservationIgnored let playback: PlayerController
+    /// The one multiview store: its writes are atomic per instance only.
+    @ObservationIgnored let multiviewStore: MultiviewStore
+    /// The multiview player, shown full screen by the root while it has something to show.
+    @ObservationIgnored let multiview: MultiviewController
 
     init() {
         let session = F1TVSession(http: URLSessionHTTPClient())
@@ -43,6 +48,17 @@ final class AppModel {
         self.history = history
         self.playback = PlayerController(
             coordinator: player, recents: recents, history: history, catalogue: catalogue)
+        let multiviewStore = MultiviewStore(store: store)
+        self.multiviewStore = multiviewStore
+        self.multiview = MultiviewController(
+            coordinator: player, store: multiviewStore, recents: recents, history: history)
+    }
+
+    /// Opens a session's multiview where its bookmark left off (a live one at the live edge).
+    /// The two players share one play session, so the single-feed one closes first.
+    func openMultiview(item: CatalogItem, detail: VideoDetail) async {
+        if playback.isPresented { playback.close() }
+        await multiview.open(item: item, detail: detail, startAt: multiview.resumeStart(for: item))
     }
 
     /// Launch: load the anonymous catalogue config, then sign in with the saved token.
@@ -114,6 +130,7 @@ final class AppModel {
         message = Self.signInPrompt
         // Closing also stops the play session and keeps the bookmark.
         playback.close()
+        multiview.close()
         let session = session
         let player = player
         Task {
@@ -150,8 +167,9 @@ final class AppModel {
     private func expire(message newMessage: String) async {
         Keychain.deleteToken()
         restorePending = false
-        // Saves the bookmark first, then closes the player and stops its play session.
+        // Saves the bookmark first, then closes the players and stops the play session.
         playback.close()
+        multiview.close()
         await player.stop()
         await session.signOut()
         auth = .signedOut
