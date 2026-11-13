@@ -26,7 +26,7 @@ panel).
    session, kept in step.
 2. **The rule:** folding changes how much you see, never what's playing. The same players keep
    running through every fold change; nothing reloads, nothing loses its place, the sound stays on
-   the main feed.
+   the feed you chose.
 3. **Layouts that use as much of the screen as a 16:9 picture allows**, nothing cropped (the world
    feed's timing tower and graphics sit at its edges), one set per posture, with a ⟳ button that
    cycles the layouts available for the current posture.
@@ -95,7 +95,7 @@ say before anything is built on top.
 Geometry is computed from the screen size and the fold's frame (`FoldState.foldFrame`), never from
 hard-coded numbers; the figures below are for the simulator's inner screen (951 × 669 points, fold
 region x 456–496) and are what the sketch showed. All tiles are 16:9, aspect-fit, nothing cropped.
-"Main" is the feed with the sound.
+"Main" is the feed in the biggest spot. The sound is chosen separately (see "Owner changes after the first multiview check").
 
 **Fit to screen, for every feed count (owner-approved 2026-11-13).** Found by computing every
 arrangement of 1–4 whole 16:9 tiles on each screen shape and keeping those that cover the most
@@ -127,8 +127,10 @@ Percentages are the share of the whole screen showing video.
 - **⟳ Switch layout** in the controls cycles the layouts for the current posture and feed count
   (hidden when there is only one). The choice is remembered per posture and feed count, across
   sessions.
-- **Tap a feed** to swap it into the main spot; the sound moves with it. Swapping changes where a
-  feed sits, not which four you have.
+- **Tap a feed** to swap it into the main spot: the two trade places, so tapping the old main
+  feed puts them back. The sound stays with the feed that has it. Swapping changes where a feed
+  sits, not which four you have. **Press and hold a feed, then drag it onto another**, to trade
+  their places in any layout (owner, 2026-11-13).
 - **Every change of posture or layout animates**: the same tile views move to their new frames
   (one view per feed, keyed by the feed, frames animated), never removed and recreated.
 - Narrow screens (a phone in portrait, the outer screen) use the closed layout.
@@ -164,7 +166,7 @@ the beta.1 style (dark, condensed headings, red only for primary actions, progre
 show, auto-hide after a few seconds:
 
 - Close; session title; ⟳ switch layout; Feeds (edit, presets, reset to default); audio language
-  for the main feed (commentary languages and Track FX, from the stream's audio options); speed.
+  for the feed with the sound (commentary languages and Track FX, from the stream's audio options); speed.
 - One scrubber for all feeds, play/pause, and for live sessions a "Live" button that returns to the
   live edge.
 - The single-feed player (non-Premium accounts, sessions with one feed, or the existing feed list)
@@ -301,3 +303,25 @@ What can be pure goes here, with Swift Testing suites:
 - **O3 — how many feeds the hardware handles.** Four in the Mac simulator says little about the Duo;
   the quality caps and struggle handling cover it, and beta.7 measures the real device.
 - **O4 — live behaviour** waits for a live session.
+
+## Owner changes after the first multiview check (2026-11-13)
+
+From the owner's simulator check of the Task 7 build:
+
+- **The default four are the world feed, your driver's onboard, the tracker and the data feed.**
+  F1 LIVE shows the same race picture as the world feed during a race, so it leaves the defaults
+  (it stays in the feed list). The first time the app is used after signing in, a "Pick your
+  driver" sheet lists the drivers (the onboard feeds of the latest race F1 TV lists); the choice
+  fills the second default spot and can be changed any time in Settings › Multiview › "My driver".
+  "Skip" leaves that spot as "Pick a feed". Picking a driver in that first sheet also resets the
+  last-used feeds to the new default.
+- **Sound from any feed, without moving it.** Each tile has a speaker button; tapping it moves the
+  sound to that feed (one feed at a time) and the red SOUND badge goes with it. Swapping or dragging
+  feeds never moves the sound. Opening multiview starts with the sound on the main feed. The audio
+  language choice applies to the feed with the sound. (Android does the same: its audio is chosen
+  per tile, apart from the big one.)
+- **Arrange by hand:** press, hold and drag a feed onto another to trade places (above), and a tap
+  swaps a feed with the main one and back. The arrangement is saved as the last-used feeds.
+- **The tracker runs slightly ahead of the race video.** Left as it is for beta.2 (owner's choice);
+  looked at again in beta.3, when the timing map arrives (Android delays its map about 7 s and lets
+  the viewer fine-tune it).
