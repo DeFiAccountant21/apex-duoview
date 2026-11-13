@@ -141,3 +141,12 @@ What 0.95 to 0.99.9 added, and where it lands here:
 | 0.99.4 | Records live timing to disk from the moment a session starts, so the map has the whole session even when joined late | beta.3, adapted: iOS can't start a recording by alarm in the background, so it records while the app is open or playing, plus F1's archive once the session ends |
 | 0.99.5 | Playback speed 0.5× to 2× for every feed together | beta.2 |
 | 0.99.9 | Sped-up multiview stays smooth; when the phone can't keep up, only the main feed keeps its picture | beta.2 |
+
+## Ideas from other open-source F1 projects
+
+Reviewed 2026-11-13: [f1-race-replay](https://github.com/IAmTomShaw/f1-race-replay),
+[f1-dash](https://github.com/slowlydev/f1-dash) and [FastF1](https://github.com/theOehrly/Fast-F1).
+What each offers, its licence, and where it fits in the betas is in
+[docs/research/open-source-f1-projects.md](research/open-source-f1-projects.md). In short: no
+f1-dash code can be used (AGPL), only its ideas; the techniques mainly strengthen beta.3 (map
+and timing kept in step with the picture) and beta.5 (Strategy Lab, Mirror Lap).
