@@ -29,6 +29,8 @@ targets:
         product: F1TV
       - package: DuoCore
         product: Library
+      - package: DuoCore
+        product: Multiview
     settings:
       base:
         PRODUCT_NAME: DuoApp
