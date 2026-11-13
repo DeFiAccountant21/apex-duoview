@@ -115,9 +115,9 @@ both the app icon and the sign-in logo. Brother ADLL helped pick it.
 Where it appears: the home screen icon (iOS rounds the corners), the launch screen
 (`LaunchLogo`, 120 pt), the sign-in screen (120 pt) and Settings › About (44 pt), the last two
 through `LogoTile`, which adds a hairline edge and a faint red glow so the black tile sits
-cleanly on the app's near-black background. The README shows `Design/Logo-256.png`.
-`Design/SocialPreview.png` (1280 × 640) is the GitHub social preview, uploaded by hand in the
-repository's settings when the repository goes public. A clean vector version, and a check of how it reads at
+cleanly on the app's near-black background. `Design/SocialPreview.png` (1280 × 640) is the README banner and the GitHub social preview,
+uploaded by hand in the repository's settings when the repository goes public.
+`Design/Logo-256.png` is a small copy of the icon for anywhere else that needs one. A clean vector version, and a check of how it reads at
 small sizes on the home screen, come later, before the App Store.
 
 ## Screenshots

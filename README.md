@@ -1,4 +1,4 @@
-<p align="center"><img src="Design/Logo-256.png" width="128" height="128" alt="Apex DuoView icon"></p>
+<p align="center"><img src="Design/SocialPreview.png" alt="Apex DuoView: F1 TV multiview built for the iPhone Duo"></p>
 
 # Apex DuoView
 
