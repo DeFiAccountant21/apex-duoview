@@ -171,6 +171,20 @@ import Library
         #expect(MultiviewStore(store: mem).layoutChoice(for: book4) == "book.twoPerScreen")
     }
 
+    @Test func clearingLayoutChoiceRestoresDefault() {
+        let (s, mem) = Self.make()
+        let book4 = LayoutKey(posture: .book, feedCount: 4)
+        let flat2 = LayoutKey(posture: .flat, feedCount: 2)
+        s.setLayoutChoice("book.across", for: book4)
+        s.setLayoutChoice("flat.stacked", for: flat2)
+        s.clearLayoutChoice(for: book4)
+        #expect(s.layoutChoice(for: book4) == nil)
+        #expect(s.layoutChoice(for: flat2) == "flat.stacked")
+        #expect(MultiviewStore(store: mem).layoutChoice(for: book4) == nil)
+        s.clearLayoutChoice(for: LayoutKey(posture: .laptop, feedCount: 1))
+        #expect(s.layoutChoice(for: flat2) == "flat.stacked")
+    }
+
     @Test func fewerFeedsDefaultsToAsk() {
         let (s, mem) = Self.make()
         #expect(s.fewerFeeds == .ask)

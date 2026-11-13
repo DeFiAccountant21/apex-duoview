@@ -133,6 +133,14 @@ public final class MultiviewStore: @unchecked Sendable {
         write(all, Self.layoutsKey)
     }
 
+    /// Forgets the layout chosen for this posture and feed count: its default shows again.
+    public func clearLayoutChoice(for key: LayoutKey) {
+        lock.lock(); defer { lock.unlock() }
+        var all = loadLayouts()
+        guard all.removeValue(forKey: key.string) != nil else { return }
+        write(all, Self.layoutsKey)
+    }
+
     public var fewerFeeds: FewerFeeds {
         get { lock.lock(); defer { lock.unlock() }; return read(FewerFeeds.self, Self.fewerFeedsKey) ?? .ask }
         set { lock.lock(); defer { lock.unlock() }; write(newValue, Self.fewerFeedsKey) }

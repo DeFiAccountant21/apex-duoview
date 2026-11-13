@@ -428,14 +428,19 @@ final class MultiviewController {
         store.defaultPicks = picks
     }
 
-    /// Loads a preset's feeds and its layout choices. Like every slot change, no PLAY: the feeds
-    /// come from the links this multiview already has.
+    /// Loads a preset's feeds and its layout choices: a layout the preset doesn't name goes back to
+    /// its default, so a later ⟳ choice doesn't outlive the preset. Like every slot change, no
+    /// PLAY: the feeds come from the links this multiview already has.
     func apply(_ preset: Preset) {
         guard currentItem != nil, !refreshing, errorText == nil else { return }
         for posture in Multiview.Posture.allCases {
             for count in 1...Self.slotCount {
                 let key = LayoutKey(posture: posture, feedCount: count)
-                if let choice = preset.layouts[key.string] { store.setLayoutChoice(choice, for: key) }
+                if let choice = preset.layouts[key.string] {
+                    store.setLayoutChoice(choice, for: key)
+                } else {
+                    store.clearLayoutChoice(for: key)
+                }
             }
         }
         layoutRevision += 1

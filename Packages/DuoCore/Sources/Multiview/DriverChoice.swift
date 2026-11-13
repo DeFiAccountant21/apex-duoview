@@ -9,6 +9,16 @@ public enum DriverChoice {
         items.max { rank($0) < rank($1) }
     }
 
+    /// The races newest first, by the same rule as `newestRace`; ties keep the list's order.
+    public static func newestFirst(_ items: [CatalogItem]) -> [CatalogItem] {
+        items.enumerated()
+            .sorted { a, b in
+                let ra = rank(a.element), rb = rank(b.element)
+                return ra != rb ? ra > rb : a.offset < b.offset
+            }
+            .map(\.element)
+    }
+
     /// One onboard per driver (by last name, ignoring case and accents), by racing number, those
     /// without a number last by name. Onboards without a driver's last name are left out: a pick
     /// is made by last name.

@@ -136,7 +136,8 @@ struct MultiviewView: View {
             .ignoresSafeArea()
         }
         .overlay { status }
-        .sheet(item: $editor, onDismiss: { editorShowing = false }) { request in
+        // An editor reopened while the last one was still closing keeps the question waiting.
+        .sheet(item: $editor, onDismiss: { editorShowing = editor != nil }) { request in
             FeedsEditor(controller: controller, startSlot: request.slot)
         }
         .fewerFeedsPrompt(controller, enabled: !editorShowing)

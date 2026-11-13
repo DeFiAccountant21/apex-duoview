@@ -22,6 +22,15 @@ import F1TV
         #expect(DriverChoice.newestRace([b, dated])?.contentId == 4)
     }
 
+    @Test func newestFirstOrdersByStartThenYear() {
+        let a = CatalogItem(contentId: 1, year: 2026, start: Date(timeIntervalSince1970: 1_790_000_000))
+        let b = CatalogItem(contentId: 2, year: 2026, start: Date(timeIntervalSince1970: 1_794_000_000))
+        let c = CatalogItem(contentId: 3, year: 2025)
+        let d = CatalogItem(contentId: 4)
+        #expect(DriverChoice.newestFirst([c, a, d, b]).map(\.contentId) == [2, 1, 3, 4])
+        #expect(DriverChoice.newestFirst([]).isEmpty)
+    }
+
     @Test func driversAreOnboardsByRacingNumber() {
         let channels: [Channel] = [
             Channel(id: 1033, isDefault: true, title: "F1 LIVE"),

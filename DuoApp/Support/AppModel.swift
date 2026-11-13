@@ -63,12 +63,37 @@ final class AppModel {
     /// The first-run "Pick your driver" sheet was answered (a driver, or Skip).
     var driverPromptShown: Bool { multiviewStore.driverPromptShown }
 
-    /// The drivers to choose from: the onboard feeds of the latest race F1 TV lists, by racing
-    /// number. Empty when that race lists none.
+    /// The drivers to choose from, by racing number: the onboard feeds of the newest race replay
+    /// of this season that has them. If this season has none (or can't load), the newest of the
+    /// archive's races (F1 TV's 100 most watched). Empty when those races list no onboards.
     func driverChoices() async throws -> [Channel] {
-        guard let race = DriverChoice.newestRace(try await catalogue.archiveRaces()) else { return [] }
-        let detail = try await catalogue.video(contentId: race.contentId)
-        return DriverChoice.drivers(in: detail.channels)
+        let season = Calendar.current.component(.year, from: Date())
+        if let thisSeason = try? await catalogue.raceReplays(season: season),
+           let drivers = try? await newestDrivers(in: thisSeason), !drivers.isEmpty {
+            return drivers
+        }
+        return try await newestDrivers(in: try await catalogue.archiveRaces())
+    }
+
+    /// The onboards of the newest of these races that lists some, trying the newest three. Throws
+    /// the last failure when none of them could be read.
+    private func newestDrivers(in races: [CatalogItem]) async throws -> [Channel] {
+        var lastError: Error?
+        var readAny = false
+        for race in DriverChoice.newestFirst(races).prefix(3) {
+            do {
+                let detail = try await catalogue.video(contentId: race.contentId)
+                readAny = true
+                let drivers = DriverChoice.drivers(in: detail.channels)
+                if !drivers.isEmpty { return drivers }
+            } catch is CancellationError {
+                throw CancellationError()
+            } catch {
+                lastError = error
+            }
+        }
+        if !readAny, let lastError { throw lastError }
+        return []
     }
 
     /// Settings › Multiview › My driver. Only the driver changes; the last-used feeds stay.

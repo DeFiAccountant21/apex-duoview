@@ -84,11 +84,13 @@ struct RootView: View {
 
     // MARK: Pick your driver
 
-    /// Signed in and never answered: load the latest race's drivers (after the first sign-in, or
-    /// at launch). If they can't load, or there are none, nothing shows and the flag stays unset,
-    /// so it is offered again next launch.
+    /// Signed in with multiview and never answered: load the latest race's drivers (after the
+    /// first sign-in, or at launch). If they can't load, or there are none, nothing shows and the
+    /// flag stays unset, so it is offered again next launch. Accounts without multiview never see
+    /// it (the driver only matters for multiview's default feeds).
     private func loadDriverPrompt() async {
-        guard case .signedIn = model.auth, !model.driverPromptShown, driverChoices.isEmpty else { return }
+        guard case .signedIn(let account) = model.auth, account.hasMultiview, !model.driverPromptShown,
+              driverChoices.isEmpty else { return }
         guard let drivers = try? await model.driverChoices(), !drivers.isEmpty, !Task.isCancelled else { return }
         driverChoices = drivers
         offerDriverPrompt()
@@ -97,7 +99,8 @@ struct RootView: View {
     /// Shows "Pick your driver" once nothing else is up: no other sheet, no Settings panel, and
     /// never over the player or the multiview (it waits until they close).
     private func offerDriverPrompt() {
-        guard !driverChoices.isEmpty, case .signedIn = model.auth, !model.driverPromptShown,
+        guard !driverChoices.isEmpty, case .signedIn(let account) = model.auth, account.hasMultiview,
+              !model.driverPromptShown,
               sheet == nil, !settingsPanelOpen, !model.playback.isPresented, !model.multiview.isPresented
         else { return }
         sheet = .driver
