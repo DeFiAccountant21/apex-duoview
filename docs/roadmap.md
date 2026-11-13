@@ -150,3 +150,10 @@ What each offers, its licence, and where it fits in the betas is in
 [docs/research/open-source-f1-projects.md](research/open-source-f1-projects.md). In short: no
 f1-dash code can be used (AGPL), only its ideas; the techniques mainly strengthen beta.3 (map
 and timing kept in step with the picture) and beta.5 (Strategy Lab, Mirror Lap).
+
+A second review, of six data projects (F1DB, f1-circuits, OpenF1, Jolpica, formula1-lap-charts,
+formula1-datasets), is in [docs/research/open-source-f1-data.md](research/open-source-f1-data.md).
+Worth using: F1DB (CC BY 4.0, credit required) for Archive Atlas and Then and Now, with its
+era-correct circuit drawings; f1-circuits (MIT) as a static circuit outline and calendar layer; and
+the lap-chart idea for the Scrub Deck. Not for the shipped app: OpenF1 and Jolpica (non-commercial,
+share-alike data terms and rate limits) and formula1-datasets (GPL, scraped).
