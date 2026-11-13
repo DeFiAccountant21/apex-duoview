@@ -1,4 +1,5 @@
 import AVFoundation
+import AVKit
 import F1TV
 import Foundation
 import Library
@@ -7,6 +8,9 @@ import UIKit
 
 /// Plays one feed at a time: asks F1 TV for the stream, drives an `AVPlayer`, saves the place
 /// (bookmark and watch history) while playing, and tears everything down on `close()`.
+/// It also holds AVKit's player view controller, so picture in picture outlives the cover: started
+/// from the player's button, the cover steps aside while the window plays; the window's restore
+/// brings the cover back with the same view controller.
 /// Never logs or prints the stream URL, tokens or `PlayInfo`.
 @MainActor
 @Observable
@@ -19,6 +23,9 @@ final class PlayerController {
     var errorText: String?
     /// The resume banner's "×": hides it for this run.
     var resumeBannerDismissed = false
+    /// Picture in picture is showing this player. The cover may be hidden meanwhile: the player
+    /// and its play session stay until the window closes.
+    private(set) var isInPictureInPicture = false
 
     @ObservationIgnored private let coordinator: PlayCoordinator
     @ObservationIgnored private let recents: RecentsStore
@@ -42,6 +49,11 @@ final class PlayerController {
     @ObservationIgnored private var observedPlayer: AVPlayer?
     @ObservationIgnored private var statusObservation: NSKeyValueObservation?
     @ObservationIgnored private var notificationTokens: [NSObjectProtocol] = []
+    /// AVKit's view controller for `player`, kept here rather than by the cover's view, so hiding
+    /// the cover never ends picture in picture. A new player gets a new one.
+    @ObservationIgnored private var playerViewController: AVPlayerViewController?
+    /// AVKit holds its delegate weakly: this keeps it.
+    @ObservationIgnored private let pictureInPictureDelegate: PlayerPictureInPictureDelegate
 
     static let saveInterval: Double = 5
 
@@ -50,6 +62,8 @@ final class PlayerController {
         self.recents = recents
         self.history = history
         self.catalogue = catalogue
+        pictureInPictureDelegate = PlayerPictureInPictureDelegate()
+        pictureInPictureDelegate.owner = self
     }
 
     isolated deinit {
@@ -76,6 +90,8 @@ final class PlayerController {
     func start(item: CatalogItem, channel: Channel, startAt: Start) async {
         // Asking for what is already on screen changes nothing (and never sends a second PLAY).
         if player != nil, errorText == nil, currentItem?.contentId == item.contentId, currentChannel?.id == channel.id {
+            // `resume` may have set the spinner; this player is already past loading.
+            isLoading = false
             isPresented = true
             return
         }
@@ -167,6 +183,13 @@ final class PlayerController {
         }
     }
 
+    /// The cover went away by itself (the root's binding): closes, unless picture in picture is
+    /// what hid it, which keeps the player.
+    func coverDismissed() {
+        guard !isInPictureInPicture else { return }
+        close()
+    }
+
     /// Hides the cover without a stop(): nothing was playing (a cancelled request).
     private func dismiss() {
         teardownPlayback()
@@ -174,6 +197,60 @@ final class PlayerController {
         currentChannel = nil
         isLoading = false
         isPresented = false
+    }
+
+    // MARK: Picture in picture
+
+    /// The view controller the cover shows for `player`: the same one each time the cover comes
+    /// back, so a picture in picture it started keeps going. Touches only unobserved state (it is
+    /// called while SwiftUI makes the view).
+    func playerViewController(for player: AVPlayer) -> AVPlayerViewController {
+        if let existing = playerViewController {
+            if existing.player !== player { existing.player = player }
+            return existing
+        }
+        let viewController = AVPlayerViewController()
+        viewController.player = player
+        viewController.allowsPictureInPicturePlayback = true
+        viewController.canStartPictureInPictureAutomaticallyFromInline = true
+        viewController.delegate = pictureInPictureDelegate
+        playerViewController = viewController
+        return viewController
+    }
+
+    fileprivate func pictureInPictureWillStart() {
+        guard player != nil else { return }
+        isInPictureInPicture = true
+    }
+
+    /// Started with the app in front (the player's button): the cover steps aside so the app can
+    /// be used while the window plays. Started on leaving the app, the cover stays.
+    fileprivate func pictureInPictureDidStart() {
+        guard isInPictureInPicture, isPresented, UIApplication.shared.applicationState == .active else { return }
+        isPresented = false
+    }
+
+    fileprivate func pictureInPictureFailed() {
+        guard isInPictureInPicture else { return }
+        isInPictureInPicture = false
+        if player != nil, !isPresented { isPresented = true }
+    }
+
+    /// The window's restore: the cover comes back (with the same view controller). Answers
+    /// whether there is a player to come back to.
+    fileprivate func pictureInPictureRestore() -> Bool {
+        guard player != nil, currentItem != nil else { return false }
+        isLoading = false
+        if !isPresented { isPresented = true }
+        return true
+    }
+
+    /// The window closed. Without a restore and with the cover hidden, nothing would show the
+    /// player again: that is a close (saved first). With the cover up, the player stays, paused.
+    fileprivate func pictureInPictureDidStop() {
+        guard isInPictureInPicture else { return }
+        isInPictureInPicture = false
+        if !isPresented { close() }
     }
 
     // MARK: Playback
@@ -308,6 +385,10 @@ final class PlayerController {
         removeObservers()
         player?.pause()
         player?.replaceCurrentItem(with: nil)
+        // Ends a picture in picture still up; its stop then finds nothing to do.
+        isInPictureInPicture = false
+        playerViewController?.player = nil
+        playerViewController = nil
         player = nil
         canSave = false
         pendingStart = .position(0)
@@ -357,5 +438,77 @@ final class PlayerController {
         text = text.replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
         let trim = CharacterSet.whitespacesAndNewlines.union(CharacterSet(charactersIn: ".:,;()-"))
         return text.trimmingCharacters(in: trim)
+    }
+}
+
+/// AVKit's picture-in-picture callbacks for the single-feed player. `nonisolated`, so they satisfy
+/// the protocol whether or not the SDK isolates it to the main actor; only plain values (and a
+/// boxed completion handler) go to the main actor, at once when called on the main thread as
+/// AVKit does, so a restore and the stop after it are handled in order.
+@MainActor
+final class PlayerPictureInPictureDelegate: NSObject, AVPlayerViewControllerDelegate {
+    weak var owner: PlayerController?
+
+    /// The app hides the cover itself (only when started from inside the app), keeping the view
+    /// controller; AVKit dismissing it would take the cover away behind SwiftUI's back.
+    nonisolated func playerViewControllerShouldAutomaticallyDismissAtPictureInPictureStart(
+        _ playerViewController: AVPlayerViewController
+    ) -> Bool {
+        false
+    }
+
+    nonisolated func playerViewControllerWillStartPictureInPicture(_ playerViewController: AVPlayerViewController) {
+        onMainActor { [weak self] in self?.owner?.pictureInPictureWillStart() }
+    }
+
+    nonisolated func playerViewControllerDidStartPictureInPicture(_ playerViewController: AVPlayerViewController) {
+        onMainActor { [weak self] in self?.owner?.pictureInPictureDidStart() }
+    }
+
+    nonisolated func playerViewController(
+        _ playerViewController: AVPlayerViewController,
+        failedToStartPictureInPictureWithError error: any Error
+    ) {
+        onMainActor { [weak self] in self?.owner?.pictureInPictureFailed() }
+    }
+
+    nonisolated func playerViewController(
+        _ playerViewController: AVPlayerViewController,
+        restoreUserInterfaceForPictureInPictureStopWithCompletionHandler completionHandler: @escaping (Bool) -> Void
+    ) {
+        let completion = PictureInPictureCompletion(completionHandler)
+        onMainActor { [weak self] in
+            let restored = self?.owner?.pictureInPictureRestore() ?? false
+            completion.call(restored)
+        }
+    }
+
+    nonisolated func playerViewControllerDidStopPictureInPicture(_ playerViewController: AVPlayerViewController) {
+        onMainActor { [weak self] in self?.owner?.pictureInPictureDidStop() }
+    }
+}
+
+/// AVKit's restore completion handler, carried to the main actor. Unchecked: the SDK doesn't mark
+/// the handler Sendable, but AVKit hands it over on the main thread and it is called once, on the
+/// main actor.
+final class PictureInPictureCompletion: @unchecked Sendable {
+    private let handler: (Bool) -> Void
+
+    init(_ handler: @escaping (Bool) -> Void) {
+        self.handler = handler
+    }
+
+    func call(_ restored: Bool) {
+        handler(restored)
+    }
+}
+
+/// Runs `body` on the main actor: at once when already on the main thread (AVKit's delegate calls
+/// are), so calls are handled in the order they came; otherwise as a main-actor task.
+nonisolated func onMainActor(_ body: @escaping @MainActor @Sendable () -> Void) {
+    if Thread.isMainThread {
+        MainActor.assumeIsolated { body() }
+    } else {
+        Task { @MainActor in body() }
     }
 }

@@ -101,7 +101,8 @@ struct RootView: View {
     private func offerDriverPrompt() {
         guard !driverChoices.isEmpty, case .signedIn(let account) = model.auth, account.hasMultiview,
               !model.driverPromptShown,
-              sheet == nil, !settingsPanelOpen, !model.playback.isPresented, !model.multiview.isPresented
+              sheet == nil, !settingsPanelOpen, !model.playback.isPresented, !model.playback.isInPictureInPicture,
+              !model.multiview.isPresented
         else { return }
         sheet = .driver
     }
@@ -192,9 +193,11 @@ struct RootView: View {
                         onSkip: { answerDriverPrompt(nil) })
                 }
             }
+            // Picture in picture can hide this cover and keep the player: only the controller
+            // decides whether a dismissal closes it.
             .fullScreenCover(isPresented: Binding(
                 get: { model.playback.isPresented },
-                set: { if !$0 { model.playback.close() } }),
+                set: { if !$0 { model.playback.coverDismissed() } }),
                 onDismiss: { offerDriverPrompt() }
             ) {
                 PlayerCover(controller: model.playback)

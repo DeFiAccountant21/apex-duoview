@@ -1,4 +1,5 @@
 import AVFoundation
+import AVKit
 import F1TV
 import Foundation
 import Library
@@ -11,6 +12,8 @@ import UIKit
 /// the viewer's choice (`audioChannelId`), the main one when the multiview opens.
 /// Owned by the app model, not by a view, so a layout or fold change never stops or recreates a
 /// player; tiles only show a player's picture.
+/// Picture in picture shows the feed with the sound (from its tile's layer, so what is heard plays
+/// on without a break); the other feeds pause until it ends, then line up with it again.
 /// Never logs or prints a stream URL, token or `MultiPlayInfo`.
 @MainActor
 @Observable
@@ -94,6 +97,9 @@ final class MultiviewController {
     /// What to do with fewer than four feeds: ask, keep four spots, or fit them to the screen.
     /// Mirrors the store; change it with `setFewerFeeds`.
     private(set) var fewerFeeds: FewerFeeds = .ask
+    /// Picture in picture is showing the feed with the sound; the other feeds are paused, and the
+    /// sound can't move (the tiles aren't on screen).
+    private(set) var isInPictureInPicture = false
 
     @ObservationIgnored private let coordinator: PlayCoordinator
     @ObservationIgnored private let store: MultiviewStore
@@ -132,14 +138,26 @@ final class MultiviewController {
     @ObservationIgnored private var ticks = 0
     @ObservationIgnored private var appTokens: [NSObjectProtocol] = []
     @ObservationIgnored private var noticeAt: Date?
+    /// The feed picture in picture shows, while it does.
+    @ObservationIgnored private var pictureInPictureChannelId: Int?
+    /// Each tile's player layer, by channel id: registered by the tile's view as it is made, and
+    /// dropped when it goes. Weak: the view owns its layer.
+    @ObservationIgnored private var playerLayers: [Int: WeakPlayerLayer] = [:]
+    /// One picture-in-picture controller per tile layer, made when that feed first has the sound.
+    /// Only the one on the feed with the sound may start automatically.
+    @ObservationIgnored private var pictureInPictureControllers: [Int: AVPictureInPictureController] = [:]
+    /// AVKit holds its delegate weakly: this keeps it.
+    @ObservationIgnored private let pictureInPictureDelegate: MultiviewPictureInPictureDelegate
 
     init(coordinator: PlayCoordinator, store: MultiviewStore, recents: RecentsStore, history: WatchHistory) {
         self.coordinator = coordinator
         self.store = store
         self.recents = recents
         self.history = history
+        pictureInPictureDelegate = MultiviewPictureInPictureDelegate()
         presets = store.presets
         fewerFeeds = store.fewerFeeds
+        pictureInPictureDelegate.owner = self
     }
 
     isolated deinit {
@@ -254,6 +272,8 @@ final class MultiviewController {
         isLoading = false
         isPaused = false
         isPresented = false
+        // Nothing starts picture in picture from a closed multiview.
+        updatePictureInPictureSource()
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         let coordinator = coordinator
         let previous = stopTask
@@ -318,7 +338,8 @@ final class MultiviewController {
     /// Moves the sound to this feed: it alone is unmuted. Only a feed in a slot that is playing
     /// (not stopped, not at its end) can take it.
     func setAudio(channelId: Int) {
-        guard channelId != audioChannelId, slots.contains(where: { $0?.id == channelId }),
+        // In picture in picture the window shows the feed with the sound: it stays there.
+        guard channelId != audioChannelId, !isInPictureInPicture, slots.contains(where: { $0?.id == channelId }),
               let feed = feeds[channelId], !feed.ended, feedProblems[channelId] == nil,
               !refreshing, errorText == nil else { return }
         // Brought back first, so a frozen feed taking the sound is lined up again before it plays
@@ -754,6 +775,7 @@ final class MultiviewController {
         for feed in feeds.values { applyRole(feed) }
         // Every change of the feed with the sound comes through here.
         publishAudioOptions()
+        updatePictureInPictureSource()
     }
 
     private func applyRole(_ feed: MultiviewFeed) {
@@ -942,7 +964,7 @@ final class MultiviewController {
 
     private func shouldPlay(_ feed: MultiviewFeed) -> Bool {
         started && feed.positioned && !feed.ended && !feed.parked && !isPaused && !refreshing
-            && !isFrozen(feed)
+            && !isFrozen(feed) && (!isInPictureInPicture || feed.channelId == pictureInPictureChannelId)
     }
 
     /// Plays or pauses a feed to match the multiview. `play()` uses the feed's `defaultRate`.
@@ -1033,17 +1055,23 @@ final class MultiviewController {
         } else if !refreshing {
             updateTimeline()
             dropSpeedAtLiveEdge()
-            followMain()
-            sync()
-            if ticks % Self.sampleEveryTicks == 0 { sampleDroppedFrames() }
-            if othersFrozen {
-                let quietSince = max(frozenAt ?? now, lastStallAt ?? .distantPast)
-                if now.timeIntervalSince(quietSince) >= Self.unfreezeAfter { unfreezeOthers() }
+            // In picture in picture only the feed in the window plays, and only its own controls
+            // (play, pause) act on it: nothing to keep in step, and nothing may start or stop it.
+            if !isInPictureInPicture {
+                followMain()
+                sync()
+                if ticks % Self.sampleEveryTicks == 0 { sampleDroppedFrames() }
+                if othersFrozen {
+                    let quietSince = max(frozenAt ?? now, lastStallAt ?? .distantPast)
+                    if now.timeIntervalSince(quietSince) >= Self.unfreezeAfter { unfreezeOthers() }
+                }
             }
         }
         if ticks % Self.saveEveryTicks == 0 {
-            // Paused ticks leave the watch history alone (it counts time).
-            save(recordHistory: mainFeed?.player.timeControlStatus == .playing)
+            // Paused ticks leave the watch history alone (it counts time). In picture in picture
+            // the feed in the window is the one being watched.
+            let watched = isInPictureInPicture ? pictureInPictureFeed : mainFeed
+            save(recordHistory: watched?.player.timeControlStatus == .playing)
         }
         if let noticeAt, now.timeIntervalSince(noticeAt) >= Self.noticeDuration { dismissNotice() }
     }
@@ -1284,7 +1312,8 @@ final class MultiviewController {
         guard let feed = liveFeed(channelId, itemID) else { return }
         let now = Date()
         lastStallAt = now
-        guard started, !othersFrozen, !isMain(feed), isSteady(now), feed.seekStartedAt == nil else { return }
+        guard started, !othersFrozen, !isInPictureInPicture, !isMain(feed), isSteady(now),
+              feed.seekStartedAt == nil else { return }
         struggle.record(stall: now)
         freezeIfStruggling(now)
     }
@@ -1292,7 +1321,7 @@ final class MultiviewController {
     /// When the phone can't keep up, the other feeds pause on their last frame; the main one and
     /// the one with the sound keep playing.
     private func freezeIfStruggling(_ now: Date) {
-        guard !othersFrozen, struggle.shouldFreezeOthers(at: now) else { return }
+        guard !othersFrozen, !isInPictureInPicture, struggle.shouldFreezeOthers(at: now) else { return }
         othersFrozen = true
         frozenAt = now
         for feed in otherFeeds where isFrozen(feed) {
@@ -1317,6 +1346,8 @@ final class MultiviewController {
         refreshing = true
         lastRefreshAt = Date()
         if let start = mainStart() { pendingStart = start }
+        // The window's feed stops with the others; its stop is not a close.
+        leavePictureInPicture()
         teardownFeeds()
         isLoading = true
         let mine = generation
@@ -1416,14 +1447,162 @@ final class MultiviewController {
 
     private func enteredBackground() {
         save()
-        // The system pauses video players in the background; they come back together.
-        resumeOnActive = started && !isPaused
+        // The system pauses video players in the background; they come back together. Not the
+        // one picture in picture shows: it plays on, and a pause in its window must stand.
+        resumeOnActive = started && !isPaused && !isInPictureInPicture
     }
 
     private func becameActive() {
         guard resumeOnActive else { return }
         resumeOnActive = false
         play()
+    }
+
+    // MARK: Picture in picture
+
+    /// A tile's view made (or kept) its layer for this feed. Called while SwiftUI updates the
+    /// view, so it touches only state no view observes.
+    func registerLayer(_ layer: AVPlayerLayer, for channelId: Int) {
+        guard playerLayers[channelId]?.layer !== layer else { return }
+        playerLayers[channelId] = WeakPlayerLayer(layer)
+        updatePictureInPictureSource()
+    }
+
+    /// The tile's view went away. Only its own registration is dropped (a newer view for the
+    /// same feed may already have registered).
+    func unregisterLayer(_ layer: AVPlayerLayer, for channelId: Int) {
+        guard playerLayers[channelId]?.layer === layer else { return }
+        playerLayers[channelId] = nil
+        updatePictureInPictureSource()
+    }
+
+    /// Points picture in picture at the feed with the sound: its layer's controller (made the
+    /// first time) is the only one that may start automatically when the app leaves the
+    /// foreground. Controllers whose layer went away are dropped. Never while picture in picture
+    /// is showing a feed: the source can't move then. Touches only unobserved state.
+    private func updatePictureInPictureSource() {
+        guard !isInPictureInPicture else { return }
+        for (id, pip) in pictureInPictureControllers where playerLayers[id]?.layer !== pip.playerLayer {
+            pip.canStartPictureInPictureAutomaticallyFromInline = false
+            pictureInPictureControllers[id] = nil
+        }
+        let source = isPresented && currentItem != nil ? audioChannelId : nil
+        if let id = source, pictureInPictureControllers[id] == nil, let layer = playerLayers[id]?.layer,
+           AVPictureInPictureController.isPictureInPictureSupported(),
+           let pip = AVPictureInPictureController(playerLayer: layer) {
+            pip.delegate = pictureInPictureDelegate
+            pictureInPictureControllers[id] = pip
+        }
+        for (id, pip) in pictureInPictureControllers {
+            let automatic = id == source
+            if pip.canStartPictureInPictureAutomaticallyFromInline != automatic {
+                pip.canStartPictureInPictureAutomaticallyFromInline = automatic
+            }
+        }
+    }
+
+    /// The feed picture in picture shows, while it shows one that still has a player.
+    private var pictureInPictureFeed: MultiviewFeed? {
+        pictureInPictureChannelId.flatMap { feeds[$0] }
+    }
+
+    /// Which feed a picture-in-picture controller belongs to.
+    private func pictureInPictureChannel(_ source: ObjectIdentifier) -> Int? {
+        pictureInPictureControllers.first { ObjectIdentifier($0.value) == source }?.key
+    }
+
+    /// Picture in picture is about to show the feed with the sound: the others pause.
+    fileprivate func pictureInPictureWillStart(_ source: ObjectIdentifier) {
+        guard currentItem != nil, let id = pictureInPictureChannel(source) else { return }
+        isInPictureInPicture = true
+        pictureInPictureChannelId = id
+        // The system doesn't pause the feed in the window, and a pause in it must stand.
+        resumeOnActive = false
+        for feed in feeds.values {
+            feed.measureLead = false
+            updatePlayback(feed)
+        }
+    }
+
+    /// It didn't start after all: everything as before (today's background handling).
+    fileprivate func pictureInPictureFailed(_ source: ObjectIdentifier) {
+        guard isInPictureInPicture, pictureInPictureChannel(source) == pictureInPictureChannelId else { return }
+        endPictureInPicture()
+        if UIApplication.shared.applicationState != .active {
+            // The system pauses the players out here; coming back starts them again.
+            resumeOnActive = started && !isPaused
+        }
+    }
+
+    /// The viewer is coming back to the app (the window's restore button, or the app brought
+    /// forward): the cover shows again and every feed lines up with the one that kept playing.
+    /// Answers whether the multiview is there to come back to.
+    fileprivate func pictureInPictureRestore(_ source: ObjectIdentifier) -> Bool {
+        guard currentItem != nil else { return false }
+        if !isPresented { isPresented = true }
+        if isInPictureInPicture, pictureInPictureChannel(source) == pictureInPictureChannelId {
+            endPictureInPicture()
+        }
+        return true
+    }
+
+    /// Picture in picture ended without a restore. In the background that is the window's close
+    /// button: the same as closing the multiview (saved first, at the window's moment). Otherwise
+    /// the app came forward: carry on as after a restore.
+    fileprivate func pictureInPictureDidStop(_ source: ObjectIdentifier) {
+        guard isInPictureInPicture, pictureInPictureChannel(source) == pictureInPictureChannelId else { return }
+        if UIApplication.shared.applicationState == .background {
+            close()
+        } else {
+            endPictureInPicture()
+        }
+    }
+
+    /// Drops picture-in-picture state, stopping a window that is still up, without touching the
+    /// players: for teardowns, which stop them anyway.
+    private func leavePictureInPicture() {
+        guard isInPictureInPicture else { return }
+        if let id = pictureInPictureChannelId, let pip = pictureInPictureControllers[id], pip.isPictureInPictureActive {
+            pip.stopPictureInPicture()
+        }
+        isInPictureInPicture = false
+        pictureInPictureChannelId = nil
+    }
+
+    /// Back from picture in picture: a pause in the window pauses the multiview; every other feed
+    /// (the main one too) lines up with the feed that kept playing, through the usual join (the
+    /// reference is the main feed when in place, else any feed in place: here, that one), then
+    /// plays with it. Slot 0 stays the sync reference from then on.
+    private func endPictureInPicture() {
+        guard isInPictureInPicture else { return }
+        let shown = pictureInPictureFeed
+        isInPictureInPicture = false
+        pictureInPictureChannelId = nil
+        defer { updatePictureInPictureSource() }
+        guard let shown, shown.positioned, !shown.ended, started else {
+            // The window's feed is gone or at its end: the others were paused where they were,
+            // still in step with each other.
+            for feed in feeds.values { updatePlayback(feed) }
+            return
+        }
+        if !isPaused, shown.player.rate == 0 { isPaused = true }
+        // Every feed is lined up again below, frozen ones included.
+        othersFrozen = false
+        frozenAt = nil
+        struggle.reset()
+        steadySince = Date()
+        let others = slotFeeds.filter { $0 !== shown }
+        for feed in others {
+            // Any seek still pending from before no longer counts.
+            feed.seekToken += 1
+            feed.seekStartedAt = nil
+            feed.positioned = false
+            feed.parked = false
+            feed.measureLead = false
+            feed.droppedTotal = nil
+            updatePlayback(feed)
+        }
+        for feed in others { place(feed) }
     }
 
     // MARK: Saving
@@ -1435,7 +1614,13 @@ final class MultiviewController {
               let main = feeds[channelId], main.positioned else { return }
         let duration = main.item.duration
         let live = duration.isIndefinite
-        let now = main.player.currentTime()
+        var now = main.player.currentTime()
+        // In picture in picture with the sound on another feed, the main feed waited while that
+        // one moved on: the place is that feed's moment, on the main feed's timeline.
+        if isInPictureInPicture, let shown = pictureInPictureFeed, shown !== main, now.isNumeric,
+           let offset = offsetSeconds(of: shown, from: main) {
+            now = CMTime(seconds: max(now.seconds + offset, 0), preferredTimescale: 600)
+        }
         let positionMs = live || !now.isNumeric ? 0 : max(Int64((now.seconds * 1_000).rounded()), 0)
         let durationMs = live || !duration.isNumeric ? 0 : max(Int64((duration.seconds * 1_000).rounded()), 0)
         recents.save(WatchBookmark(
@@ -1477,6 +1662,8 @@ final class MultiviewController {
 
     private func teardownAll() {
         dismissNotice()
+        // A window still up closes with the players; its stop then finds nothing to do.
+        leavePictureInPicture()
         teardownFeeds()
         tickTask?.cancel()
         tickTask = nil
@@ -1571,5 +1758,58 @@ private final class MultiviewFeed {
         statusObservation = nil
         for token in tokens { NotificationCenter.default.removeObserver(token) }
         tokens = []
+    }
+}
+
+/// A tile's player layer, held weakly: the tile's view owns it.
+private struct WeakPlayerLayer {
+    weak var layer: AVPlayerLayer?
+
+    init(_ layer: AVPlayerLayer) {
+        self.layer = layer
+    }
+}
+
+/// AVKit's picture-in-picture callbacks for the multiview. The methods are `nonisolated`, so they
+/// satisfy the protocol whether or not the SDK isolates it to the main actor. They hand only plain
+/// values to the main actor (the calling controller's identity, a boxed completion handler), and
+/// run there at once when called on the main thread, as AVKit does, so a restore and the stop
+/// after it are handled in order.
+@MainActor
+private final class MultiviewPictureInPictureDelegate: NSObject, AVPictureInPictureControllerDelegate {
+    weak var owner: MultiviewController?
+
+    nonisolated func pictureInPictureControllerWillStartPictureInPicture(
+        _ pictureInPictureController: AVPictureInPictureController
+    ) {
+        let source = ObjectIdentifier(pictureInPictureController)
+        onMainActor { [weak self] in self?.owner?.pictureInPictureWillStart(source) }
+    }
+
+    nonisolated func pictureInPictureController(
+        _ pictureInPictureController: AVPictureInPictureController,
+        failedToStartPictureInPictureWithError error: any Error
+    ) {
+        let source = ObjectIdentifier(pictureInPictureController)
+        onMainActor { [weak self] in self?.owner?.pictureInPictureFailed(source) }
+    }
+
+    nonisolated func pictureInPictureController(
+        _ pictureInPictureController: AVPictureInPictureController,
+        restoreUserInterfaceForPictureInPictureStopWithCompletionHandler completionHandler: @escaping (Bool) -> Void
+    ) {
+        let source = ObjectIdentifier(pictureInPictureController)
+        let completion = PictureInPictureCompletion(completionHandler)
+        onMainActor { [weak self] in
+            let restored = self?.owner?.pictureInPictureRestore(source) ?? false
+            completion.call(restored)
+        }
+    }
+
+    nonisolated func pictureInPictureControllerDidStopPictureInPicture(
+        _ pictureInPictureController: AVPictureInPictureController
+    ) {
+        let source = ObjectIdentifier(pictureInPictureController)
+        onMainActor { [weak self] in self?.owner?.pictureInPictureDidStop(source) }
     }
 }

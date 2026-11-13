@@ -114,9 +114,10 @@ final class AppModel {
     }
 
     /// Opens a session's multiview where its bookmark left off (a live one at the live edge).
-    /// The two players share one play session, so the single-feed one closes first.
+    /// The two players share one play session, so the single-feed one closes first, also when only
+    /// its picture in picture is showing (never two windows at once).
     func openMultiview(item: CatalogItem, detail: VideoDetail) async {
-        if playback.isPresented { playback.close() }
+        if playback.isPresented || playback.isInPictureInPicture { playback.close() }
         await multiview.open(item: item, detail: detail, startAt: multiview.resumeStart(for: item))
     }
 

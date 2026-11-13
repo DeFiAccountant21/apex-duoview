@@ -1,19 +1,19 @@
 import AVKit
 import SwiftUI
 
-/// AVKit's own player (its audio menu, scrubber, PiP and AirPlay), no custom controls.
+/// AVKit's own player (its audio menu, scrubber, picture in picture and AirPlay), no custom
+/// controls. The view controller comes from `PlayerController`, which keeps it while picture in
+/// picture plays with the cover hidden, so the cover coming back shows the same one.
 struct PlayerView: UIViewControllerRepresentable {
+    let controller: PlayerController
     let player: AVPlayer
 
     func makeUIViewController(context: Context) -> AVPlayerViewController {
-        let controller = AVPlayerViewController()
-        controller.player = player
-        controller.allowsPictureInPicturePlayback = false
-        return controller
+        controller.playerViewController(for: player)
     }
 
-    func updateUIViewController(_ controller: AVPlayerViewController, context: Context) {
-        if controller.player !== player { controller.player = player }
+    func updateUIViewController(_ viewController: AVPlayerViewController, context: Context) {
+        if viewController.player !== player { viewController.player = player }
     }
 }
 
@@ -25,7 +25,7 @@ struct PlayerCover: View {
         ZStack {
             Color.black.ignoresSafeArea()
             if let player = controller.player {
-                PlayerView(player: player).ignoresSafeArea()
+                PlayerView(controller: controller, player: player).ignoresSafeArea()
             }
             if controller.isLoading {
                 ProgressView().controlSize(.large).tint(.white)

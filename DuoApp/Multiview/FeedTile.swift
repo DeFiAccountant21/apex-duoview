@@ -33,7 +33,7 @@ struct FeedTile: View {
         let problem = controller.feedProblems[id]
         return ZStack {
             Color.black
-            FeedPlayerLayer(player: controller.player(for: id))
+            FeedPlayerLayer(controller: controller, channelId: id, player: controller.player(for: id))
             if let problem {
                 note(problem)
             } else if controller.isFrozen(channelId: id) {
@@ -266,8 +266,17 @@ private final class FeedLayerUIView: UIView {
     }
 }
 
+/// The feed's picture. Its layer is also picture in picture's source when this feed has the
+/// sound: the view registers the layer with the controller as it is made (and on every update, a
+/// no-op when unchanged), and drops it when SwiftUI takes the view away.
 private struct FeedPlayerLayer: UIViewRepresentable {
+    let controller: MultiviewController
+    let channelId: Int
     let player: AVPlayer?
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(controller: controller)
+    }
 
     func makeUIView(context: Context) -> FeedLayerUIView {
         let view = FeedLayerUIView()
@@ -276,10 +285,39 @@ private struct FeedPlayerLayer: UIViewRepresentable {
         view.isUserInteractionEnabled = false
         view.playerLayer.videoGravity = .resizeAspect
         view.playerLayer.player = player
+        register(view, context.coordinator)
         return view
     }
 
     func updateUIView(_ view: FeedLayerUIView, context: Context) {
         if view.playerLayer.player !== player { view.playerLayer.player = player }
+        register(view, context.coordinator)
+    }
+
+    static func dismantleUIView(_ view: FeedLayerUIView, coordinator: Coordinator) {
+        if let id = coordinator.channelId {
+            coordinator.controller?.unregisterLayer(view.playerLayer, for: id)
+        }
+        coordinator.channelId = nil
+    }
+
+    private func register(_ view: FeedLayerUIView, _ coordinator: Coordinator) {
+        if let old = coordinator.channelId, old != channelId {
+            controller.unregisterLayer(view.playerLayer, for: old)
+        }
+        coordinator.channelId = channelId
+        coordinator.controller = controller
+        controller.registerLayer(view.playerLayer, for: channelId)
+    }
+
+    /// Remembers which feed the layer is registered for, for the dismantle.
+    @MainActor
+    final class Coordinator {
+        weak var controller: MultiviewController?
+        var channelId: Int?
+
+        init(controller: MultiviewController) {
+            self.controller = controller
+        }
     }
 }
