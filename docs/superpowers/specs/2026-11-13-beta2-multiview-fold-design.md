@@ -97,19 +97,33 @@ hard-coded numbers; the figures below are for the simulator's inner screen (951 
 region x 456–496) and are what the sketch showed. All tiles are 16:9, aspect-fit, nothing cropped.
 "Main" is the feed with the sound.
 
-| Posture | Layout (⟳ cycles) | Screen used | Shape |
-|---|---|---|---|
-| Closed (outer screen) | One | most | The main feed fills the outer screen. Swipe left/right to make another of the four the main feed. The other three keep playing silently, out of sight, so opening is instant and in step. |
-| Book (half-open, fold down the middle) | **Two per screen** (default) | 70% | Two feeds stacked on each half, each as wide as its half allows; nothing over the fold region. Main is top-left. |
-| | Across the fold | 77% | One feed as wide as the whole screen (the Android way), the others out of sight. The picture bends at the hinge; the owner wants it available, not default. |
-| Flat (fully open) | **Main + row** (default) | 91% | Main feed the full width of the screen; the other three in a row underneath, centred. |
-| | 2 × 2 grid | 77% | Four equal feeds. Main is top-left. |
-| Laptop (half-open, hinge across) | One | 66% | Main feed the full width of the top half; the other three in a 2 × 2 below the hinge; the fourth spot is an empty placeholder ("Timing + map, beta.3"). |
-| Unknown posture | Flat's layouts | — | Treat as flat. |
+**Fit to screen, for every feed count (owner-approved 2026-11-13).** Found by computing every
+arrangement of 1–4 whole 16:9 tiles on each screen shape and keeping those that cover the most
+screen, with no tile narrower than 200 pt. The first listed is the default; ⟳ cycles the rest.
+Percentages are the share of the whole screen showing video.
 
-- **⟳ Switch layout** in the controls cycles the layouts for the current posture (book and flat
-  have two; the others one, so the button is hidden or disabled there). The choice is remembered
-  per posture across sessions.
+| Feeds | Open flat | Half-open book | Half-open laptop (screen turned, hinge across) |
+|---|---|---|---|
+| 1 | Full screen · 78% | **Across the fold** · 78% (owner's pick); ⟳ one screen · 17% | Main above the hinge · 38% (beta.3 timing and map below) |
+| 2 | Main full width + one below · 82%; ⟳ two equal, stacked · 59% | One per screen · 35%; ⟳ across the fold · 78% | Main above, one below, both full width · 76% |
+| 3 | Main full width + two below · 86%; ⟳ three equal (two over one) · 58% | Main alone on the left, two stacked on the right · 52%; ⟳ across the fold · 78% | Main above, two stacked below · 65%; ⟳ two side by side below · 57% |
+| 4 | Main full width + three below · 91%; ⟳ main + one beside + two below · 86%; ⟳ 2 × 2 grid · 77% | Two per screen · 70%; ⟳ across the fold · 78% | Main above, three below (two over one) · 66%; ⟳ row of three below · 50% |
+
+- **Closed (outer screen):** the main feed fills the screen whatever the count; swipe left/right
+  to make another feed the main one. The others keep playing silently, out of sight.
+- **Across the fold** means one picture spanning both halves, over the bend; the other feeds keep
+  playing out of sight. It is the default only for one feed; with two or more, nothing crosses the
+  fold unless the user picks it with ⟳.
+- **Unknown posture:** flat's layouts. Narrow screens (a phone in portrait): the closed layout.
+- Research (Apple TV app, F1 TV, YouTube TV, ESPN, DAZN, Peacock, from web-search summaries): four
+  feeds is the common limit, one large plus smaller ones the usual shape, layouts re-fit when the
+  count changes, and the sound follows the feed you pick. No multiview product found lays feeds out
+  around a hinge. The Apple TV app carries F1 multiview in the US from 2026 and reportedly reached
+  iPhone with iOS 27.2, so the fold is what sets this app apart.
+
+- **⟳ Switch layout** in the controls cycles the layouts for the current posture and feed count
+  (hidden when there is only one). The choice is remembered per posture and feed count, across
+  sessions.
 - **Tap a feed** to swap it into the main spot; the sound moves with it. Swapping changes where a
   feed sits, not which four you have.
 - **Every change of posture or layout animates**: the same tile views move to their new frames
@@ -119,7 +133,7 @@ region x 456–496) and are what the sketch showed. All tiles are 16:9, aspect-f
   tiles; tiles never enter the fold region in book "two per screen" or laptop. Laptop is the inner
   screen turned (669 × 951 in the simulator) with the fold across at y 456–496. The screen-use
   figures in the table are floors under those rules (tests assert at least that figure), not exact
-  values. Tiles stay inside the safe area where it touches them, except a full-width main feed may
+  values. The table's figures were computed with these rules for the simulator's screen. Tiles stay inside the safe area where it touches them, except a full-width main feed may
   run edge to edge horizontally.
 
 ### Fewer than four feeds (owner's decision, 2026-11-13)
