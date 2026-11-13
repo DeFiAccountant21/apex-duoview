@@ -349,6 +349,9 @@ final class PlayerController {
         teardownPlayback()
         isLoading = false
         errorText = Self.stoppedMessage(reason)
+        // Playing in picture in picture with the cover hidden: the cover comes back with the
+        // reason and its Close, rather than leave a session nobody sees.
+        if !isPresented { isPresented = true }
     }
 
     /// Every 5 s once saving is possible, playing or not, so a seek or pause just before the app

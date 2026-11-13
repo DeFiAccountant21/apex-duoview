@@ -61,7 +61,7 @@ struct RaceWeekendRoom: View {
     @ViewBuilder
     private var resumeBanner: some View {
         let playback = context.model.playback
-        if context.isSignedIn, !playback.isPresented, !playback.resumeBannerDismissed,
+        if context.isSignedIn, !playback.isPresented, !playback.isInPictureInPicture, !playback.resumeBannerDismissed,
            let latest = bookmarks.first, ResumeBanner.isFresh(latest) {
             ResumeBanner(
                 bookmark: latest,

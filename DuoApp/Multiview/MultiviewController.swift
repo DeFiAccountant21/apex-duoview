@@ -1527,7 +1527,8 @@ final class MultiviewController {
     /// It didn't start after all: everything as before (today's background handling).
     fileprivate func pictureInPictureFailed(_ source: ObjectIdentifier) {
         guard isInPictureInPicture, pictureInPictureChannel(source) == pictureInPictureChannelId else { return }
-        endPictureInPicture()
+        // A feed the system paused here is not the viewer's pause.
+        endPictureInPicture(adoptingWindowPause: false)
         if UIApplication.shared.applicationState != .active {
             // The system pauses the players out here; coming back starts them again.
             resumeOnActive = started && !isPaused
@@ -1569,11 +1570,12 @@ final class MultiviewController {
         pictureInPictureChannelId = nil
     }
 
-    /// Back from picture in picture: a pause in the window pauses the multiview; every other feed
+    /// Back from picture in picture: a pause in the window pauses the multiview (unless
+    /// `adoptingWindowPause` is false: it never started, so any pause was the system's); every other feed
     /// (the main one too) lines up with the feed that kept playing, through the usual join (the
     /// reference is the main feed when in place, else any feed in place: here, that one), then
     /// plays with it. Slot 0 stays the sync reference from then on.
-    private func endPictureInPicture() {
+    private func endPictureInPicture(adoptingWindowPause: Bool = true) {
         guard isInPictureInPicture else { return }
         let shown = pictureInPictureFeed
         isInPictureInPicture = false
@@ -1585,7 +1587,7 @@ final class MultiviewController {
             for feed in feeds.values { updatePlayback(feed) }
             return
         }
-        if !isPaused, shown.player.rate == 0 { isPaused = true }
+        if adoptingWindowPause, !isPaused, shown.player.rate == 0 { isPaused = true }
         // Every feed is lined up again below, frozen ones included.
         othersFrozen = false
         frozenAt = nil
