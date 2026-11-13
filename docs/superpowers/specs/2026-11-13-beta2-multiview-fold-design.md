@@ -122,35 +122,23 @@ region x 456–496) and are what the sketch showed. All tiles are 16:9, aspect-f
   values. Tiles stay inside the safe area where it touches them, except a full-width main feed may
   run edge to edge horizontally.
 
-### Fewer than four feeds (builder's call)
+### Fewer than four feeds (owner's decision, 2026-11-13)
 
-- Layouts always have four slots. An empty slot (a remembered feed missing from this session, or
-  after Clear all) shows a "Pick a feed" placeholder in that tile's place, the same size.
-- One feed can't fill two slots.
-- If the main slot is empty, the sound and the main spot go to the first filled slot.
-- A session with only two or three feeds offers that many; the remaining slots stay placeholders
-  and are left out of the closed-screen swipe.
-
-### Choosing feeds
-
-- **Entry:** a session's detail screen shows **Watch multiview** when the account has multiview
-  (tier OPS, VIP or PREMIUM) and the session has at least two feeds. Pro accounts see "Multiview
-  needs F1 TV Premium" instead. The single-feed list from beta.1 stays.
-- **Default four:** world feed (`INTERNATIONAL`), `F1 LIVE`, `TRACKER`, `DATA`, because every race
-  has them. The user can change which four are the default.
-- **Last used:** whatever four were showing when the player closed. Next time any session opens in
-  multiview it starts with those, no picking.
-- **Reset to default** puts the default four back.
-- **Edit feeds:** shows the four slots; tap one to change it to any of the session's feeds; **Clear
-  all** empties the slots to pick four new ones. Whatever results becomes "last used".
-- **Presets:** up to 8. "Save as preset" stores the four feeds *and* the layout chosen for each
-  posture, under a name the user types. Presets can be renamed, updated (overwritten with the
-  current setup) and deleted. Choosing one loads it in place: feeds swap without a new PLAY.
-- **Feeds are remembered by what they are, not by channel id** (ids differ per session): world
-  feed, F1 Live, tracker, data, or a driver's onboard by the driver's last name (racing numbers
-  change between seasons: Norris is 1 in 2026). When a remembered feed doesn't exist in a session
-  (a driver not racing, an older race without F1 Live), that slot shows "Pick a feed" instead of
-  guessing.
+- **When it asks:** the first time the feeds drop below four (a feed removed, a remembered feed
+  missing in this session, or a session with only two or three feeds), a short prompt offers
+  **Keep four spots** (the empty one shows "Pick a feed", same size as a tile) or **Fit three to
+  the screen** (or two, and so on). It says "You can change this any time in Settings ›
+  Multiview." and never asks again: the answer is remembered, and Settings has the switch.
+- **Fit to the screen** uses the same rule as everything else: as much of the screen as a 16:9
+  picture allows, the main feed as large as it can be, the rest sharing what's left.
+  - Flat, three feeds: main the full width, the other two side by side underneath, centred.
+  - Book, three feeds: main on the left screen, the other two stacked on the right.
+  - Laptop, three feeds: main the full width of the top half, the other two below the hinge, as
+    large as they fit (the beta.3 timing and map share that half later).
+  - Two feeds: one per screen in book; main plus one in flat and laptop by the same rule.
+  - Closed: unchanged (one feed); the swipe goes through the feeds there are.
+- Adding a feed back returns to four. One feed can't fill two slots. If the main slot is the one
+  emptied, the sound and the main spot go to the next feed.
 
 ### Player controls (multiview)
 
