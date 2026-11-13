@@ -13,7 +13,7 @@ struct TokenPasteView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Paste your login-session cookie or subscription token.")
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.textSecondary)
                 ZStack(alignment: .topLeading) {
                     TextEditor(text: $text)
                         .font(.body.monospaced())
@@ -22,7 +22,7 @@ struct TokenPasteView: View {
                         .accessibilityLabel("Sign-in to paste")
                     if text.isEmpty {
                         Text("Paste here")
-                            .foregroundStyle(.tertiary)
+                            .foregroundStyle(Theme.textTertiary)
                             .padding(.horizontal, 5)
                             .padding(.vertical, 8)
                             .allowsHitTesting(false)
@@ -30,11 +30,11 @@ struct TokenPasteView: View {
                     }
                 }
                 .frame(minHeight: 160)
-                .overlay(RoundedRectangle(cornerRadius: 8).stroke(.quaternary))
+                .overlay(RoundedRectangle(cornerRadius: Theme.cornerRadius, style: .continuous).stroke(Theme.hairline))
                 if showsError {
                     Text("That doesn't look like a login-session cookie or a subscription token.")
                         .font(.footnote)
-                        .foregroundStyle(.red)
+                        .foregroundStyle(Theme.textSecondary)
                 }
                 Button {
                     use()
@@ -47,6 +47,7 @@ struct TokenPasteView: View {
                 Spacer()
             }
             .padding()
+            .themedBackground()
             .navigationTitle("Paste a sign-in")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

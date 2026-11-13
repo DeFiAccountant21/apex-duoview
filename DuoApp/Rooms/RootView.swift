@@ -42,6 +42,7 @@ struct RootView: View {
         // The rooms stay mounted in every auth state, so signing in never resets navigation or
         // reloads them; "Signing in" is only an overlay.
         rooms
+            .themedBackground()
             .foldTracking(fold)
             .overlay(alignment: .top) {
                 if case .signingIn = model.auth {

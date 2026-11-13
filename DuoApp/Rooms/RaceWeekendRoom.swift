@@ -35,6 +35,7 @@ struct RaceWeekendRoom: View {
                 }
                 .padding(.vertical)
             }
+            .themedBackground()
             .navigationTitle("Race Weekend")
             .roomChrome(context)
             .onAppear { bookmarks = context.model.recents.all() }
@@ -76,7 +77,7 @@ struct RaceWeekendRoom: View {
         if !bookmarks.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Continue watching")
-                    .font(.title3.bold())
+                    .heading()
                     .padding(.horizontal)
                     .accessibilityAddTraits(.isHeader)
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -217,7 +218,7 @@ private struct ScheduleView: View {
         let selected = min(max(selection ?? opened, 0), max(allDays.count - 1, 0))
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .font(.title3.bold())
+                .heading()
                 .accessibilityAddTraits(.isHeader)
             if allDays.count > 1 {
                 Picker("Day", selection: Binding(get: { selected }, set: { selection = $0 })) {
@@ -264,23 +265,18 @@ private struct ScheduleRow: View {
             HStack(spacing: 12) {
                 Text(item.start?.formatted(date: .omitted, time: .shortened) ?? "")
                     .font(.subheadline.monospacedDigit())
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.textSecondary)
                     .frame(width: 72, alignment: .leading)
                 Text(item.title)
-                    .font(.body.weight(.semibold))
+                    .rowTitle()
                     .multilineTextAlignment(.leading)
                 Spacer()
                 if item.isLive {
-                    Text("Live")
-                        .font(.caption.bold())
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(.red, in: Capsule())
-                        .foregroundStyle(.white)
+                    Text("LIVE").liveBadge()
                 }
             }
             .padding(12)
-            .background(.quaternary, in: RoundedRectangle(cornerRadius: 10))
+            .card()
             .opacity(upcoming ? 0.4 : 1)
         }
         .buttonStyle(.plain)

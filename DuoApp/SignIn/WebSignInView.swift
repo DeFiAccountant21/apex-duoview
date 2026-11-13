@@ -48,7 +48,7 @@ struct WebSignInView: View {
             VStack(spacing: 0) {
                 Text("Sign in with your F1 TV email and password. Google sign-in doesn't work inside apps.")
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.textSecondary)
                     .multilineTextAlignment(.center)
                     .padding()
                 if let webView {
@@ -58,6 +58,7 @@ struct WebSignInView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
+            .themedBackground()
             .navigationTitle("Sign in")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

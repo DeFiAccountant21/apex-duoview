@@ -23,28 +23,29 @@ struct ArchiveRoom: View {
                         RowView(title: "Popular races from the archive", items: items, now: Date())
                     }
                     Text("Seasons")
-                        .font(.title3.bold())
+                        .heading()
                         .padding(.horizontal)
                         .accessibilityAddTraits(.isHeader)
                     LazyVStack(spacing: 0) {
                         ForEach(seasons, id: \.self) { year in
                             NavigationLink(value: Route.season(year)) {
                                 HStack {
-                                    Text(String(year)).font(.body.weight(.semibold))
+                                    Text(String(year)).rowTitle().monospacedDigit()
                                     Spacer()
-                                    Image(systemName: "chevron.right").foregroundStyle(.tertiary)
+                                    Image(systemName: "chevron.right").foregroundStyle(Theme.textTertiary)
                                 }
                                 .padding(.vertical, 12)
                                 .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
-                            Divider()
+                            Divider().overlay(Theme.hairline)
                         }
                     }
                     .padding(.horizontal)
                 }
                 .padding(.vertical)
             }
+            .themedBackground()
             .navigationTitle("Archive")
             .roomChrome(context)
             .task(id: attempt) { if !races.isLoaded { await load() } }

@@ -9,6 +9,8 @@ struct DuoApp: App {
     var body: some Scene {
         WindowGroup {
             RootView(model: model)
+                .preferredColorScheme(.dark)
+                .tint(Theme.accent)
                 .task { await model.restore() }
                 .onChange(of: scenePhase) { _, phase in
                     guard phase == .active else { return }

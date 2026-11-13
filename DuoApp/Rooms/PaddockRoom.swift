@@ -22,6 +22,7 @@ struct PaddockRoom: View {
                     .padding(.vertical)
                 }
             }
+            .themedBackground()
             .navigationTitle("Paddock")
             .roomChrome(context)
             .task(id: attempt) { if !state.isLoaded { await load() } }

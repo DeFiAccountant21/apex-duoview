@@ -12,7 +12,7 @@ struct RowView: View {
         if !items.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
                 Text(title)
-                    .font(.title3.bold())
+                    .heading()
                     .padding(.horizontal)
                     .accessibilityAddTraits(.isHeader)
                 ScrollView(.horizontal, showsIndicators: false) {

@@ -61,20 +61,25 @@ struct TileView: View {
 
     var body: some View {
         NavigationLink(value: route) {
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 0) {
                 picture
-                Text(title)
-                    .font(.subheadline.weight(.semibold))
-                    .lineLimit(2)
-                    .multilineTextAlignment(.leading)
-                if !subtitle.isEmpty {
-                    Text(subtitle)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .rowTitle(.subheadline)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                    if !subtitle.isEmpty {
+                        Text(subtitle)
+                            .font(.caption)
+                            .monospacedDigit()
+                            .foregroundStyle(Theme.textSecondary)
+                            .lineLimit(1)
+                    }
                 }
+                .padding(8)
             }
             .frame(width: width, alignment: .leading)
+            .card()
             .opacity(dimmed ? 0.4 : 1)
         }
         .buttonStyle(.plain)
@@ -89,17 +94,27 @@ struct TileView: View {
                 case .success(let image):
                     image.resizable().scaledToFill()
                 default:
-                    Rectangle().fill(.quaternary)
+                    Rectangle().fill(Theme.raised)
                 }
             }
             .frame(width: width, height: height)
             .clipped()
             if let progress {
-                ProgressView(value: min(max(progress, 0), 1))
-                    .padding(6)
+                // A red bar on a hairline track; the subtitle already says how much is left.
+                Rectangle()
+                    .fill(Theme.hairline)
+                    .frame(height: 3)
+                    .overlay(alignment: .leading) {
+                        GeometryReader { proxy in
+                            Rectangle()
+                                .fill(Theme.accent)
+                                .frame(width: proxy.size.width * min(max(progress, 0), 1))
+                        }
+                    }
+                    .accessibilityHidden(true)
             }
         }
         .frame(width: width, height: height)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .clipped()
     }
 }

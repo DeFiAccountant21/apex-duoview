@@ -8,12 +8,19 @@ struct SignInView: View {
 
     var body: some View {
         VStack(spacing: 16) {
+            Spacer(minLength: 0)
+            Image("Logo")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 120, height: 120)
+                .clipShape(RoundedRectangle(cornerRadius: 120 * 0.22, style: .continuous))
+                .accessibilityHidden(true)
             Text("Apex DuoView")
-                .font(.largeTitle.bold())
+                .heading(.largeTitle)
             if let message = model.message {
                 Text(message)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.textSecondary)
                     .multilineTextAlignment(.center)
             }
             Button {
@@ -29,8 +36,12 @@ struct SignInView: View {
                 showingPaste = true
             }
             .buttonStyle(.bordered)
+            .tint(Theme.textPrimary)
+            Spacer(minLength: 0)
         }
         .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .themedBackground()
         .sheet(isPresented: $showingWebSignIn) {
             WebSignInView(model: model)
         }

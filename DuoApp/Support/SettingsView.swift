@@ -14,12 +14,14 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
-                accountSection
-                foldSection
-                aboutSection
-                creditsSection
-                debugSection
+                accountSection.listRowBackground(Theme.surface)
+                foldSection.listRowBackground(Theme.surface)
+                aboutSection.listRowBackground(Theme.surface)
+                creditsSection.listRowBackground(Theme.surface)
+                debugSection.listRowBackground(Theme.surface)
             }
+            .scrollContentBackground(.hidden)
+            .themedBackground()
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -119,7 +121,7 @@ struct SettingsView: View {
                         Text(credit.name)
                         Text(credit.detail)
                             .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.textSecondary)
                     }
                 }
                 .accessibilityElement(children: .combine)

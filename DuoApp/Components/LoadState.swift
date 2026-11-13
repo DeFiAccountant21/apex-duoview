@@ -83,10 +83,11 @@ struct LoadFailedView: View {
         VStack(spacing: 8) {
             Text("Couldn't load F1 TV: \(message)")
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.textSecondary)
                 .multilineTextAlignment(.center)
             Button("Try again", action: retry)
                 .buttonStyle(.bordered)
+                .tint(Theme.accent)
         }
         .frame(maxWidth: .infinity)
         .padding()

@@ -17,7 +17,7 @@ struct CollectionView: View {
                     if !page.description.isEmpty {
                         Text(page.description)
                             .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.textSecondary)
                             .padding(.horizontal)
                     }
                     ForEach(Array(page.rows.enumerated()), id: \.offset) { _, row in
@@ -27,6 +27,7 @@ struct CollectionView: View {
                 .padding(.vertical)
             }
         }
+        .themedBackground()
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
         .task(id: attempt) { if !state.isLoaded { await load() } }

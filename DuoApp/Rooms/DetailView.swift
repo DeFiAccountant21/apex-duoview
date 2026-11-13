@@ -27,15 +27,15 @@ struct DetailView: View {
                 AsyncImage(url: item.pictureURL(width: 1200, height: 675)) { phase in
                     switch phase {
                     case .success(let image): image.resizable().scaledToFill()
-                    default: Rectangle().fill(.quaternary)
+                    default: Rectangle().fill(Theme.raised)
                     }
                 }
                 .aspectRatio(16 / 9, contentMode: .fit)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .clipShape(RoundedRectangle(cornerRadius: Theme.cornerRadius, style: .continuous))
                 .accessibilityHidden(true)
 
                 Text(item.title)
-                    .font(.title2.bold())
+                    .heading(.title2)
 
                 // Signed out, the play button itself reads "Sign in to watch." and opens sign-in.
                 if !context.isSignedIn {
@@ -57,6 +57,7 @@ struct DetailView: View {
             }
             .padding()
         }
+        .themedBackground()
         .navigationTitle(item.title)
         .navigationBarTitleDisplayMode(.inline)
         .task(id: attempt) { if !state.isLoaded { await load() } }
@@ -101,6 +102,7 @@ struct DetailView: View {
                 Label("Play", systemImage: "play.fill").frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
+            .tint(Theme.textPrimary)
             .controlSize(.large)
         } else {
             VStack(spacing: 8) {
@@ -124,18 +126,18 @@ private struct ChannelRow: View {
                         .fill(Color(hex: channel.teamColorHex) ?? .gray)
                         .frame(width: 5, height: 32)
                 } else {
-                    Image(systemName: "play.fill").frame(width: 5)
+                    Image(systemName: "play.fill").foregroundStyle(Theme.accent).frame(width: 5)
                 }
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(channel.displayTitle).font(.body.weight(.semibold))
+                    Text(channel.displayTitle).rowTitle()
                     if channel.isOnboard && !channel.teamName.isEmpty {
-                        Text(channel.teamName).font(.caption).foregroundStyle(.secondary)
+                        Text(channel.teamName).font(.caption).foregroundStyle(Theme.textSecondary)
                     }
                 }
                 Spacer()
             }
             .padding(12)
-            .background(.quaternary, in: RoundedRectangle(cornerRadius: 10))
+            .card()
         }
         .buttonStyle(.plain)
         .accessibilityLabel(channel.isOnboard && !channel.teamName.isEmpty

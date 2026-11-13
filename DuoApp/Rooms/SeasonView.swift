@@ -22,7 +22,7 @@ struct SeasonView: View {
                                 MeetingRow(meeting: meeting)
                             }
                             .buttonStyle(.plain)
-                            Divider()
+                            Divider().overlay(Theme.hairline)
                         }
                     }
                     .padding(.horizontal)
@@ -39,6 +39,7 @@ struct SeasonView: View {
                 }
             }
         }
+        .themedBackground()
         .navigationTitle(String(season))
         .navigationBarTitleDisplayMode(.inline)
         .task(id: attempt) {
@@ -71,11 +72,11 @@ private struct MeetingRow: View {
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
-                Text(meeting.name).font(.body.weight(.semibold))
-                Text(detail).font(.caption).foregroundStyle(.secondary)
+                Text(meeting.name).rowTitle()
+                Text(detail).font(.caption).monospacedDigit().foregroundStyle(Theme.textSecondary)
             }
             Spacer()
-            Image(systemName: "chevron.right").foregroundStyle(.tertiary)
+            Image(systemName: "chevron.right").foregroundStyle(Theme.textTertiary)
         }
         .padding(.vertical, 12)
         .contentShape(Rectangle())
@@ -111,6 +112,7 @@ struct WeekendView: View {
                 .padding(.vertical)
             }
         }
+        .themedBackground()
         .navigationTitle(meeting.name)
         .navigationBarTitleDisplayMode(.inline)
         .task(id: attempt) { if !state.isLoaded { await load() } }

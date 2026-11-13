@@ -29,8 +29,8 @@ struct ResumeBanner: View {
     var body: some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(bookmark.title).font(.subheadline.weight(.semibold)).lineLimit(2)
-                Text(Self.positionText(bookmark)).font(.caption).foregroundStyle(.secondary)
+                Text(bookmark.title).rowTitle(.subheadline).lineLimit(2)
+                Text(Self.positionText(bookmark)).font(.caption).monospacedDigit().foregroundStyle(Theme.textSecondary)
             }
             Spacer(minLength: 8)
             Button("Resume", action: onResume)
@@ -39,11 +39,12 @@ struct ResumeBanner: View {
                 Image(systemName: "xmark").font(.footnote.weight(.semibold))
             }
             .buttonStyle(.plain)
+            .foregroundStyle(Theme.textSecondary)
             .padding(6)
             .accessibilityLabel("Dismiss")
         }
         .padding(12)
-        .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
+        .card()
         .padding(.horizontal)
         .accessibilityElement(children: .contain)
     }
