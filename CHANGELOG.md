@@ -4,6 +4,10 @@ Versions follow the standard in [docs/roadmap.md](docs/roadmap.md).
 
 ## Unreleased
 
+Nothing yet.
+
+## v1.0-beta.1 — Foundation (2026-11-13)
+
 - Approved roadmap to v1.0: seven betas, one release candidate, then launch.
 - App named Apex DuoView: an iPhone app for watching F1 TV, built around the iPhone Duo's fold.
 - Sign in with your F1 TV account on F1's own page, or paste a sign-in token instead. The app
