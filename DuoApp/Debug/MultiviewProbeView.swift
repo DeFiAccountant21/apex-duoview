@@ -468,21 +468,26 @@ final class ProbeFeed {
     }
 
     /// Reads the access log and the clock. Called every second by the model.
-    /// The log is fetched asynchronously (`accessLog()` is deprecated in iOS 27). The result is
-    /// written only if the item is still the one this feed is measuring.
+    /// The log is fetched asynchronously (`accessLog()` is deprecated in iOS 27). AVFoundation
+    /// calls back on its own queue, so the callback is `@Sendable`, reads the two numbers there
+    /// and hands only those to the main actor. They are written only if the item is still the one
+    /// this feed is measuring.
     func refresh() {
         if let startedAt = playStartedAt, phase == .loading || phase == .playing {
             elapsed = ProcessInfo.processInfo.systemUptime - startedAt
         }
         guard let item = player?.currentItem else { return }
         let itemID = ObjectIdentifier(item)
-        Task { @MainActor [weak self] in
-            guard let self, let log = await item.fetchAccessLog(),
-                  self.measuredItemID == itemID else { return }
-            let events = log.events
-            self.droppedFrames = events.reduce(0) { $0 + max($1.numberOfDroppedVideoFrames, 0) }
-            if let last = events.last, last.indicatedBitrate > 0 { self.indicatedBitrate = last.indicatedBitrate }
-        }
+        item.fetchAccessLog(completionHandler: { @Sendable [weak self] log in
+            guard let events = log?.events else { return }
+            let dropped = events.reduce(0) { $0 + max($1.numberOfDroppedVideoFrames, 0) }
+            let bitrate = events.last?.indicatedBitrate ?? 0
+            Task { @MainActor [weak self] in
+                guard let self, self.measuredItemID == itemID else { return }
+                self.droppedFrames = dropped
+                if bitrate > 0 { self.indicatedBitrate = bitrate }
+            }
+        })
     }
 
     /// Tears down the player and every observer. The numbers stay for the report.
