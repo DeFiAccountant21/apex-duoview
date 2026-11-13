@@ -17,16 +17,19 @@ import SwiftUI
 /// Feeds: the top bar's "Feeds" opens the feeds editor (a sheet). With fewer than four feeds the
 /// once-only "fewer feeds" question shows, never over the editor.
 ///
+/// Touches on a tile are UIKit gesture recognizers (`TileTouchSurface`); SwiftUI's tap and
+/// long-press-then-drag on the same tile stopped both from firing.
+///
 /// Coordinates: the inner reader ignores the safe area, so its space is the full screen, the same
-/// space as `FoldState.foldFrame` and as the drag's global locations. The outer reader keeps the
-/// safe area only to read its insets, for the top bar.
+/// space as `FoldState.foldFrame` and, on this full-screen cover, as the window coordinates the
+/// drag reports. The outer reader keeps the safe area only to read its insets.
 struct MultiviewView: View {
     let controller: MultiviewController
     let fold: FoldState
 
-    /// The tile being dragged and how far it has moved. Back to nil when the finger lifts, which
-    /// glides the tile home (or, after a trade, into its new place).
-    @GestureState(resetTransaction: Transaction(animation: .snappy)) private var drag: TileDrag? = nil
+    /// The tile being dragged and how far it has moved. Back to nil (with `.snappy`) when the
+    /// finger lifts, which glides the tile home or, after a trade, into its new place.
+    @State private var drag: TileDrag?
     /// The tile dragged last stays above the others while it glides into place.
     @State private var raised: TileKey?
     /// The feeds editor, while it is asked for.
@@ -124,7 +127,6 @@ struct MultiviewView: View {
                 .frame(width: proxy.size.width, height: proxy.size.height)
                 // Frames glide; the drag itself isn't part of this value, so it tracks the finger.
                 .animation(.snappy, value: layout.placement)
-                .simultaneousGesture(swipe, including: layout.input.posture == .closed ? .all : .subviews)
                 .overlay(alignment: .topLeading) {
                     topBar(layout)
                         .padding(.top, insets.top)
@@ -198,13 +200,18 @@ struct MultiviewView: View {
             isVisible: visible,
             showsPickPrompt: !controller.isLoading)
             .frame(width: rect.width, height: rect.height)
-            .contentShape(Rectangle())
-            // The hold-and-drag is attached inside the tap, so it takes precedence: a press that
-            // was held never ends as a tap.
-            .gesture(moveGesture(entry, in: layout), including: canDrag ? .all : .subviews)
-            .onTapGesture { tapped(slot: entry.slot) }
-            // The speaker sits over the tile, outside the view that carries the tap and the drag,
-            // so neither a tap nor a hold on it reaches them. It moves with the tile.
+            .overlay {
+                TileTouchSurface(
+                    isActive: visible,
+                    canDrag: canDrag,
+                    canSwipe: visible && layout.input.posture == .closed,
+                    holdDuration: Self.holdBeforeDrag,
+                    onTap: { tapped(slot: entry.slot) },
+                    onDrag: { event in dragged(entry, event, in: layout) },
+                    onSwipe: { translation in swiped(translation) })
+            }
+            // The speaker sits above the touch surface, so it answers its own taps. It moves
+            // with the tile.
             .overlay(alignment: .topTrailing) {
                 if let channel = entry.channel, let id = channel.id, controller.feedProblems[id] == nil {
                     FeedSpeakerButton(controller: controller, channelId: id, title: channel.displayTitle)
@@ -222,38 +229,37 @@ struct MultiviewView: View {
     // MARK: Gestures
 
     /// Press and hold, then drag: the tile lifts and follows the finger; let go over another tile
-    /// and the two trade places, anywhere else and it glides back.
-    private func moveGesture(_ entry: TileEntry, in layout: Arrangement) -> some Gesture {
+    /// and the two trade places, anywhere else (or if the system takes the touch) it glides back.
+    /// The finger's window point is used as a full-screen point: on this full-screen cover, whose
+    /// inner reader ignores the safe area, the two spaces are the same.
+    private func dragged(_ entry: TileEntry, _ event: TileDragEvent, in layout: Arrangement) {
         let key = entry.key
-        let slot = entry.slot
-        // Hidden tiles share the main tile's frame: only the visible ones are drop targets.
-        let targets = layout.tiles.filter { $0.frame.visible && $0.id != key }
-        return LongPressGesture(minimumDuration: Self.holdBeforeDrag)
-            .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .global))
-            .updating($drag) { value, state, _ in
-                if case .second(true, let change) = value {
-                    state = TileDrag(key: key, translation: change?.translation ?? .zero)
-                }
+        switch event {
+        case .began:
+            raised = key
+            drag = TileDrag(key: key, translation: .zero)
+        case .moved(let translation):
+            // Not animated: the tile tracks the finger.
+            drag = TileDrag(key: key, translation: translation)
+        case .ended(let point):
+            // Hidden tiles share the main tile's frame: only the visible ones are drop targets.
+            let target = layout.tiles.first { $0.frame.visible && $0.id != key && $0.frame.rect.contains(point) }
+            withAnimation(.snappy) {
+                drag = nil
+                if let target { controller.moveFeed(from: entry.slot, to: target.entry.slot) }
             }
-            .onEnded { value in
-                guard case .second(true, let change?) = value else { return }
-                raised = key
-                if let target = targets.first(where: { $0.frame.rect.contains(change.location) }) {
-                    controller.moveFeed(from: slot, to: target.entry.slot)
-                }
-            }
+        case .cancelled:
+            withAnimation(.snappy) { drag = nil }
+        }
     }
 
     /// The closed layout: a horizontal swipe makes the next (left) or previous (right) feed the
-    /// main one, wrapping. Only enabled on the closed layout.
-    private var swipe: some Gesture {
-        DragGesture(minimumDistance: 20)
-            .onEnded { value in
-                let dx = value.translation.width
-                let dy = value.translation.height
-                guard abs(dx) > Self.swipeDistance, abs(dx) > abs(dy) else { return }
-                swipeMain(forward: dx < 0)
-            }
+    /// main one, wrapping. The pan is only enabled on the closed layout.
+    private func swiped(_ translation: CGSize) {
+        let dx = translation.width
+        let dy = translation.height
+        guard abs(dx) > Self.swipeDistance, abs(dx) > abs(dy) else { return }
+        swipeMain(forward: dx < 0)
     }
 
     private func swipeMain(forward: Bool) {

@@ -5,8 +5,8 @@ import UIKit
 
 /// One multiview slot: the feed's picture (aspect-fit, never cropped), its name and the red SOUND
 /// badge on the feed with the sound. An empty slot is a dark tile reading "Pick a feed".
-/// The speaker button (`FeedSpeakerButton`) is laid over the tile by `MultiviewView`, outside the
-/// tile's tap and drag.
+/// `MultiviewView` lays the tile's touch surface (`TileTouchSurface`: tap, hold-and-drag, the
+/// closed swipe) and then the speaker button (`FeedSpeakerButton`) over it.
 /// The tile only shows a player; the controller owns it.
 struct FeedTile: View {
     let controller: MultiviewController
@@ -132,6 +132,128 @@ struct FeedSpeakerButton: View {
     }
 }
 
+// MARK: - Touch
+
+/// What a hold-and-drag on a tile reports. Points and translations are in window coordinates.
+enum TileDragEvent {
+    /// Held long enough: the tile lifts.
+    case began
+    /// The finger moved this far from where the hold began.
+    case moved(CGSize)
+    /// The finger lifted here.
+    case ended(CGPoint)
+    /// The system took the touch (or the hold failed): the tile glides back.
+    case cancelled
+}
+
+/// A clear UIKit view over a tile that carries its touches with UIKit gesture recognizers: a tap,
+/// a press held `holdDuration` (10 pt of give) that then drags, and, on the closed layout, a pan
+/// for the swipe. SwiftUI's own tap plus a sequenced long-press-and-drag on the same view stopped
+/// both from firing in the owner's check, so the tile's touches live here.
+///
+/// The tap waits for the hold to fail (only while the hold is enabled), so a press that was held
+/// never also swaps. The callbacks are swapped in on every update, so they always see the tile's
+/// current slot and the current drop targets. UIKit calls the targets on the main thread; the
+/// coordinator is main-actor isolated.
+struct TileTouchSurface: UIViewRepresentable {
+    /// False for a hidden tile: it then lets touches through to the tile under it.
+    var isActive: Bool
+    var canDrag: Bool
+    var canSwipe: Bool
+    var holdDuration: TimeInterval
+    var onTap: @MainActor () -> Void
+    var onDrag: @MainActor (TileDragEvent) -> Void
+    /// The pan's whole translation when the finger lifts.
+    var onSwipe: @MainActor (CGSize) -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView()
+        view.backgroundColor = .clear
+        let coordinator = context.coordinator
+        let tap = UITapGestureRecognizer(target: coordinator, action: #selector(Coordinator.tapped(_:)))
+        let hold = UILongPressGestureRecognizer(target: coordinator, action: #selector(Coordinator.held(_:)))
+        hold.minimumPressDuration = holdDuration
+        hold.allowableMovement = 10
+        let pan = UIPanGestureRecognizer(target: coordinator, action: #selector(Coordinator.panned(_:)))
+        // The tap waits for the hold to fail, through the delegate so it only does while the hold
+        // is enabled (a tile that can't be dragged answers its tap at once).
+        tap.delegate = coordinator
+        view.addGestureRecognizer(tap)
+        view.addGestureRecognizer(hold)
+        view.addGestureRecognizer(pan)
+        coordinator.tap = tap
+        coordinator.hold = hold
+        coordinator.pan = pan
+        apply(to: view, coordinator)
+        return view
+    }
+
+    func updateUIView(_ view: UIView, context: Context) {
+        apply(to: view, context.coordinator)
+    }
+
+    private func apply(to view: UIView, _ coordinator: Coordinator) {
+        coordinator.onTap = onTap
+        coordinator.onDrag = onDrag
+        coordinator.onSwipe = onSwipe
+        if view.isUserInteractionEnabled != isActive { view.isUserInteractionEnabled = isActive }
+        if coordinator.hold?.isEnabled != canDrag { coordinator.hold?.isEnabled = canDrag }
+        if coordinator.pan?.isEnabled != canSwipe { coordinator.pan?.isEnabled = canSwipe }
+    }
+
+    @MainActor
+    final class Coordinator: NSObject, UIGestureRecognizerDelegate {
+        var onTap: @MainActor () -> Void = {}
+        var onDrag: @MainActor (TileDragEvent) -> Void = { _ in }
+        var onSwipe: @MainActor (CGSize) -> Void = { _ in }
+        weak var tap: UITapGestureRecognizer?
+        weak var hold: UILongPressGestureRecognizer?
+        weak var pan: UIPanGestureRecognizer?
+        /// Where the hold began, in window coordinates.
+        private var start = CGPoint.zero
+
+        @objc func tapped(_ recognizer: UITapGestureRecognizer) {
+            guard recognizer.state == .ended else { return }
+            onTap()
+        }
+
+        @objc func held(_ recognizer: UILongPressGestureRecognizer) {
+            // `location(in: nil)` is in the window's coordinates.
+            let point = recognizer.location(in: nil)
+            switch recognizer.state {
+            case .began:
+                start = point
+                onDrag(.began)
+            case .changed:
+                onDrag(.moved(CGSize(width: point.x - start.x, height: point.y - start.y)))
+            case .ended:
+                onDrag(.ended(point))
+            case .cancelled, .failed:
+                onDrag(.cancelled)
+            default:
+                break
+            }
+        }
+
+        @objc func panned(_ recognizer: UIPanGestureRecognizer) {
+            guard recognizer.state == .ended else { return }
+            let translation = recognizer.translation(in: nil)
+            onSwipe(CGSize(width: translation.x, height: translation.y))
+        }
+
+        func gestureRecognizer(
+            _ gestureRecognizer: UIGestureRecognizer,
+            shouldRequireFailureOf otherGestureRecognizer: UIGestureRecognizer
+        ) -> Bool {
+            gestureRecognizer === tap && otherGestureRecognizer === hold && otherGestureRecognizer.isEnabled
+        }
+    }
+}
+
 // MARK: - Player layer
 
 /// A view whose own layer is the `AVPlayerLayer`, so it resizes with the view.
@@ -150,7 +272,7 @@ private struct FeedPlayerLayer: UIViewRepresentable {
     func makeUIView(context: Context) -> FeedLayerUIView {
         let view = FeedLayerUIView()
         view.backgroundColor = .black
-        // Taps go to the SwiftUI tile, not this view.
+        // Touches go to the tile's `TileTouchSurface` above, not this view.
         view.isUserInteractionEnabled = false
         view.playerLayer.videoGravity = .resizeAspect
         view.playerLayer.player = player
