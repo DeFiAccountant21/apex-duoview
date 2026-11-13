@@ -10,7 +10,12 @@ public enum FeedPick: Codable, Hashable, Sendable {
     case onboard(lastName: String)
     case other(title: String)
 
-    public static let defaultFour: [FeedPick] = [.worldFeed, .f1Live, .tracker, .data]
+    /// The starting four: the world feed, the viewer's driver's onboard (an empty spot, "Pick a
+    /// feed", without one), the tracker and the data feed. F1 Live shows the same race picture as
+    /// the world feed, so it isn't one of them (owner, 2026-11-13); it stays in the feed list.
+    public static func defaults(driver: String?) -> [FeedPick?] {
+        [.worldFeed, driver.map { .onboard(lastName: $0) }, .tracker, .data]
+    }
 
     public init(_ channel: Channel) {
         let title = channel.title.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()

@@ -21,9 +21,11 @@ import F1TV
         #expect(FeedPick(c[4]) == .onboard(lastName: "Norris"))
     }
 
-    @Test func defaultFourResolvesInOrder() {
-        let r = FeedPick.resolve(FeedPick.defaultFour, in: Self.channels)
-        #expect(r.map { $0?.id } == [1025, 1033, 1003, 1004])
+    @Test func defaultsResolveInOrder() {
+        let r = FeedPick.resolve(FeedPick.defaults(driver: "Norris"), in: Self.channels)
+        #expect(r.map { $0?.id } == [1025, 1016, 1003, 1004])
+        let none = FeedPick.resolve(FeedPick.defaults(driver: nil), in: Self.channels)
+        #expect(none.map { $0?.id } == [1025, nil, 1003, 1004])
     }
 
     @Test func onboardMatchesByNameNotNumber() {

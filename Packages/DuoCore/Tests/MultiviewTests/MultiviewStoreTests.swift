@@ -11,8 +11,63 @@ import Library
 
     @Test func startsWithDefaultFour() {
         let (s, _) = Self.make()
-        #expect(s.defaultPicks == FeedPick.defaultFour.map { Optional($0) })
+        #expect(s.defaultPicks == FeedPick.defaults(driver: nil))
+        #expect(s.defaultPicks == [.worldFeed, nil, .tracker, .data])
         #expect(s.lastUsed == s.defaultPicks)
+    }
+
+    @Test func defaultsUseFavouriteDriver() {
+        let (s, _) = Self.make()
+        s.favouriteDriver = "Norris"
+        #expect(s.favouriteDriver == "Norris")
+        #expect(s.defaultPicks == [.worldFeed, .onboard(lastName: "Norris"), .tracker, .data])
+        #expect(s.lastUsed == s.defaultPicks)
+        s.resetToDefault()
+        #expect(s.lastUsed == [.worldFeed, .onboard(lastName: "Norris"), .tracker, .data])
+    }
+
+    @Test func noDriverLeavesSecondSpotEmpty() {
+        let (s, _) = Self.make()
+        #expect(s.favouriteDriver == nil)
+        #expect(s.defaultPicks == [.worldFeed, nil, .tracker, .data])
+        #expect(!s.defaultPicks.contains(.f1Live))
+        s.favouriteDriver = "Norris"
+        s.favouriteDriver = nil
+        #expect(s.defaultPicks == [.worldFeed, nil, .tracker, .data])
+        s.favouriteDriver = "  "
+        #expect(s.favouriteDriver == nil)
+        #expect(s.defaultPicks[1] == nil)
+    }
+
+    @Test func changingDriverChangesDefaults() {
+        let mem = MemoryStore()
+        let s = MultiviewStore(store: mem)
+        s.favouriteDriver = "Norris"
+        s.lastUsed = [.data]
+        s.favouriteDriver = "Verstappen"
+        #expect(s.defaultPicks == [.worldFeed, .onboard(lastName: "Verstappen"), .tracker, .data])
+        // Changing the driver leaves a written lastUsed alone; reset brings the new default.
+        #expect(s.lastUsed == [.data])
+        s.resetToDefault()
+        #expect(s.lastUsed == [.worldFeed, .onboard(lastName: "Verstappen"), .tracker, .data])
+        #expect(MultiviewStore(store: mem).favouriteDriver == "Verstappen")
+    }
+
+    @Test func handSetDefaultsIgnoreDriverChanges() {
+        let (s, _) = Self.make()
+        s.favouriteDriver = "Norris"
+        s.defaultPicks = [.data, .tracker]
+        s.favouriteDriver = "Verstappen"
+        #expect(s.defaultPicks == [.data, .tracker])
+    }
+
+    @Test func driverPromptShownPersists() {
+        let mem = MemoryStore()
+        let a = MultiviewStore(store: mem)
+        #expect(a.driverPromptShown == false)
+        a.driverPromptShown = true
+        #expect(a.driverPromptShown)
+        #expect(MultiviewStore(store: mem).driverPromptShown)
     }
 
     @Test func lastUsedPersistsAcrossInstances() {
@@ -32,10 +87,10 @@ import Library
 
     @Test func changingDefaultsChangesReset() {
         let (s, _) = Self.make()
-        s.defaultPicks = [.f1Live, nil, .data]
+        s.defaultPicks = [.onboard(lastName: "Norris"), nil, .data]
         s.lastUsed = [.tracker]
         s.resetToDefault()
-        #expect(s.lastUsed == [.f1Live, nil, .data])
+        #expect(s.lastUsed == [.onboard(lastName: "Norris"), nil, .data])
     }
 
     @Test func lastUsedFollowsDefaultUntilWritten() {
@@ -125,11 +180,14 @@ import Library
 
     @Test func corruptDataFallsBackToStartingValues() {
         let mem = MemoryStore()
-        for k in ["multiview.defaults", "multiview.lastUsed", "multiview.presets", "multiview.layouts", "multiview.fewerFeeds"] {
+        for k in ["multiview.defaults", "multiview.lastUsed", "multiview.presets", "multiview.layouts", "multiview.fewerFeeds",
+                  "multiview.favouriteDriver", "multiview.driverPromptShown"] {
             mem.set(Data("garbage".utf8), forKey: k)
         }
         let s = MultiviewStore(store: mem)
-        #expect(s.defaultPicks == FeedPick.defaultFour.map { Optional($0) })
+        #expect(s.defaultPicks == FeedPick.defaults(driver: nil))
+        #expect(s.favouriteDriver == nil)
+        #expect(s.driverPromptShown == false)
         #expect(s.lastUsed == s.defaultPicks)
         #expect(s.presets.isEmpty)
         #expect(s.layoutChoice(for: LayoutKey(posture: .book, feedCount: 4)) == nil)

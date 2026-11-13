@@ -39,8 +39,9 @@ public enum PresetError: Error, Equatable {
     case emptyName, nameTooLong, duplicateName, full, notFound
 }
 
-/// Persisted multiview memory: default and last-used feeds, named presets, layout choices and
-/// the "fewer feeds" preference. Stored as JSON; unreadable data falls back to starting values.
+/// Persisted multiview memory: default and last-used feeds, named presets, layout choices, the
+/// "fewer feeds" preference and the viewer's driver. Stored as JSON; unreadable data falls back to
+/// starting values.
 public final class MultiviewStore: @unchecked Sendable {
     public static let maxPresets = 8
     public static let maxNameLength = 30
@@ -50,6 +51,8 @@ public final class MultiviewStore: @unchecked Sendable {
     static let presetsKey = "multiview.presets"
     static let layoutsKey = "multiview.layouts"
     static let fewerFeedsKey = "multiview.fewerFeeds"
+    static let favouriteDriverKey = "multiview.favouriteDriver"
+    static let driverPromptShownKey = "multiview.driverPromptShown"
 
     private let lock = NSLock()
     private let store: any KeyValueStore
@@ -58,6 +61,7 @@ public final class MultiviewStore: @unchecked Sendable {
         self.store = store
     }
 
+    /// Until set by hand, `FeedPick.defaults(driver: favouriteDriver)`, so it follows the driver.
     public var defaultPicks: [FeedPick?] {
         get { lock.lock(); defer { lock.unlock() }; return loadDefaults() }
         set { lock.lock(); defer { lock.unlock() }; write(newValue, Self.defaultsKey) }
@@ -134,6 +138,27 @@ public final class MultiviewStore: @unchecked Sendable {
         set { lock.lock(); defer { lock.unlock() }; write(newValue, Self.fewerFeedsKey) }
     }
 
+    /// The viewer's driver (last name), whose onboard is the second default feed. nil for none;
+    /// blank names are stored as none.
+    public var favouriteDriver: String? {
+        get { lock.lock(); defer { lock.unlock() }; return loadFavouriteDriver() }
+        set {
+            lock.lock(); defer { lock.unlock() }
+            let name = newValue?.trimmingCharacters(in: .whitespacesAndNewlines)
+            if let name, !name.isEmpty {
+                write(name, Self.favouriteDriverKey)
+            } else {
+                store.set(nil, forKey: Self.favouriteDriverKey)
+            }
+        }
+    }
+
+    /// The first-run "Pick your driver" sheet was answered (a driver, or Skip).
+    public var driverPromptShown: Bool {
+        get { lock.lock(); defer { lock.unlock() }; return read(Bool.self, Self.driverPromptShownKey) ?? false }
+        set { lock.lock(); defer { lock.unlock() }; write(newValue, Self.driverPromptShownKey) }
+    }
+
     // MARK: - Private (callers hold the lock)
 
     private func validated(_ name: String, among items: [Preset], excluding id: UUID?) throws -> String {
@@ -146,7 +171,12 @@ public final class MultiviewStore: @unchecked Sendable {
     }
 
     private func loadDefaults() -> [FeedPick?] {
-        read([FeedPick?].self, Self.defaultsKey) ?? FeedPick.defaultFour.map { Optional($0) }
+        read([FeedPick?].self, Self.defaultsKey) ?? FeedPick.defaults(driver: loadFavouriteDriver())
+    }
+
+    private func loadFavouriteDriver() -> String? {
+        guard let name = read(String.self, Self.favouriteDriverKey), !name.isEmpty else { return nil }
+        return name
     }
 
     private func loadPresets() -> [Preset] { read([Preset].self, Self.presetsKey) ?? [] }
