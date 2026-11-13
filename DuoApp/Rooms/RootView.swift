@@ -222,18 +222,18 @@ struct SettingsPanel<Content: View>: View {
         GeometryReader { safe in
             let insets = safe.safeAreaInsets
             GeometryReader { screen in
-                let layout = layout(screen: screen.size, insets: insets)
+                let placement = placement(screen: screen.size, insets: insets)
                 content
-                    .padding(layout.padding)
-                    .frame(width: layout.frame.width, height: layout.frame.height)
+                    .padding(placement.padding)
+                    .frame(width: placement.frame.width, height: placement.frame.height)
                     .background(Theme.background)
-                    .clipShape(RoundedRectangle(cornerRadius: layout.cornerRadius, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: placement.cornerRadius, style: .continuous))
                     .overlay {
-                        RoundedRectangle(cornerRadius: layout.cornerRadius, style: .continuous)
-                            .strokeBorder(Theme.hairline, lineWidth: layout.isPane ? 0 : 1)
+                        RoundedRectangle(cornerRadius: placement.cornerRadius, style: .continuous)
+                            .strokeBorder(Theme.hairline, lineWidth: placement.isPane ? 0 : 1)
                     }
                     .shadow(color: .black.opacity(0.45), radius: 24)
-                    .position(x: layout.frame.midX, y: layout.frame.midY)
+                    .position(x: placement.frame.midX, y: placement.frame.midY)
                     .animation(.snappy, value: layout)
                     .accessibilityAddTraits(.isModal)
             }
@@ -241,7 +241,7 @@ struct SettingsPanel<Content: View>: View {
         }
     }
 
-    private func layout(screen: CGSize, insets: EdgeInsets) -> Layout {
+    private func placement(screen: CGSize, insets: EdgeInsets) -> Layout {
         if Self.isPane(fold), let foldFrame = fold.foldFrame {
             let x = min(foldFrame.maxX, screen.width)
             return Layout(
