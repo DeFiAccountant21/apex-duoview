@@ -289,6 +289,12 @@ What can be pure goes here, with Swift Testing suites:
   feeds as HLS in the spike; `WEB_HLS` returned one. Device info: Android sends `p=true` for
   multiview accounts (beta.1's single-feed PLAY sends `p=false`). Task 1 confirms what works and
   the owner records a sanitised `player_tm` fixture with the stream check.
+  **Resolved 2026-11-13 (owner's probe run):** the device header decides it, not the platform. With
+  the Android web player's header and User-Agent, `player_tm` returns all 26 feeds (`tme.channel`
+  `MULTI`, HLS, no licence) on both `WEB_DASH` and `WEB_HLS`; with Safari's it returns only the
+  requested feed (`SWITCHER`). The app sends the Android header for the multiview PLAY, as the
+  Android app does. `streamType` reads `SDR_HD_CMAF` for HLS here, so HLS is judged by the feed URLs.
+  Separate `player_bm` sessions also play side by side (Android's own fallback).
 - **O2 — older races.** For older (pipeline-1) content `WEB_DASH` returned DASH, which iOS can't
   play. If multiview can't get HLS for an older race, Watch multiview is not offered for it ("Not
   available for this race"), unless task 1 shows approach B works there without ending sessions.
