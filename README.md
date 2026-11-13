@@ -12,12 +12,14 @@ at once, a live track map, timing and team radio, all kept in sync with the pict
 
 ## Status
 
-In planning; there is no app to install yet. The first beta is **v1.0-beta.1 — Foundation**:
-sign in, browse F1 TV and play a session, resuming where you left off.
+**v1.0-beta.1 — Foundation** is built and in testing. There is no release yet. It signs in with
+your F1 TV account, lets you browse Race Weekend, Paddock and the archive, plays one feed at a
+time with your choice of commentary, remembers where you stopped and resumes there, and reads the
+phone's fold (shown in Settings; nothing changes shape with it yet).
 
 What has been checked so far, on a 2026 race replay with a Premium account: F1 TV returns all 26
 feeds of a race (world feed, F1 Live, every onboard, data channels) in a format the iPhone's own
-video player supports. Playing them in the app, and live sessions, are still to be tested.
+video player supports. Live sessions are still to be tested.
 
 ## What it will do
 
@@ -55,10 +57,19 @@ listed in [CHANGELOG.md](CHANGELOG.md).
 
 ## Requirements
 
-- An iPhone running iOS 27.1 or later (still to be confirmed). The fold features need an iPhone Duo; on other iPhones the
-  app works like the Duo's closed screen.
+- An iPhone running iOS 27.1 or later (confirmed: the SDK declares the fold APIs from 27.1). The
+  fold features need an iPhone Duo; on other iPhones the app works like the Duo's closed screen.
 - An F1 TV plan that includes video (Pro or Premium); several feeds at once needs Premium.
 - To build it yourself: a Mac with Xcode 27.1 or later.
+
+## Build it yourself
+
+1. Install XcodeGen: `brew install xcodegen`
+2. Clone the repository and check out the `ios` branch.
+3. Copy `Config/Signing.local.xcconfig.example` to `Config/Signing.local.xcconfig` and set your
+   own bundle ID and team in it. This file is never committed.
+4. Run `xcodegen generate`.
+5. Open the generated project in Xcode and run it.
 
 ## Branches
 
@@ -68,8 +79,8 @@ listed in [CHANGELOG.md](CHANGELOG.md).
 
 ## Privacy
 
-The app talks only to F1's servers with your own sign-in, and to MultiViewer's public circuit
-data. There are no analytics, no accounts of its own and no servers in between. Your F1 TV
+In beta.1 the app talks only to F1's servers, with your own sign-in. Later betas will also fetch
+MultiViewer's public circuit data. There are no analytics, no accounts of its own and no servers in between. Your F1 TV
 sign-in stays on your phone.
 
 ## Credits
