@@ -27,26 +27,38 @@ struct SystemFoldProvider: ViewModifier {
     }
 }
 
-/// Reads the first active division region from a GeometryReader that fills the tracked view, so
-/// the frame is in that view's coordinates. Re-reads on every size or rotation change, and on every
-/// hinge update: a division region may only become active once the hinge is partially open, with
-/// no size change to trigger a re-read.
+/// Reads the first active division region from a GeometryReader.
+///
+/// Coordinates: the reader ignores the safe area, so it covers the whole screen and its local
+/// space has its origin at the screen's top-left corner. The frame is therefore in full-screen root
+/// coordinates whether `reservedRegions` reports frames in the proxy's local space or in global
+/// space, since the two coincide here. (A view-builder `.background` would otherwise be inset by
+/// the safe area.)
+///
+/// When: it re-reads on every size or rotation change, and on every hinge update. A division region
+/// may only become active once the hinge is partially open, with no size change. So the hinge
+/// reading is captured by the reader's closure and is part of the sample: each hinge change makes a
+/// new sample, whose `onChange` hands over a freshly queried frame.
 private struct FoldRegionReader: View {
     let state: FoldState
 
     var body: some View {
-        // Observing the system hinge makes this body, and so the reader below, run again after each
-        // hinge update. Nothing below writes `systemHinge`, so there is no update loop.
-        let _ = state.systemHinge
+        // Observed here, so this body runs again after each hinge update. Nothing below writes
+        // `systemHinge` or `hingeReported`, so there is no update loop.
+        let hinge = state.systemHinge
+        let reported = state.hingeReported
         GeometryReader { proxy in
             let sample = FoldGeometry(
                 foldFrame: Self.divisionFrame(in: proxy),
-                size: proxy.size)
+                size: proxy.size,
+                hinge: hinge,
+                hingeReported: reported)
             Color.clear
                 .onChange(of: sample, initial: true) { _, newSample in
                     state.applySystem(foldFrame: newSample.foldFrame, rootSize: newSample.size)
                 }
         }
+        .ignoresSafeArea()
         .accessibilityHidden(true)
         .allowsHitTesting(false)
     }
@@ -56,9 +68,13 @@ private struct FoldRegionReader: View {
     }
 }
 
+/// What the reader saw. The hinge fields are only there so that each hinge update is a new value,
+/// which forces a fresh region query even when the frame and size haven't changed.
 private struct FoldGeometry: Equatable {
     var foldFrame: CGRect?
     var size: CGSize
+    var hinge: HingeReading?
+    var hingeReported: Bool
 }
 
 extension HingeReading {

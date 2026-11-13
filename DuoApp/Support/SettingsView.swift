@@ -58,13 +58,17 @@ struct SettingsView: View {
     private var foldSection: some View {
         Section {
             LabeledContent("Posture", value: fold.posture.label)
-            LabeledContent("Fold", value: Self.frameText(fold.foldFrame))
+            LabeledContent("Hinge", value: Self.hingeText(fold))
             LabeledContent("Hinge angle", value: Self.angleText(fold.hingeAngle))
+            LabeledContent("Fold", value: Self.frameText(fold.foldFrame))
+            LabeledContent("Screen", value: Self.sizeText(fold.rootSize))
             LabeledContent("Source", value: fold.source == .fake ? "Simulated" : "Device")
         } header: {
             Text("Fold")
         } footer: {
-            Text("Live readings from the hinge. Fold is the fold's frame in points, or None.")
+            Text("Hinge is what the device reports, even while simulating. Fold is the fold's "
+                + "frame in screen points from the top-left corner. With a vertical fold in "
+                + "portrait it should read y 0 and the screen's full height.")
         }
     }
 
@@ -183,6 +187,18 @@ struct SettingsView: View {
         guard let frame else { return "None" }
         return "x \(points(frame.minX)), y \(points(frame.minY)), "
             + "\(points(frame.width)) × \(points(frame.height))"
+    }
+
+    /// The device's own hinge report: not reported yet, no hinge, or status and angle.
+    private static func hingeText(_ fold: FoldState) -> String {
+        guard fold.hingeReported else { return "Not reported yet" }
+        guard let hinge = fold.systemHinge else { return "None (this device has no hinge)" }
+        return "\(hinge.status.label), \(angleText(hinge.angleDegrees))"
+    }
+
+    private static func sizeText(_ size: CGSize) -> String {
+        guard size.width > 0, size.height > 0 else { return "Not measured yet" }
+        return "\(points(size.width)) × \(points(size.height))"
     }
 
     private static func angleText(_ degrees: Double?) -> String {

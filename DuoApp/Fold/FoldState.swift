@@ -21,6 +21,15 @@ enum Posture: String, Sendable, CaseIterable {
 /// the Duo API. `unknown` catches any status the SDK adds later.
 enum HingeStatus: Sendable, Equatable {
     case closed, partiallyOpen, fullyOpen, unknown
+
+    var label: String {
+        switch self {
+        case .closed: "Closed"
+        case .partiallyOpen: "Partially open"
+        case .fullyOpen: "Fully open"
+        case .unknown: "Unknown status"
+        }
+    }
 }
 
 /// One hinge reading from the system: its status and its angle in degrees.
@@ -40,19 +49,24 @@ final class FoldState {
     }
 
     private(set) var posture: Posture = .unknown
-    /// The first active division region, in the coordinates of the view `.foldTracking` is
-    /// attached to (RootView's content). `nil` when there is none.
+    /// The first active division region, in full-screen root coordinates: the reader that
+    /// queries it ignores the safe area, so its origin is the screen's top-left corner. `nil` when
+    /// there is none.
     private(set) var foldFrame: CGRect?
-    /// Degrees; `nil` when the device has no hinge (or hasn't reported one yet).
+    /// Degrees; `nil` when the device has no hinge or hasn't reported yet (see `hingeReported`).
     private(set) var hingeAngle: Double?
     private(set) var source: Source = .system
 
     /// The latest system hinge reading, kept while simulating so turning simulation off restores
     /// it at once. Observed on purpose: the region reader re-queries the regions on every change.
     private(set) var systemHinge: HingeReading?
+    /// Whether `onHingeChange` has fired at least once. Until it has, a nil `systemHinge` means
+    /// "not reported yet", not "no hinge".
+    private(set) var hingeReported = false
     @ObservationIgnored private var systemFoldFrame: CGRect?
-    /// The size of the tracked view; the fake fold frame is drawn in it.
-    @ObservationIgnored private(set) var rootSize: CGSize = .zero
+    /// The full-screen size of the root, in the same space as `foldFrame`; the fake fold frame is
+    /// drawn in it.
+    private(set) var rootSize: CGSize = .zero
 
     @ObservationIgnored private var fakePosture: Posture = .unknown
     @ObservationIgnored private var fakeAngle: Double = 90
@@ -63,6 +77,7 @@ final class FoldState {
 
     /// A hinge update from `onHingeChange`; `nil` means the device has no hinge.
     func applySystem(hinge: HingeReading?) {
+        if !hingeReported { hingeReported = true }
         if systemHinge != hinge { systemHinge = hinge }
         if source == .system { publishSystem() }
     }
@@ -71,7 +86,7 @@ final class FoldState {
     /// change.
     func applySystem(foldFrame: CGRect?, rootSize: CGSize) {
         systemFoldFrame = foldFrame
-        self.rootSize = rootSize
+        if self.rootSize != rootSize { self.rootSize = rootSize }
         switch source {
         case .system: publishSystem()
         case .fake: publishFake()
