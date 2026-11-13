@@ -1694,10 +1694,14 @@ def _probe_text(v, limit=60):
     t = str(v)
     if "://" in t or "eyJ" in t:
         return "<text>"
-    return t[:limit]
+    return re.sub(r"[^A-Za-z0-9 .\-#'()]", "?", t)[:limit]
 
 
-def probe_multiview(content_id, token, base_dir=None):
+def _yn(v):
+    return "n/a" if v is None else ("yes" if v else "no")
+
+
+def probe_multiview(content_id, token, base_dir=None, step="all"):
     """Owner-run probe (see --probe-multiview). Prints only statuses, counts, ids and url kinds, and
     writes the same facts to <base_dir>/multiview-probe.json. Stream URLs live in memory only and are
     never given to out()/print/json; every request has its own try/except."""
@@ -1714,7 +1718,13 @@ def probe_multiview(content_id, token, base_dir=None):
         except Exception as e:
             out("  %s: failed (%s)" % (desc, _probe_err(e)))
             if isinstance(e, HttpError) and e.body:
-                out("    body: %s" % scrub(URL_RE.sub("<url>", e.body))[:120])
+                try:
+                    eb = json.loads(e.body)
+                except ValueError:
+                    eb = None
+                if isinstance(eb, dict):
+                    out("    resultCode %s, message %s" % (_probe_text(eb.get("resultCode", "none")),
+                                                         _probe_text(eb.get("message", "none"))))
             return False, None
 
     def session(platform, ua):
@@ -1734,21 +1744,33 @@ def probe_multiview(content_id, token, base_dir=None):
         time.sleep(FIXTURE_GAP_S)
         return f1_get(api_url(versions["play"], platform, "CONTENT/PLAY") + "?" + query, ua, headers)
 
-    def stream_url(body):
-        """First feed url (else resultObj.url) of a PLAY body, or None. Memory only."""
+    def stream_url(body, channel=None):
+        """(url, present) of a PLAY body. The feed whose metadata.channel_id is `channel` is preferred;
+        present is True/False when a channel was asked for (False: fell back to the first feed), else None.
+        Memory only."""
         result = body.get("resultObj") if isinstance(body, dict) else None
         result = result if isinstance(result, dict) else {}
         tme = result.get("tme") if isinstance(result.get("tme"), dict) else {}
         feeds = tme.get("feeds") if isinstance(tme.get("feeds"), list) else []
-        for f in feeds:
-            if isinstance(f, dict) and isinstance(f.get("url"), str) and f["url"]:
-                add_secret(f["url"])
-                return f["url"]
+        usable = [f for f in feeds if isinstance(f, dict) and isinstance(f.get("url"), str) and f["url"]]
+        chosen, present = None, None
+        if channel is not None:
+            for f in usable:
+                meta = f.get("metadata") if isinstance(f.get("metadata"), dict) else {}
+                if str(meta.get("channel_id")) == str(channel):
+                    chosen = f
+                    break
+            present = chosen is not None
+        if chosen is None and usable:
+            chosen = usable[0]
+        if chosen is not None:
+            add_secret(chosen["url"])
+            return chosen["url"], present
         u = result.get("url")
         if isinstance(u, str) and u:
             add_secret(u)
-            return u
-        return None
+            return u, present
+        return None, present
 
     def get_playlist(url, ua):
         """(status text, body text or None). Status only on failure; no F1 headers."""
@@ -1759,14 +1781,33 @@ def probe_multiview(content_id, token, base_dir=None):
             return "failed (%s)" % _probe_err(e), None
 
     def first_variant(master_url, master_text):
-        if not master_text or "#EXTM3U" not in master_text[:1024]:
+        """Absolute first variant url (memory only), or None. Never raises."""
+        try:
+            if not master_text or "#EXTM3U" not in master_text[:1024]:
+                return None
+            info = parse_hls(master_text)
+            if info["variants"]:
+                return urllib.parse.urljoin(master_url, info["variants"][0][1])
+            if "#EXTINF:" in master_text:
+                return master_url
+        except Exception:
             return None
-        info = parse_hls(master_text)
-        if info["variants"]:
-            return urllib.parse.urljoin(master_url, info["variants"][0][1])
-        if "#EXTINF:" in master_text:
-            return master_url
         return None
+
+    def fetch_variant(master_url, vurl, ua):
+        """GET the variant as is; on 401/403, when the master had a query the variant lacks, retry once with
+        it. Returns (status text with how, effective url or None)."""
+        vs, _ = get_playlist(vurl, ua)
+        try:
+            mq = urllib.parse.urlsplit(master_url).query
+            vq = urllib.parse.urlsplit(vurl).query
+        except ValueError:
+            mq = vq = ""
+        if vs in ("failed (401)", "failed (403)") and mq and not vq:
+            v2 = vurl + ("&" if "?" in vurl else "?") + mq
+            vs2, _ = get_playlist(v2, ua)
+            return "%s (with master query)" % vs2, v2
+        return "%s (plain)" % vs, vurl
 
     def check_pair(tag, url, ua):
         """GET master then first variant; returns (master status, variant status, variant url)."""
@@ -1775,8 +1816,8 @@ def probe_multiview(content_id, token, base_dir=None):
         if vurl is None:
             vs = "no variant"
         else:
-            vs, _ = get_playlist(vurl, ua)
-        out("  %s: master %s, variant %s" % (tag, ms, vs))
+            vs, vurl = fetch_variant(url, vurl, ua)
+        out("  %s: master %s, variant status %s" % (tag, ms, vs))
         return ms, vs, vurl
 
     def variant_only(tag, vurl, ua):
@@ -1784,7 +1825,7 @@ def probe_multiview(content_id, token, base_dir=None):
             out("  %s: no variant to fetch" % tag)
             return "no variant"
         vs, _ = get_playlist(vurl, ua)
-        out("  %s: variant %s" % (tag, vs))
+        out("  %s: variant status %s" % (tag, vs))
         return vs
 
     # -- 1. sign in, video, channels
@@ -1864,42 +1905,43 @@ def probe_multiview(content_id, token, base_dir=None):
     out("  second channel for probes A/B: %s" % (world if world is not None else "none"))
 
     # -- 2. shape matrix
-    out("== 2. Shape matrix (player_tm) ==")
-    shapes = [
-        ("safari/WEB_DASH/ch", "WEB_DASH", SAFARI_UA, safari_device_info(True), default),
-        ("safari/WEB_HLS/ch", "WEB_HLS", SAFARI_UA, safari_device_info(True), default),
-        ("android/WEB_DASH/ch", "WEB_DASH", ANDROID_UA, android_device_info(True), default),
-        ("android/WEB_HLS/ch", "WEB_HLS", ANDROID_UA, android_device_info(True), default),
-        ("safari/WEB_HLS/no-channelId", "WEB_HLS", SAFARI_UA, safari_device_info(True), None),
-        ("safari/WEB_HLS/p=false", "WEB_HLS", SAFARI_UA, safari_device_info(False), default),
-    ]
-    for label, platform, ua, dev, ch in shapes:
-        row = {"label": label}
-        ok, got = attempt(label, lambda: play(platform, ua, dev, ch))
-        if ok:
-            status, body = got
-            result = body.get("resultObj") if isinstance(body, dict) else None
-            result = result if isinstance(result, dict) else {}
-            tme = result.get("tme") if isinstance(result.get("tme"), dict) else {}
-            feeds = tme.get("feeds") if isinstance(tme.get("feeds"), list) else []
-            fids, kinds = [], []
-            for f in feeds:
-                f = f if isinstance(f, dict) else {}
-                meta = f.get("metadata") if isinstance(f.get("metadata"), dict) else {}
-                fids.append(_probe_text(meta.get("channel_id", "?")))
-                kinds.append(url_kind(f.get("url")))
-            row.update({"status": status, "feeds": len(feeds), "feed_channel_ids": fids, "url_kinds": kinds,
-                        "laURL": bool(result.get("laURL")), "streamType": _probe_text(result.get("streamType", "none")),
-                        "tme_channel": _probe_text(tme.get("channel", "none")),
-                        "tme_keys": sorted(_probe_text(k, 40) for k in tme.keys())})
-            out("  %s: HTTP %s, feeds %d, channel_ids [%s], url kinds [%s], laURL %s, streamType %s, tme.channel %s" % (
-                label, status, len(feeds), ",".join(fids), ",".join(kinds), "yes" if row["laURL"] else "no",
-                row["streamType"], row["tme_channel"]))
-            out("    tme keys: %s" % ", ".join(row["tme_keys"]))
-        else:
-            row["status"] = "failed"
-        facts["shape_matrix"].append(row)
-        # raw bodies are deliberately not kept: the probes below ask for their own sessions
+    if step in ("all", "matrix"):
+        out("== 2. Shape matrix (player_tm) ==")
+        shapes = [
+            ("safari/WEB_DASH/ch", "WEB_DASH", SAFARI_UA, safari_device_info(True), default),
+            ("safari/WEB_HLS/ch", "WEB_HLS", SAFARI_UA, safari_device_info(True), default),
+            ("android/WEB_DASH/ch", "WEB_DASH", ANDROID_UA, android_device_info(True), default),
+            ("android/WEB_HLS/ch", "WEB_HLS", ANDROID_UA, android_device_info(True), default),
+            ("safari/WEB_HLS/no-channelId", "WEB_HLS", SAFARI_UA, safari_device_info(True), None),
+            ("safari/WEB_HLS/p=false", "WEB_HLS", SAFARI_UA, safari_device_info(False), default),
+        ]
+        for label, platform, ua, dev, ch in shapes:
+            row = {"label": label}
+            ok, got = attempt(label, lambda: play(platform, ua, dev, ch))
+            if ok:
+                status, body = got
+                result = body.get("resultObj") if isinstance(body, dict) else None
+                result = result if isinstance(result, dict) else {}
+                tme = result.get("tme") if isinstance(result.get("tme"), dict) else {}
+                feeds = tme.get("feeds") if isinstance(tme.get("feeds"), list) else []
+                fids, kinds = [], []
+                for f in feeds:
+                    f = f if isinstance(f, dict) else {}
+                    meta = f.get("metadata") if isinstance(f.get("metadata"), dict) else {}
+                    fids.append(_probe_text(meta.get("channel_id", "?")))
+                    kinds.append(url_kind(f.get("url")))
+                row.update({"status": status, "feeds": len(feeds), "feed_channel_ids": fids, "url_kinds": kinds,
+                            "laURL": bool(result.get("laURL")), "streamType": _probe_text(result.get("streamType", "none")),
+                            "tme_channel": _probe_text(tme.get("channel", "none")),
+                            "tme_keys": sorted(_probe_text(k, 40) for k in tme.keys())})
+                out("  %s: HTTP %s, feeds %d, channel_ids [%s], url kinds [%s], laURL %s, streamType %s, tme.channel %s" % (
+                    label, status, len(feeds), ",".join(fids), ",".join(kinds), "yes" if row["laURL"] else "no",
+                    row["streamType"], row["tme_channel"]))
+                out("    tme keys: %s" % ", ".join(row["tme_keys"]))
+            else:
+                row["status"] = "failed"
+            facts["shape_matrix"].append(row)
+            # raw bodies are deliberately not kept: the probes below ask for their own sessions
 
     # -- 3/4. coexistence A/B
     def coexist(name, player, out_key):
@@ -1911,16 +1953,20 @@ def probe_multiview(content_id, token, base_dir=None):
             return
         ua, dev = SAFARI_UA, safari_device_info(True)
         ok, got = attempt("PLAY %s default" % player, lambda: play("WEB_HLS", ua, dev, default, player))
-        url_a = stream_url(got[1]) if ok else None
-        out("  PLAY A: %s" % ("HTTP %s, url %s" % (got[0], url_kind(url_a)) if ok else "no session"))
+        url_a, pres = stream_url(got[1], default) if ok else (None, None)
+        out("  PLAY A: %s" % ("HTTP %s, url %s, requested channel present: %s" % (
+            got[0], url_kind(url_a), _yn(pres)) if ok else "no session"))
+        rec["A_channel_present"] = _yn(pres)
         if url_a is None:
             rec["skipped"] = "no url A"
             return
         ms, vs, va = check_pair("A before B", url_a, ua)
         rec["A_before"] = {"master": ms, "variant": vs}
         ok, got = attempt("PLAY %s second" % player, lambda: play("WEB_HLS", ua, dev, world, player))
-        url_b = stream_url(got[1]) if ok else None
-        out("  PLAY B: %s" % ("HTTP %s, url %s" % (got[0], url_kind(url_b)) if ok else "no session"))
+        url_b, pres = stream_url(got[1], world) if ok else (None, None)
+        out("  PLAY B: %s" % ("HTTP %s, url %s, requested channel present: %s" % (
+            got[0], url_kind(url_b), _yn(pres)) if ok else "no session"))
+        rec["B_channel_present"] = _yn(pres)
         same = None
         if url_b is not None:
             ms, vs, _ = check_pair("A after B", url_a, ua)
@@ -1936,59 +1982,71 @@ def probe_multiview(content_id, token, base_dir=None):
             # last, so it cannot disturb the sequence above: does asking for A again change A's url?
             ok, got = attempt("PLAY %s default again" % player, lambda: play("WEB_HLS", ua, dev, default, player))
             if ok:
-                url_a2 = stream_url(got[1])
+                url_a2, _p = stream_url(got[1], default)
                 rec["url_a_repeat"] = "same" if url_a2 == url_a else "different"
                 out("  URL A after a repeat PLAY vs first PLAY: %s" % rec["url_a_repeat"])
         rec["url_a_vs_b"] = same
 
-    coexist("3. Probe A: player_tm, separate PLAY per channel (safari/WEB_HLS)", "player_tm", "probe_a")
-    coexist("4. Probe B: player_bm, separate PLAY per channel (safari/WEB_HLS)", "player_bm", "probe_b")
+    def probe_c():
+        out("== 5. Probe C: four player_tm sessions at once ==")
+        rec = facts["probe_c"]
+        chosen = []
+        if default is not None:
+            chosen.append(default)
+        for words in (("international", "world"), ("tracker",), ("data",)):
+            got = pick(words, set(chosen))
+            if got is not None:
+                chosen.append(got)
+        for i in ids:
+            if len(chosen) >= 4:
+                break
+            if i not in chosen:
+                chosen.append(i)
+        chosen = chosen[:4]
+        out("  channels: %s" % ", ".join(str(c) for c in chosen))
+        held = []
+        for c in chosen:
+            ok, got = attempt("PLAY %s" % c, lambda: play("WEB_HLS", SAFARI_UA, safari_device_info(True), c))
+            u, pres = stream_url(got[1], c) if ok else (None, None)
+            out("  PLAY %s: %s" % (c, "HTTP %s, url %s, requested channel present: %s" % (
+                got[0], url_kind(u), _yn(pres)) if ok else "no session"))
+            rec.setdefault("ch%s" % c, {})["channel_present"] = _yn(pres)
+            held.append((c, u))
+        vars_ = []
+        for c, u in held:
+            if u is None:
+                out("  %s: no url" % c)
+                vars_.append((c, None))
+                continue
+            ms, vs, vu = check_pair("%s" % c, u, SAFARI_UA)
+            rec.setdefault("ch%s" % c, {}).update({"master": ms, "variant": vs})
+            vars_.append((c, vu))
+        out("  waiting %d s" % PROBE_WAIT_S)
+        time.sleep(PROBE_WAIT_S)
+        for c, vu in vars_:
+            rec.setdefault("ch%s" % c, {})["variant_late"] = variant_only("%s after %d s" % (c, PROBE_WAIT_S), vu, SAFARI_UA)
+
+    if step in ("all", "a"):
+        coexist("3. Probe A: player_tm, separate PLAY per channel (safari/WEB_HLS)", "player_tm", "probe_a")
+    if step in ("all", "b"):
+        coexist("4. Probe B: player_bm, separate PLAY per channel (safari/WEB_HLS)", "player_bm", "probe_b")
 
     # -- 5. four at once
-    out("== 5. Probe C: four player_tm sessions at once ==")
-    rec = facts["probe_c"]
-    chosen = []
-    if default is not None:
-        chosen.append(default)
-    for words in (("international", "world"), ("tracker",), ("data",)):
-        got = pick(words, set(chosen))
-        if got is not None:
-            chosen.append(got)
-    for i in ids:
-        if len(chosen) >= 4:
-            break
-        if i not in chosen:
-            chosen.append(i)
-    chosen = chosen[:4]
-    out("  channels: %s" % ", ".join(str(c) for c in chosen))
-    held = []
-    for c in chosen:
-        ok, got = attempt("PLAY %s" % c, lambda: play("WEB_HLS", SAFARI_UA, safari_device_info(True), c))
-        u = stream_url(got[1]) if ok else None
-        out("  PLAY %s: %s" % (c, "HTTP %s, url %s" % (got[0], url_kind(u)) if ok else "no session"))
-        held.append((c, u))
-    vars_ = []
-    for c, u in held:
-        if u is None:
-            out("  %s: no url" % c)
-            vars_.append((c, None))
-            continue
-        ms, vs, vu = check_pair("%s" % c, u, SAFARI_UA)
-        rec["ch%s" % c] = {"master": ms, "variant": vs}
-        vars_.append((c, vu))
-    out("  waiting %d s" % PROBE_WAIT_S)
-    time.sleep(PROBE_WAIT_S)
-    for c, vu in vars_:
-        rec.setdefault("ch%s" % c, {})["variant_late"] = variant_only("%s after %d s" % (c, PROBE_WAIT_S), vu, SAFARI_UA)
+    if step in ("all", "c"):
+        probe_c()
 
     # -- 6. summary file
     facts["log"] = list(LINES)
     path = os.path.join(base_dir, "multiview-probe.json")
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(facts, f, indent=1, ensure_ascii=False)
-        f.write("\n")
+    try:
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(facts, f, indent=1, ensure_ascii=False)
+            f.write("\n")
+    except Exception as e:
+        out("could not write multiview-probe.json (%s)" % type(e).__name__)
     out("Send back the text above (or spike/multiview-probe.json). It holds no tokens or links.")
     return facts
+
 
 
 # --- Main ------------------------------------------------------------------------------------
@@ -2016,6 +2074,8 @@ def main():
                         help="probe which CONTENT/PLAY request shape returns all feeds, and whether several "
                              "separate play sessions work at once. Prints statuses/counts/ids only (no tokens "
                              "or links) and writes multiview-probe.json next to this script.")
+    parser.add_argument("--probe-step", choices=["all", "matrix", "a", "b", "c"], default="all",
+                        help="--probe-multiview: run only one part (it still signs in and reads CONTENT/VIDEO first).")
     parser.add_argument("--save-urls", action="store_true",
                         help="also write the UNMASKED signed stream URLs to stream_urls_PRIVATE.txt next to "
                              "this script, for a local playback test. Never printed, never in the result file; "
@@ -2062,7 +2122,7 @@ def main():
 
     if args.probe_multiview:
         try:
-            probe_multiview(content_id, token)
+            probe_multiview(content_id, token, step=args.probe_step)
         except KeyboardInterrupt:
             out("Interrupted.")
             return 1
