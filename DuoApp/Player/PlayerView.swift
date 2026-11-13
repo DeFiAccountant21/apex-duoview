@@ -8,7 +8,7 @@ struct PlayerView: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> AVPlayerViewController {
         let controller = AVPlayerViewController()
         controller.player = player
-        controller.allowsPictureInPicturePlayback = true
+        controller.allowsPictureInPicturePlayback = false
         return controller
     }
 

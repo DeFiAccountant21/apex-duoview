@@ -97,7 +97,10 @@ final class AppModel {
             if Task.isCancelled { auth = .signedOut }
             return
         } catch F1TVError.refused {
-            await expire(message: "F1 TV didn't accept that sign-in. Try again.")
+            // A refused fresh paste leaves any saved token and the pending restore alone.
+            await session.signOut()
+            auth = .signedOut
+            message = "F1 TV didn't accept that sign-in. Try again."
         } catch {
             auth = .signedOut
             message = Self.failureMessage(error)

@@ -16,10 +16,12 @@ Versions follow the standard in [docs/roadmap.md](docs/roadmap.md).
   - Archive: browse by season and race weekend, back to 1981.
 - Open any session to see its feeds, including every onboard, and play one.
 - The player plays one feed full screen, with a choice of commentary language or race sound
-  without commentary (Track FX), audio that keeps going when the screen is off, and picture in
-  picture. Picture in picture is switched off for now while it is finished.
+  without commentary (Track FX), and audio that keeps going when the screen is off. Picture in
+  picture comes in a later beta.
 - Bookmarks and resume: the app remembers where you stopped in each session, and picks up there
   when you reopen it, even after the app was closed.
+- If your F1 TV account has no video plan, the app tells you so after sign-in.
+- Settings shows the app version, for example "Apex DuoView v1.0-beta.1 (build N)".
 - A fold adapter that reads the phone's hinge, with a readout in Settings and a simulated fold
   for testing without the hardware. Nothing changes shape with it yet.
 - A dark style with near-black backgrounds, silver text and racing red, and a new app icon.
