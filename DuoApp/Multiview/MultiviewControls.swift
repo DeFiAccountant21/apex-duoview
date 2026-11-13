@@ -27,6 +27,10 @@ struct MultiviewControls: View {
     /// feed, so neither straddles the crease. Zero otherwise.
     let mainHalfLeading: CGFloat
     let mainHalfTrailing: CGFloat
+    /// The same for the handle, which is centred over the main tile (inside the main half in
+    /// book posture): away from Close, and from every tile's speaker.
+    let handleLeading: CGFloat
+    let handleTrailing: CGFloat
     /// True while the scrubber is held: the controls stay up.
     @Binding var scrubbing: Bool
     let onShow: @MainActor () -> Void
@@ -55,16 +59,16 @@ struct MultiviewControls: View {
                 .allowsHitTesting(visible)
                 .accessibilityHidden(!visible)
 
-                // Top centre (of the main half in book posture), well clear of Close: a second tap
-                // on it, once the controls are up, never lands on Close.
+                // At the top, centred over the main tile, well clear of Close: a second tap on it,
+                // once the controls are up, never lands on Close.
                 VStack(spacing: 0) {
                     HStack(spacing: 0) {
                         Spacer(minLength: 0)
                         MultiviewControlsHandle(onShow: onShow)
                         Spacer(minLength: 0)
                     }
-                    .padding(.leading, mainHalfLeading)
-                    .padding(.trailing, mainHalfTrailing)
+                    .padding(.leading, handleLeading)
+                    .padding(.trailing, handleTrailing)
                     Spacer(minLength: 0)
                 }
                 .opacity(visible ? 0 : 1)

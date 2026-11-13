@@ -344,12 +344,15 @@ struct MultiviewView: View {
         let feedCount = layout.feedCount
         let usable = layout.usableOptions
         let half = mainHalf(layout)
+        let handle = handleSpan(layout, half: half)
         return MultiviewControls(
             controller: controller,
             visible: controlsShown || controlsPinned,
             canSwitchLayout: usable.count > 1,
             mainHalfLeading: half.leading,
             mainHalfTrailing: half.trailing,
+            handleLeading: handle.leading,
+            handleTrailing: handle.trailing,
             scrubbing: $scrubbing,
             onShow: { showControls() },
             // A control used, even from a menu that outlived the fade: the controls are up again.
@@ -374,6 +377,24 @@ struct MultiviewView: View {
             return (0, max(input.screen.width - fold.minX, 0))
         }
         return (max(fold.maxX, 0), 0)
+    }
+
+    /// Where the "•••" handle is centred, as leading and trailing room in the controls' space: over
+    /// the main tile's x range, cut to the main half in book posture (so a main feed across the
+    /// fold doesn't put it on the crease). Centring on the screen put it on the top-left tile's
+    /// speaker in a 2×2 grid; on the main tile it is at least half a tile from the main tile's
+    /// own speaker (top-trailing) and over no other tile's. The main half when no main tile shows
+    /// or the range is narrower than the handle.
+    private func handleSpan(
+        _ layout: Arrangement, half: (leading: CGFloat, trailing: CGFloat)
+    ) -> (leading: CGFloat, trailing: CGFloat) {
+        let input = layout.input
+        let width = input.screen.width
+        guard let main = layout.tiles.first(where: { $0.entry.slot == 0 && $0.frame.visible }) else { return half }
+        let low = max(main.frame.rect.minX - input.origin.x, half.leading)
+        let high = min(main.frame.rect.maxX - input.origin.x, width - half.trailing)
+        guard high - low >= 44 else { return half }
+        return (low, max(width - high, 0))
     }
 
     /// 4 s after the last use, unless held up. A new use, or a change of state, cancels this
