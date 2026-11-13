@@ -9,12 +9,7 @@ struct SignInView: View {
     var body: some View {
         VStack(spacing: 16) {
             Spacer(minLength: 0)
-            Image("Logo")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 120, height: 120)
-                .clipShape(RoundedRectangle(cornerRadius: 120 * 0.22, style: .continuous))
-                .accessibilityHidden(true)
+            LogoTile(size: 120)
             Text("Apex DuoView")
                 .heading(.largeTitle)
             if let message = model.message {

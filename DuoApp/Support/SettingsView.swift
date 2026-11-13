@@ -78,7 +78,10 @@ struct SettingsView: View {
 
     private var aboutSection: some View {
         Section {
-            Text(versionText)
+            HStack(spacing: 14) {
+                LogoTile(size: 44, glow: false)
+                Text(versionText)
+            }
         } header: {
             Text("About").sectionLabel()
         }

@@ -1,3 +1,5 @@
+<p align="center"><img src="Design/Logo-256.png" width="128" height="128" alt="Apex DuoView icon"></p>
+
 # Apex DuoView
 
 An iPhone app for watching F1 TV that is built around the iPhone Duo's fold. The official F1 TV

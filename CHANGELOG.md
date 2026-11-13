@@ -24,7 +24,7 @@ Versions follow the standard in [docs/roadmap.md](docs/roadmap.md).
 - Settings shows the app version, for example "Apex DuoView v1.0-beta.1 (build N)".
 - A fold adapter that reads the phone's hinge, with a readout in Settings and a simulated fold
   for testing without the hardware. Nothing changes shape with it yet.
-- A dark style with near-black backgrounds, silver text and racing red, and a new app icon.
+- A dark style with near-black backgrounds, silver text and racing red, and a new app icon, also shown on the launch screen, the sign-in screen and in About.
 - A hidden test screen that checks how well two feeds stay in step, for the multiview work
   planned for later betas.
 - DuoCore logic library: F1 TV request building, sign-in exchange and cookie decoding, resume
