@@ -218,7 +218,7 @@ private struct ScheduleView: View {
         let selected = min(max(selection ?? opened, 0), max(allDays.count - 1, 0))
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .heading()
+                .sectionLabel()
                 .accessibilityAddTraits(.isHeader)
             if allDays.count > 1 {
                 Picker("Day", selection: Binding(get: { selected }, set: { selection = $0 })) {

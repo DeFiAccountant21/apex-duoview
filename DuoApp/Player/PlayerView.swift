@@ -38,6 +38,7 @@ struct PlayerCover: View {
                         .foregroundStyle(.white)
                     Button("Close") { controller.close() }
                         .buttonStyle(.borderedProminent)
+                        .tint(Theme.accent)
                 }
                 .padding(24)
             }
