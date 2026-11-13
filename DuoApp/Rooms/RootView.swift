@@ -7,6 +7,9 @@ struct RootView: View {
     let model: AppModel
     @State private var planDismissed = false
     @State private var sheet: ActiveSheet?
+    /// The fold, tracked from the root so its frame is in root coordinates. Nothing lays out by
+    /// it in beta.1; it is in the environment for later betas.
+    @State private var fold = FoldState()
 
     private enum ActiveSheet: Identifiable {
         case settings
@@ -39,6 +42,7 @@ struct RootView: View {
         // The rooms stay mounted in every auth state, so signing in never resets navigation or
         // reloads them; "Signing in" is only an overlay.
         rooms
+            .foldTracking(fold)
             .overlay(alignment: .top) {
                 if case .signingIn = model.auth {
                     ProgressView("Signing in")
@@ -52,8 +56,9 @@ struct RootView: View {
             .sheet(item: sheetBinding) { active in
                 switch active {
                 case .settings:
-                    SettingsPlaceholder(
+                    SettingsView(
                         model: model,
+                        fold: fold,
                         onSignIn: { self.sheet = .signIn },
                         onSignOut: { signOutAndClearWebData(model) })
                 case .signIn:
@@ -89,6 +94,7 @@ struct RootView: View {
                 planDismissed = false
                 if sheet == .plan { sheet = nil }
             }
+            .environment(fold)
     }
 
     private var rooms: some View {

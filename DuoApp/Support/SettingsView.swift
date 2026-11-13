@@ -1,0 +1,194 @@
+import F1TV
+import SwiftUI
+
+/// Settings: account, a live fold readout, About, credits and the debug fold simulator.
+struct SettingsView: View {
+    let model: AppModel
+    let fold: FoldState
+    let onSignIn: () -> Void
+    let onSignOut: () -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    private var fake: FakeFoldProvider { FakeFoldProvider(state: fold) }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                accountSection
+                foldSection
+                aboutSection
+                creditsSection
+                debugSection
+            }
+            .navigationTitle("Settings")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+    }
+
+    // MARK: Account
+
+    private var accountSection: some View {
+        Section("Account") {
+            switch model.auth {
+            case .signedIn(let account):
+                LabeledContent("Signed in", value: account.tier)
+                Button("Sign out", role: .destructive) {
+                    dismiss()
+                    onSignOut()
+                }
+            case .signingIn:
+                LabeledContent("Signing in") {
+                    ProgressView()
+                }
+            case .signedOut:
+                Button("Sign in", action: onSignIn)
+            }
+        }
+    }
+
+    // MARK: Fold
+
+    private var foldSection: some View {
+        Section {
+            LabeledContent("Posture", value: fold.posture.label)
+            LabeledContent("Fold", value: Self.frameText(fold.foldFrame))
+            LabeledContent("Hinge angle", value: Self.angleText(fold.hingeAngle))
+            LabeledContent("Source", value: fold.source == .fake ? "Simulated" : "Device")
+        } header: {
+            Text("Fold")
+        } footer: {
+            Text("Live readings from the hinge. Fold is the fold's frame in points, or None.")
+        }
+    }
+
+    // MARK: About
+
+    private var aboutSection: some View {
+        Section("About") {
+            Text(versionText)
+        }
+    }
+
+    private var versionText: String {
+        let info = Bundle.main.infoDictionary ?? [:]
+        let version = info["CFBundleShortVersionString"] as? String ?? "?"
+        let label = info["DuoBetaLabel"] as? String ?? ""
+        let build = info["CFBundleVersion"] as? String ?? "?"
+        let full = label.isEmpty ? version : "\(version)-\(label)"
+        return "Apex DuoView v\(full) (build \(build))"
+    }
+
+    // MARK: Credits
+
+    private struct Credit: Identifiable, Sendable {
+        let name: String
+        let detail: String
+        let url: URL
+        var id: String { name }
+    }
+
+    // URLs match README.md's Credits section.
+    private static let credits: [Credit] = [
+        Credit(
+            name: "Apexview", detail: "mikeyyy0 · MIT licence",
+            url: URL(string: "https://github.com/mikeyyy0/apexview")!),
+        Credit(
+            name: "eXhumer/f1tv-api", detail: "MIT licence",
+            url: URL(string: "https://github.com/eXhumer/f1tv-api")!),
+        Credit(
+            name: "eXhumer/eXViewer", detail: "MIT licence",
+            url: URL(string: "https://github.com/eXhumer/eXViewer")!),
+        Credit(
+            name: "FastF1", detail: "MIT licence",
+            url: URL(string: "https://github.com/theOehrly/Fast-F1")!),
+        Credit(
+            name: "MultiViewer", detail: "Public circuit data",
+            url: URL(string: "https://multiviewer.app")!),
+    ]
+
+    private var creditsSection: some View {
+        Section {
+            ForEach(Self.credits) { credit in
+                Link(destination: credit.url) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(credit.name)
+                        Text(credit.detail)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityHint("Opens in Safari")
+            }
+        } header: {
+            Text("Credits and licences")
+        }
+    }
+
+    // MARK: Debug
+
+    // Shown in every build during the betas so testers can simulate a fold; hidden at launch.
+    private var debugSection: some View {
+        Section {
+            Toggle("Simulate fold", isOn: Binding(
+                get: { fold.source == .fake },
+                set: { on in
+                    if on { fake.start() } else { fake.stop() }
+                }))
+            Picker("Posture", selection: Binding(
+                get: { fold.posture },
+                set: { fake.setPosture($0) })
+            ) {
+                ForEach(Posture.allCases, id: \.self) { posture in
+                    Text(posture.label).tag(posture)
+                }
+            }
+            .disabled(!fake.isActive)
+            VStack(alignment: .leading) {
+                LabeledContent("Hinge angle", value: Self.angleText(fold.hingeAngle))
+                    .accessibilityHidden(true)
+                Slider(
+                    value: Binding(
+                        get: { fold.hingeAngle ?? FakeFoldProvider.defaultAngle },
+                        set: { fake.setAngle($0) }),
+                    in: FakeFoldProvider.angleRange,
+                    step: 1
+                ) {
+                    Text("Hinge angle")
+                } minimumValueLabel: {
+                    Text("0°").accessibilityHidden(true)
+                } maximumValueLabel: {
+                    Text("180°").accessibilityHidden(true)
+                }
+                .accessibilityValue(Self.angleText(fold.hingeAngle ?? FakeFoldProvider.defaultAngle))
+            }
+            .disabled(!fake.isActive)
+        } header: {
+            Text("Debug")
+        } footer: {
+            Text("Simulating replaces the device's fold readings until you turn it off.")
+        }
+    }
+
+    // MARK: Formatting
+
+    private static func frameText(_ frame: CGRect?) -> String {
+        guard let frame else { return "None" }
+        return "x \(points(frame.minX)), y \(points(frame.minY)), "
+            + "\(points(frame.width)) × \(points(frame.height))"
+    }
+
+    private static func angleText(_ degrees: Double?) -> String {
+        guard let degrees else { return "None" }
+        return "\(degrees.formatted(.number.precision(.fractionLength(0))))°"
+    }
+
+    private static func points(_ value: CGFloat) -> String {
+        Double(value).formatted(.number.precision(.fractionLength(0)))
+    }
+}
