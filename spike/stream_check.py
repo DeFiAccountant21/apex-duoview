@@ -44,6 +44,7 @@ Output goes to stream_check_live_result.txt (also safe to share). Keep this Mac'
 Python 3.9+, standard library only.
 """
 
+import base64
 import argparse
 import getpass
 import json
@@ -1450,6 +1451,232 @@ def dump_catalogue(token, base_dir=None):
     return written
 
 
+MULTIVIEW_OLD_YEAR = 2023   # --dump-multiview: an archive race from before this year is also requested
+EXPIRY_KEYS = ("exp", "expires")
+
+
+def _expiry_from_text(text, now):
+    """Seconds from now to an epoch expiry written as exp=<n> / expires=<n> inside text, else None."""
+    m = re.search(r"(?:^|[?&~,;:])(?:exp|expires)=(\d{9,13})(?!\d)", text, re.I)
+    if not m:
+        return None
+    n = int(m.group(1))
+    return int(n / 1000 - now) if n > 10 ** 11 else int(n - now)
+
+
+def url_expiry_seconds(url, now=None):
+    """Seconds until the expiry in the URL's query (exp / expires / Expires, a JWT exp in any
+    parameter, or exp=<n> inside a token value), or None. Computed in memory: the URL is never printed."""
+    now = time.time() if now is None else now
+    if not isinstance(url, str) or not url:
+        return None
+    try:
+        query = urllib.parse.urlsplit(url).query
+    except ValueError:
+        return None
+    for key, value in urllib.parse.parse_qsl(query, keep_blank_values=True):
+        if key.lower() in EXPIRY_KEYS and re.fullmatch(r"\d{9,13}", value):
+            n = int(value)
+            return int(n / 1000 - now) if n > 10 ** 11 else int(n - now)
+        if JWT.fullmatch(value):
+            try:
+                seg = value.split(".")[1]
+                claims = json.loads(base64.urlsafe_b64decode(seg + "=" * (-len(seg) % 4)))
+                exp = claims.get("exp") if isinstance(claims, dict) else None
+                if isinstance(exp, (int, float)) and not isinstance(exp, bool):
+                    return int(exp - now)
+            except (ValueError, TypeError, UnicodeDecodeError):
+                pass
+        found = _expiry_from_text(value if "=" in value else "", now)
+        if found is not None:
+            return found
+    return None
+
+
+def find_key_deep(obj, key):
+    """First value stored under `key` anywhere in obj (depth first)."""
+    if isinstance(obj, dict):
+        if key in obj:
+            return obj[key]
+        for v in obj.values():
+            got = find_key_deep(v, key)
+            if got is not None:
+                return got
+    elif isinstance(obj, list):
+        for v in obj:
+            got = find_key_deep(v, key)
+            if got is not None:
+                return got
+    return None
+
+
+def default_channel_id(video_body):
+    """channelId of the additionalStreams entry with default: true in a CONTENT/VIDEO body, else None."""
+    streams = find_key_deep(video_body, "additionalStreams")
+    for s in streams if isinstance(streams, list) else []:
+        if isinstance(s, dict) and s.get("default") is True:
+            try:
+                return int(s.get("channelId"))
+            except (TypeError, ValueError):
+                return None
+    return None
+
+
+def item_year(container):
+    """Year of an archive rail item: metadata.year, else the start date's year, else season."""
+    meta = container.get("metadata") if isinstance(container, dict) else None
+    if not isinstance(meta, dict):
+        return None
+    emf = meta.get("emfAttributes") if isinstance(meta.get("emfAttributes"), dict) else {}
+    for raw in (meta.get("year"), str(emf.get("Meeting_Start_Date") or "")[:4], emf.get("Season"), meta.get("season")):
+        m = re.match(r"\d{4}", str(raw or ""))
+        if m:
+            return int(m.group(0))
+    return None
+
+
+def oldest_archive_race(archive_body, before=MULTIVIEW_OLD_YEAR):
+    """(content id, year) of the oldest archive-rail item dated before `before` (the first of equals), or None."""
+    result = archive_body.get("resultObj") if isinstance(archive_body, dict) else None
+    best = None
+    for c in (result.get("containers") if isinstance(result, dict) else None) or []:
+        year = item_year(c)
+        meta = c.get("metadata") if isinstance(c, dict) else None
+        raw_id = (meta or {}).get("contentId") or (c.get("id") if isinstance(c, dict) else None)
+        try:
+            cid = int(raw_id)
+        except (TypeError, ValueError):
+            continue
+        if year is not None and year < before and (best is None or year < best[1]):
+            best = (cid, year)
+    return best
+
+
+def multiview_annotations(body, now=None):
+    """The _feed_count / _url_kinds / _has_laURL / _url_expiry_seconds fields, from the UNsanitised body."""
+    result = body.get("resultObj") if isinstance(body, dict) else None
+    result = result if isinstance(result, dict) else {}
+    tme = result.get("tme")
+    feeds = tme.get("feeds") if isinstance(tme, dict) else None
+    feeds = feeds if isinstance(feeds, list) else []
+    urls = [f.get("url") if isinstance(f, dict) else None for f in feeds]
+    return {
+        "_feed_count": len(feeds),
+        "_url_kinds": [url_kind(u) if u else "other" for u in urls],
+        "_has_laURL": bool(result.get("laURL")),
+        "_url_expiry_seconds": url_expiry_seconds(urls[0], now) if urls else None,
+    }
+
+
+def dump_multiview(content_id, token, base_dir=None):
+    """Sends CONTENT/PLAY player=player_tm (WEB_DASH and WEB_HLS, Safari device info with p=true, the
+    default channel) and records the sanitised responses, plus one WEB_DASH request for the oldest
+    archive race, into <base_dir>/multiview-fixtures and multiview-fixtures.zip. Never prints a URL."""
+    base_dir = base_dir or os.path.dirname(os.path.abspath(__file__))
+    fx_dir = os.path.join(base_dir, "multiview-fixtures")
+    os.makedirs(fx_dir, exist_ok=True)
+    written = []
+    sessions = {}
+    versions = {"play": "3.0", "video": "4.0"}
+
+    def save(name, doc):
+        with open(os.path.join(fx_dir, name + ".json"), "w", encoding="utf-8") as f:
+            json.dump(doc, f, indent=1, ensure_ascii=False)
+            f.write("\n")
+        written.append(name)
+        out("  %s.json %s" % (name, "ERROR %s" % doc["error"] if isinstance(doc, dict) and "error" in doc else "ok"))
+
+    def failure(e):
+        if isinstance(e, HttpError):
+            return {"error": e.status, "body": scrub(e.body or str(e))[:600]}
+        return {"error": type(e).__name__, "body": scrub(str(e))[:600]}
+
+    def session(platform):
+        if platform not in sessions:
+            try:
+                sessions[platform] = sign_in(token, platform, SAFARI_UA, False)
+            except HttpError as e:
+                sessions[platform] = e
+        got = sessions[platform]
+        if isinstance(got, HttpError):
+            raise HttpError(got.status, got.body, "sign-in on %s failed: %s" % (platform, got))
+        return got
+
+    def play_multiview(platform, cid, channel_id, name):
+        try:
+            ent, tier, _ = session(platform)
+            query = "contentId=%d&player=player_tm" % cid
+            if channel_id is not None:
+                query += "&channelId=%d" % channel_id
+            headers = {"ascendontoken": token, "entitlementtoken": ent,
+                       "x-f1-device-info": safari_device_info(True)}
+            status, body = f1_get(api_url(versions["play"], platform, "CONTENT/PLAY") + "?" + query, SAFARI_UA, headers)
+            notes = multiview_annotations(body)   # from the raw body, before anything is removed
+            doc = sanitize(remove_urls(body))
+            if not isinstance(doc, dict):
+                doc = {"_body": doc}
+            doc.update(notes)
+            save(name, doc)
+            out("  %s %s: HTTP %d, feeds %d, url kinds %s, laURL %s, url expiry %s" % (
+                platform, cid, status, notes["_feed_count"], ",".join(sorted(set(notes["_url_kinds"]))) or "none",
+                "yes" if notes["_has_laURL"] else "no",
+                "%ss" % notes["_url_expiry_seconds"] if notes["_url_expiry_seconds"] is not None else "unknown"))
+        except Exception as e:  # one bad request must never stop the run
+            save(name, failure(e))
+            out("  %s %s: failed (%s)" % (platform, cid, failure(e)["error"]))
+
+    out("== Recording multiview (player_tm) fixtures into spike/multiview-fixtures (sanitised) ==")
+    try:
+        _, cfg = f1_get(BASE + "/config", SAFARI_UA)
+        api = cfg.get("apiConfig") if isinstance(cfg, dict) else None
+        if isinstance(api, dict):
+            for key, field in (("play", "playAPIVersion"), ("video", "videoAPIVersion")):
+                v = str(api.get(field, "")).strip()
+                if API_VERSION.match(v):
+                    versions[key] = v
+    except Exception as e:
+        out("  config unavailable (%s); using default API versions" % type(e).__name__)
+
+    channel_id = None
+    try:
+        ent, tier, group = session("WEB_HLS")
+        _, video = f1_get(api_url(versions["video"], "WEB_HLS", "CONTENT/VIDEO/%d/%s/%s" % (content_id, tier, group)),
+                          SAFARI_UA, {"entitlementtoken": ent})
+        channel_id = default_channel_id(video)
+    except Exception as e:
+        out("  CONTENT/VIDEO failed (%s): no channelId will be sent" % type(e).__name__)
+    out("  default channel: %s" % (channel_id if channel_id is not None else "none (channelId omitted)"))
+
+    for platform in ("WEB_DASH", "WEB_HLS"):
+        if written:
+            time.sleep(FIXTURE_GAP_S)
+        play_multiview(platform, content_id, channel_id, "play-%d-multiview-%s" % (content_id, platform))
+
+    old = None
+    try:
+        ent, tier, group = session("WEB_HLS")
+        path = search_path([
+            ("filter_Series", "Formula 1"), ("filter_genres", "Full Race,Race"), ("filter_objectSubtype", "Replay"),
+            ("filter_objectType", "Video"), ("orderBy", "shortPeriod"), ("sortOrder", "desc"), ("maxResults", "100")])
+        _, archive = f1_get(api_url("2.0", "WEB_HLS", path.format(tier=tier, group=group)), SAFARI_UA)
+        old = oldest_archive_race(archive)
+    except Exception as e:
+        out("  archive races request failed (%s)" % type(e).__name__)
+    if old is None:
+        out("  Note: no archive race dated before %d was found; skipping the old-race request." % MULTIVIEW_OLD_YEAR)
+    else:
+        out("  Oldest archive race found: contentId %d (year %d)" % old)
+        time.sleep(FIXTURE_GAP_S)
+        play_multiview("WEB_DASH", old[0], None, "play-%d-multiview-WEB_DASH" % old[0])
+
+    zip_path = os.path.join(base_dir, "multiview-fixtures.zip")
+    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
+        for name in written:
+            z.write(os.path.join(fx_dir, name + ".json"), name + ".json")
+    out("Wrote %d files and multiview-fixtures.zip (%d bytes)." % (len(written), os.path.getsize(zip_path)))
+    return written
+
+
 # --- Main ------------------------------------------------------------------------------------
 
 def main():
@@ -1457,7 +1684,8 @@ def main():
         description="Throwaway spike: ask F1 TV for one replay on several platform strings and "
                     "report whether a FairPlay HLS stream is offered. Reads JSON and manifest text only.",
         usage="python3 stream_check.py [--live] [--save-urls] <F1 TV page URL or numeric contentId>\n"
-              "       python3 stream_check.py --dump-catalogue")
+              "       python3 stream_check.py --dump-catalogue\n"
+              "       python3 stream_check.py --dump-multiview <content URL or id>")
     parser.add_argument("content", nargs="?",
                         help="e.g. https://f1tv.formula1.com/detail/1000009999/some-title or 1000009999 "
                              "(not needed with --dump-catalogue)")
@@ -1465,6 +1693,10 @@ def main():
                         help="record sanitised F1 TV responses as JSON fixtures in fixtures/ (zipped to "
                              "fixtures.zip) next to this script, for the app's parser tests. Fixed requests; "
                              "no contentId needed.")
+    parser.add_argument("--dump-multiview", action="store_true",
+                        help="record sanitised CONTENT/PLAY player_tm (multiview) responses for the given "
+                             "contentId or page URL, plus one old archive race, in multiview-fixtures/ "
+                             "(zipped to multiview-fixtures.zip) next to this script.")
     parser.add_argument("--save-urls", action="store_true",
                         help="also write the UNMASKED signed stream URLs to stream_urls_PRIVATE.txt next to "
                              "this script, for a local playback test. Never printed, never in the result file; "
@@ -1508,6 +1740,15 @@ def main():
         return 1
     add_secret(token)
     add_secret(raw.strip())
+
+    if args.dump_multiview:
+        try:
+            dump_multiview(content_id, token)
+        except KeyboardInterrupt:
+            out("Interrupted.")
+            return 1
+        print("multiview-fixtures.zip holds sanitised responses only; it is git-ignored. Send it back, do not post it elsewhere.")
+        return 0
 
     if args.dump_catalogue:
         try:
