@@ -129,4 +129,15 @@ the files directly) and anything worth having is rebuilt in Swift as part of a b
 a later one. The last Android version already reviewed is recorded here, so it's always clear what
 is new.
 
-Last Android version reviewed: **0.94**.
+Last Android version reviewed: **0.99.9** (2026-11-13). The F1 TV API code (`F1TvApi.kt`) didn't
+change between 0.94 and 0.99.9, so the beta.1 work built from it is unaffected.
+
+What 0.95 to 0.99.9 added, and where it lands here:
+
+| Android | What it does | Here |
+|---|---|---|
+| 0.95 | While watching live, offers the next live programme when one starts | beta.2 |
+| 0.96–0.98 | Before a live session plays, the feed picker asks "From the start" or "Watch live"; from the start really starts at the beginning; the pit circle works when joining live | beta.2 (player) |
+| 0.99.4 | Records live timing to disk from the moment a session starts, so the map has the whole session even when joined late | beta.3, adapted: iOS can't start a recording by alarm in the background, so it records while the app is open or playing, plus F1's archive once the session ends |
+| 0.99.5 | Playback speed 0.5× to 2× for every feed together | beta.2 |
+| 0.99.9 | Sped-up multiview stays smooth; when the phone can't keep up, only the main feed keeps its picture | beta.2 |
