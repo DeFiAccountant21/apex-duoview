@@ -6,3 +6,4 @@ archive_*/
 __pycache__/
 fixtures/
 fixtures.zip
+layout_search_results.json
