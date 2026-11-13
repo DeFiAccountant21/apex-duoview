@@ -6,16 +6,23 @@ public actor PlayCoordinator {
     private struct Key: Equatable {
         var contentId: Int
         var channelId: Int?
+        var multiview = false
+    }
+
+    /// What one PLAY request produced; single and multiview share the one-session logic.
+    private enum Played: Sendable {
+        case single(PlayInfo)
+        case multi(MultiPlayInfo)
     }
 
     private struct Pending {
         var key: Key
         var generation: Int
-        var task: Task<PlayInfo, Error>
+        var task: Task<Played, Error>
     }
 
     private let session: F1TVSession
-    private var playing: (key: Key, info: PlayInfo)?
+    private var playing: (key: Key, info: Played)?
     private var pending: Pending?
     /// Bumped by every new request and by `stop()`, so a result that arrives after either is dropped.
     private var generation = 0
@@ -30,10 +37,29 @@ public actor PlayCoordinator {
 
     public func play(contentId: Int, channelId: Int?) async throws -> PlayInfo {
         let key = Key(contentId: contentId, channelId: channelId)
-        if let playing, playing.key == key { return playing.info }
+        guard case .single(let info) = try await start(key: key, refresh: false) else {
+            throw F1TVError.badResponse("Unexpected PLAY result")
+        }
+        return info
+    }
+
+    /// One PLAY request for every feed of a race. Same one-session rules as `play`; `refresh`
+    /// always sends a new request, for when the feed URLs have gone stale.
+    public func playMultiview(
+        contentId: Int, defaultChannelId: Int?, refresh: Bool = false
+    ) async throws -> MultiPlayInfo {
+        let key = Key(contentId: contentId, channelId: defaultChannelId, multiview: true)
+        guard case .multi(let info) = try await start(key: key, refresh: refresh) else {
+            throw F1TVError.badResponse("Unexpected PLAY result")
+        }
+        return info
+    }
+
+    private func start(key: Key, refresh: Bool) async throws -> Played {
+        if !refresh, let playing, playing.key == key { return playing.info }
         // The same item is already being requested: wait for that one request.
         if let pending, pending.key == key {
-            let info: PlayInfo
+            let info: Played
             do {
                 info = try await pending.task.value
             } catch {
@@ -76,14 +102,16 @@ public actor PlayCoordinator {
         generation += 1
     }
 
-    private static func request(session: F1TVSession, key: Key) async throws -> PlayInfo {
-        var query = [("contentId", "\(key.contentId)"), ("player", "player_bm")]
+    private static func request(session: F1TVSession, key: Key) async throws -> Played {
+        var query = [("contentId", "\(key.contentId)"), ("player", key.multiview ? "player_tm" : "player_bm")]
         if let channelId = key.channelId { query.append(("channelId", "\(channelId)")) }
         let json = try await session.getJSON(
-            path: "CONTENT/PLAY", version: .play, platform: .webHLS, query: query, authorized: true)
-        let info = try Parsers.play(json)
+            path: "CONTENT/PLAY", version: .play, platform: key.multiview ? .webDASH : .webHLS,
+            query: query, authorized: true, multiview: key.multiview)
         // A DRM-protected stream can't play in this app yet; it never becomes the active one.
+        if key.multiview { return .multi(try Parsers.multiPlay(json)) }
+        let info = try Parsers.play(json)
         if info.licenseURL != nil { throw F1TVError.protectedContent }
-        return info
+        return .single(info)
     }
 }

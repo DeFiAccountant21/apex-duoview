@@ -1,0 +1,451 @@
+{
+ "resultCode": "OK",
+ "message": "200",
+ "errorDescription": "",
+ "resultObj": {
+  "entitlementToken": "<removed>",
+  "tme": {
+   "metadata": {
+    "content_id": 1000010431
+   },
+   "advanced": {
+    "tile_size": {
+     "width": 960,
+     "height": 544
+    }
+   },
+   "feeds": [
+    {
+     "metadata": {
+      "channel_id": 1033
+     },
+     "encoder_id": "1000010431",
+     "uuid": "e95c6375-0c4f-463f-baea-05cd7d6146a3",
+     "url": "https://example.com/1033.m3u8",
+     "audio_track_names": {
+      "eng": "English F1 Live",
+      "spa": "Espanol F1 Live"
+     },
+     "subtitle_track_names": {
+      "eng_subtitle": "English F1 Live",
+      "spa_subtitle": "Espanol F1 Live"
+     }
+    },
+    {
+     "metadata": {
+      "channel_id": 1025
+     },
+     "encoder_id": "1000010431",
+     "uuid": "00711e7a-574c-595d-bdf5-b968cd9a65fb",
+     "url": "https://example.com/1025.m3u8",
+     "audio_track_names": {
+      "eng": "English F1 Live",
+      "spa": "Espanol F1 Live"
+     },
+     "subtitle_track_names": {
+      "eng_subtitle": "English F1 Live",
+      "spa_subtitle": "Espanol F1 Live"
+     }
+    },
+    {
+     "metadata": {
+      "channel_id": 1003
+     },
+     "encoder_id": "1000010431",
+     "uuid": "d921c44c-142a-5691-b1a5-9da1e4c706f2",
+     "url": "https://example.com/1003.m3u8",
+     "audio_track_names": {
+      "eng": "English F1 Live",
+      "spa": "Espanol F1 Live"
+     },
+     "subtitle_track_names": {
+      "eng_subtitle": "English F1 Live",
+      "spa_subtitle": "Espanol F1 Live"
+     }
+    },
+    {
+     "metadata": {
+      "channel_id": 1004
+     },
+     "encoder_id": "1000010431",
+     "uuid": "bcddf9f2-b975-5ddd-b555-9ff035bf0adc",
+     "url": "https://example.com/1004.m3u8",
+     "audio_track_names": {
+      "eng": "English F1 Live",
+      "spa": "Espanol F1 Live"
+     },
+     "subtitle_track_names": {
+      "eng_subtitle": "English F1 Live",
+      "spa_subtitle": "Espanol F1 Live"
+     }
+    },
+    {
+     "metadata": {
+      "channel_id": 1016
+     },
+     "encoder_id": "1000010431",
+     "uuid": "9b389386-4b21-5713-8403-f884ce49e252",
+     "url": "https://example.com/1016.m3u8",
+     "audio_track_names": {
+      "eng": "English F1 Live",
+      "spa": "Espanol F1 Live"
+     },
+     "subtitle_track_names": {
+      "eng_subtitle": "English F1 Live",
+      "spa_subtitle": "Espanol F1 Live"
+     }
+    },
+    {
+     "metadata": {
+      "channel_id": 1009
+     },
+     "encoder_id": "1000010431",
+     "uuid": "e6506718-e33f-500d-a0bd-2b761112f675",
+     "url": "https://example.com/1009.m3u8",
+     "audio_track_names": {
+      "eng": "English F1 Live",
+      "spa": "Espanol F1 Live"
+     },
+     "subtitle_track_names": {
+      "eng_subtitle": "English F1 Live",
+      "spa_subtitle": "Espanol F1 Live"
+     }
+    },
+    {
+     "metadata": {
+      "channel_id": 1020
+     },
+     "encoder_id": "1000010431",
+     "uuid": "561c9ddc-3104-5052-9bf0-f06df02b7c22",
+     "url": "https://example.com/1020.m3u8",
+     "audio_track_names": {
+      "eng": "English F1 Live",
+      "spa": "Espanol F1 Live"
+     },
+     "subtitle_track_names": {
+      "eng_subtitle": "English F1 Live",
+      "spa_subtitle": "Espanol F1 Live"
+     }
+    },
+    {
+     "metadata": {
+      "channel_id": 1011
+     },
+     "encoder_id": "1000010431",
+     "uuid": "be59f91c-af35-57b4-bde2-196e592a17e3",
+     "url": "https://example.com/1011.m3u8",
+     "audio_track_names": {
+      "eng": "English F1 Live",
+      "spa": "Espanol F1 Live"
+     },
+     "subtitle_track_names": {
+      "eng_subtitle": "English F1 Live",
+      "spa_subtitle": "Espanol F1 Live"
+     }
+    },
+    {
+     "metadata": {
+      "channel_id": 1005
+     },
+     "encoder_id": "1000010431",
+     "uuid": "ea55942c-2433-5857-bd11-08303d51747c",
+     "url": "https://example.com/1005.m3u8",
+     "audio_track_names": {
+      "eng": "English F1 Live",
+      "spa": "Espanol F1 Live"
+     },
+     "subtitle_track_names": {
+      "eng_subtitle": "English F1 Live",
+      "spa_subtitle": "Espanol F1 Live"
+     }
+    },
+    {
+     "metadata": {
+      "channel_id": 1039
+     },
+     "encoder_id": "1000010431",
+     "uuid": "96a22218-fe05-5854-a598-61cce5f4801d",
+     "url": "https://example.com/1039.m3u8",
+     "audio_track_names": {
+      "eng": "English F1 Live",
+      "spa": "Espanol F1 Live"
+     },
+     "subtitle_track_names": {
+      "eng_subtitle": "English F1 Live",
+      "spa_subtitle": "Espanol F1 Live"
+     }
+    },
+    {
+     "metadata": {
+      "channel_id": 1010
+     },
+     "encoder_id": "1000010431",
+     "uuid": "bdc78bac-5908-5f3e-a015-4745db50a94d",
+     "url": "https://example.com/1010.m3u8",
+     "audio_track_names": {
+      "eng": "English F1 Live",
+      "spa": "Espanol F1 Live"
+     },
+     "subtitle_track_names": {
+      "eng_subtitle": "English F1 Live",
+      "spa_subtitle": "Espanol F1 Live"
+     }
+    },
+    {
+     "metadata": {
+      "channel_id": 1018
+     },
+     "encoder_id": "1000010431",
+     "uuid": "42c7bf24-14f9-5b74-8aa4-fb8eb687e802",
+     "url": "https://example.com/1018.m3u8",
+     "audio_track_names": {
+      "eng": "English F1 Live",
+      "spa": "Espanol F1 Live"
+     },
+     "subtitle_track_names": {
+      "eng_subtitle": "English F1 Live",
+      "spa_subtitle": "Espanol F1 Live"
+     }
+    },
+    {
+     "metadata": {
+      "channel_id": 1008
+     },
+     "encoder_id": "1000010431",
+     "uuid": "0e9e67ed-179e-522e-b005-9db99293723b",
+     "url": "https://example.com/1008.m3u8",
+     "audio_track_names": {
+      "eng": "English F1 Live",
+      "spa": "Espanol F1 Live"
+     },
+     "subtitle_track_names": {
+      "eng_subtitle": "English F1 Live",
+      "spa_subtitle": "Espanol F1 Live"
+     }
+    },
+    {
+     "metadata": {
+      "channel_id": 1017
+     },
+     "encoder_id": "1000010431",
+     "uuid": "ec30b56f-0d7b-54c0-a4e0-983685232a8e",
+     "url": "https://example.com/1017.m3u8",
+     "audio_track_names": {
+      "eng": "English F1 Live",
+      "spa": "Espanol F1 Live"
+     },
+     "subtitle_track_names": {
+      "eng_subtitle": "English F1 Live",
+      "spa_subtitle": "Espanol F1 Live"
+     }
+    },
+    {
+     "metadata": {
+      "channel_id": 1023
+     },
+     "encoder_id": "1000010431",
+     "uuid": "b9b3d779-62d1-5bd5-a709-c8e520b15de5",
+     "url": "https://example.com/1023.m3u8",
+     "audio_track_names": {
+      "eng": "English F1 Live",
+      "spa": "Espanol F1 Live"
+     },
+     "subtitle_track_names": {
+      "eng_subtitle": "English F1 Live",
+      "spa_subtitle": "Espanol F1 Live"
+     }
+    },
+    {
+     "metadata": {
+      "channel_id": 1019
+     },
+     "encoder_id": "1000010431",
+     "uuid": "003ca08f-6420-582d-98b0-35766bd1c730",
+     "url": "https://example.com/1019.m3u8",
+     "audio_track_names": {
+      "eng": "English F1 Live",
+      "spa": "Espanol F1 Live"
+     },
+     "subtitle_track_names": {
+      "eng_subtitle": "English F1 Live",
+      "spa_subtitle": "Espanol F1 Live"
+     }
+    },
+    {
+     "metadata": {
+      "channel_id": 1022
+     },
+     "encoder_id": "1000010431",
+     "uuid": "0d7cab32-3d10-524a-b93e-6cf23c563c6d",
+     "url": "https://example.com/1022.m3u8",
+     "audio_track_names": {
+      "eng": "English F1 Live",
+      "spa": "Espanol F1 Live"
+     },
+     "subtitle_track_names": {
+      "eng_subtitle": "English F1 Live",
+      "spa_subtitle": "Espanol F1 Live"
+     }
+    },
+    {
+     "metadata": {
+      "channel_id": 1021
+     },
+     "encoder_id": "1000010431",
+     "uuid": "6a1ac13d-a233-5d1b-a49f-c64afb430bc8",
+     "url": "https://example.com/1021.m3u8",
+     "audio_track_names": {
+      "eng": "English F1 Live",
+      "spa": "Espanol F1 Live"
+     },
+     "subtitle_track_names": {
+      "eng_subtitle": "English F1 Live",
+      "spa_subtitle": "Espanol F1 Live"
+     }
+    },
+    {
+     "metadata": {
+      "channel_id": 1012
+     },
+     "encoder_id": "1000010431",
+     "uuid": "997fe0a6-0632-54e4-be27-be5c2908bda4",
+     "url": "https://example.com/1012.m3u8",
+     "audio_track_names": {
+      "eng": "English F1 Live",
+      "spa": "Espanol F1 Live"
+     },
+     "subtitle_track_names": {
+      "eng_subtitle": "English F1 Live",
+      "spa_subtitle": "Espanol F1 Live"
+     }
+    },
+    {
+     "metadata": {
+      "channel_id": 1007
+     },
+     "encoder_id": "1000010431",
+     "uuid": "11f0ec47-d3c2-5fac-94ca-25df0ecb568b",
+     "url": "https://example.com/1007.m3u8",
+     "audio_track_names": {
+      "eng": "English F1 Live",
+      "spa": "Espanol F1 Live"
+     },
+     "subtitle_track_names": {
+      "eng_subtitle": "English F1 Live",
+      "spa_subtitle": "Espanol F1 Live"
+     }
+    },
+    {
+     "metadata": {
+      "channel_id": 1013
+     },
+     "encoder_id": "1000010431",
+     "uuid": "f5b76083-c731-530f-89da-285fac74ae84",
+     "url": "https://example.com/1013.m3u8",
+     "audio_track_names": {
+      "eng": "English F1 Live",
+      "spa": "Espanol F1 Live"
+     },
+     "subtitle_track_names": {
+      "eng_subtitle": "English F1 Live",
+      "spa_subtitle": "Espanol F1 Live"
+     }
+    },
+    {
+     "metadata": {
+      "channel_id": 1024
+     },
+     "encoder_id": "1000010431",
+     "uuid": "f306decd-fd1e-5ea0-8652-9d623fd29590",
+     "url": "https://example.com/1024.m3u8",
+     "audio_track_names": {
+      "eng": "English F1 Live",
+      "spa": "Espanol F1 Live"
+     },
+     "subtitle_track_names": {
+      "eng_subtitle": "English F1 Live",
+      "spa_subtitle": "Espanol F1 Live"
+     }
+    },
+    {
+     "metadata": {
+      "channel_id": 1006
+     },
+     "encoder_id": "1000010431",
+     "uuid": "d7246d02-401c-5c41-a852-548a0711cac1",
+     "url": "https://example.com/1006.m3u8",
+     "audio_track_names": {
+      "eng": "English F1 Live",
+      "spa": "Espanol F1 Live"
+     },
+     "subtitle_track_names": {
+      "eng_subtitle": "English F1 Live",
+      "spa_subtitle": "Espanol F1 Live"
+     }
+    },
+    {
+     "metadata": {
+      "channel_id": 1040
+     },
+     "encoder_id": "1000010431",
+     "uuid": "5e459973-c85a-58b0-901f-fd851c25f45d",
+     "url": "https://example.com/1040.m3u8",
+     "audio_track_names": {
+      "eng": "English F1 Live",
+      "spa": "Espanol F1 Live"
+     },
+     "subtitle_track_names": {
+      "eng_subtitle": "English F1 Live",
+      "spa_subtitle": "Espanol F1 Live"
+     }
+    },
+    {
+     "metadata": {
+      "channel_id": 1015
+     },
+     "encoder_id": "1000010431",
+     "uuid": "8a5b9243-34d1-590b-b8fb-027413f91bae",
+     "url": "https://example.com/1015.m3u8",
+     "audio_track_names": {
+      "eng": "English F1 Live",
+      "spa": "Espanol F1 Live"
+     },
+     "subtitle_track_names": {
+      "eng_subtitle": "English F1 Live",
+      "spa_subtitle": "Espanol F1 Live"
+     }
+    },
+    {
+     "metadata": {
+      "channel_id": 1014
+     },
+     "encoder_id": "1000010431",
+     "uuid": "dc36f3e2-0591-5517-835d-a83e7995907b",
+     "url": "https://example.com/1014.m3u8",
+     "audio_track_names": {
+      "eng": "English F1 Live",
+      "spa": "Espanol F1 Live"
+     },
+     "subtitle_track_names": {
+      "eng_subtitle": "English F1 Live",
+      "spa_subtitle": "Espanol F1 Live"
+     }
+    }
+   ],
+   "channel": "MULTI",
+   "version": 0
+  },
+  "streamType": "SDR_HD_CMAF",
+  "channelId": 1033,
+  "pipelineVersion": 6,
+  "playApiVersion": "3.0",
+  "cdnType": "Cloudfront",
+  "settings": {
+   "upnext": {
+    "jitter": 18937
+   }
+  }
+ },
+ "systemTime": 1794597753186,
+ "_note": "Shape from the owner's real sanitised response; channel ids and MULTI from the owner's probe run, 2026-11-13. URLs are examples."
+}

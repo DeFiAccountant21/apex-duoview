@@ -1,0 +1,56 @@
+{
+ "resultCode": "OK",
+ "message": "200",
+ "errorDescription": "",
+ "resultObj": {
+  "entitlementToken": "<removed>",
+  "tme": {
+   "metadata": {
+    "content_id": 1000010431
+   },
+   "advanced": {
+    "tile_size": {
+     "width": 960,
+     "height": 544
+    }
+   },
+   "feeds": [
+    {
+     "metadata": {
+      "channel_id": 1033
+     },
+     "encoder_id": "1000010431",
+     "uuid": "e95c6375-0c4f-463f-baea-05cd7d6146a3",
+     "url": "<removed>",
+     "audio_track_names": {
+      "eng": "English F1 Live",
+      "spa": "Espanol F1 Live"
+     },
+     "subtitle_track_names": {
+      "eng_subtitle": "English F1 Live",
+      "spa_subtitle": "Espanol F1 Live"
+     }
+    }
+   ],
+   "channel": "SWITCHER",
+   "version": 0
+  },
+  "streamType": "SDR_HD_CMAF",
+  "channelId": 1033,
+  "pipelineVersion": 6,
+  "playApiVersion": "3.0",
+  "cdnType": "Cloudfront",
+  "settings": {
+   "upnext": {
+    "jitter": 18937
+   }
+  }
+ },
+ "systemTime": 1794597753186,
+ "_feed_count": 1,
+ "_url_kinds": [
+  "m3u8"
+ ],
+ "_has_laURL": false,
+ "_url_expiry_seconds": null
+}

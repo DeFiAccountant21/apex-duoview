@@ -53,6 +53,7 @@ func loadMessage(_ error: Error) -> String {
     case .server(let status, _): return "F1 TV answered with an error (\(status))."
     case .badResponse(let reason): return reason
     case .protectedContent: return "this content is protected."
+    case .multiviewUnavailable: return "not available for this race."
     }
 }
 

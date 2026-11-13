@@ -41,6 +41,15 @@ public enum Endpoints {
         "device=web;screen=browser;os=mac os;browser=safari;browserVersion=26.1;osVersion=10.15.7;appVersion=54.2.1;playerVersion=8.212.0;p=\(multiview);tms=1"
     }
 
+    /// What the original Android app sends. F1 TV gives the whole multiview (`tme.channel` "MULTI")
+    /// to this header, but only one feed ("SWITCHER") to the Safari one.
+    public static func androidDeviceInfo(multiview: Bool) -> String {
+        "device=web;screen=browser;os=android;browser=chrome;browserVersion=140;osVersion=14;appVersion=54.2.1;playerVersion=8.212.0;p=\(multiview);tms=1"
+    }
+
+    public static let androidUserAgent =
+        "Mozilla/5.0 (Linux; Android 14; Pixel 8 Build/AP2A.240805.005) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/140.0.7339.207 Mobile Safari/537.36"
+
     private static let queryAllowed: CharacterSet = {
         var set = CharacterSet.urlQueryAllowed
         set.remove(charactersIn: "&=+")

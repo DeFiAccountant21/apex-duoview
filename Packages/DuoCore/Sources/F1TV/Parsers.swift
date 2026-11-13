@@ -269,6 +269,30 @@ public enum Parsers {
         )
     }
 
+    /// The feeds of a multiview PLAY. A feed is usable with an integer `metadata.channel_id` and an
+    /// http(s) URL. HLS is judged by the URLs (`streamType` says "SDR_HD_CMAF" for HLS too).
+    /// Throws `.badResponse` for no usable feed, `.multiviewUnavailable` for one feed or a `.mpd`
+    /// URL, and `.protectedContent` when a license URL is present.
+    public static func multiPlay(_ json: JSONValue) throws -> MultiPlayInfo {
+        let result = json["resultObj"]
+        var feeds: [Int: URL] = [:]
+        for feed in result["tme"]["feeds"].array {
+            guard let channel = feed["metadata"]["channel_id"].int,
+                let url = URL(string: feed["url"].string),
+                let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https"
+            else { continue }
+            feeds[channel] = url
+        }
+        guard !feeds.isEmpty else { throw F1TVError.badResponse("PLAY returned no feeds") }
+        if feeds.values.contains(where: { $0.path.lowercased().hasSuffix(".mpd") }) {
+            throw F1TVError.multiviewUnavailable
+        }
+        guard feeds.count >= 2 else { throw F1TVError.multiviewUnavailable }
+        let license = result["laURL"].string
+        if !license.isEmpty { throw F1TVError.protectedContent }
+        return MultiPlayInfo(feeds: feeds, licenseURL: nil, streamType: result["streamType"].string)
+    }
+
     // MARK: Helpers
 
     /// The tile's `metadata` object, or nil when it is missing or not an object.

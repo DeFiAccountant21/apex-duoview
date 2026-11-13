@@ -99,7 +99,8 @@ public actor F1TVSession {
         version: VersionKind,
         platform: Platform,
         query: [(String, String)] = [],
-        authorized: Bool = false
+        authorized: Bool = false,
+        multiview: Bool = false
     ) async throws -> JSONValue {
         var headers: [String: String] = [:]
         let startEpoch = epoch
@@ -110,7 +111,16 @@ public actor F1TVSession {
             headers["ascendontoken"] = token
             headers["entitlementtoken"] = ent
             // The web player's device header goes on authorized PLAY requests, as in the web app.
-            if case .play = version { headers["x-f1-device-info"] = Endpoints.deviceInfo(multiview: false) }
+            // A multiview PLAY sends the Android app's header and User-Agent instead: with the Safari
+            // one F1 TV returns a single feed.
+            if case .play = version {
+                if multiview {
+                    headers["x-f1-device-info"] = Endpoints.androidDeviceInfo(multiview: true)
+                    headers["User-Agent"] = Endpoints.androidUserAgent
+                } else {
+                    headers["x-f1-device-info"] = Endpoints.deviceInfo(multiview: false)
+                }
+            }
         }
         let resolved: String
         switch version {
@@ -208,7 +218,7 @@ public actor F1TVSession {
 
     private func send(_ url: URL, headers: [String: String]) async throws -> HTTPResponse {
         var all = headers
-        all["User-Agent"] = Endpoints.userAgent
+        if all["User-Agent"] == nil { all["User-Agent"] = Endpoints.userAgent }
         do {
             return try await http.send(HTTPRequest(method: "GET", url: url, headers: all))
         } catch let e as F1TVError {

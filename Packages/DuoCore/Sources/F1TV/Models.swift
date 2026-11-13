@@ -231,6 +231,19 @@ public struct VideoDetail: Sendable, Equatable {
     }
 }
 
+/// What a multiview PLAY returns: every feed of the race, keyed by channel id.
+public struct MultiPlayInfo: Sendable, Equatable {
+    public var feeds: [Int: URL]
+    public var licenseURL: URL?
+    public var streamType: String
+
+    public init(feeds: [Int: URL], licenseURL: URL? = nil, streamType: String) {
+        self.feeds = feeds
+        self.licenseURL = licenseURL
+        self.streamType = streamType
+    }
+}
+
 /// What PLAY returns: the stream, and the license URL when the stream is protected.
 public struct PlayInfo: Sendable, Equatable {
     public var url: URL
