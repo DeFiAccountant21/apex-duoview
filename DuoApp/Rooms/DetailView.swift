@@ -1,0 +1,149 @@
+import F1TV
+import SwiftUI
+
+/// A session's picture, title and feeds. One feed plays straight away; otherwise the default feed
+/// comes first, then the onboards with number, driver and a bar in the team colour.
+struct DetailView: View {
+    let item: CatalogItem
+    let context: RoomContext
+
+    @State private var state: LoadState<VideoDetail> = .loading
+    @State private var attempt = 0
+    @State private var autoPlayed = false
+
+    /// A tile's item, or just what a bookmark remembers.
+    init(item: CatalogItem, context: RoomContext) {
+        self.item = item
+        self.context = context
+    }
+
+    init(contentId: Int, title: String, picturePath: String?, context: RoomContext) {
+        self.init(item: CatalogItem(contentId: contentId, title: title, picturePath: picturePath), context: context)
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                AsyncImage(url: item.pictureURL(width: 1200, height: 675)) { phase in
+                    switch phase {
+                    case .success(let image): image.resizable().scaledToFill()
+                    default: Rectangle().fill(.quaternary)
+                    }
+                }
+                .aspectRatio(16 / 9, contentMode: .fit)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .accessibilityHidden(true)
+
+                Text(item.title)
+                    .font(.title2.bold())
+
+                if !context.isSignedIn {
+                    Button {
+                        context.onSignIn()
+                    } label: {
+                        Text(AppModel.signInPrompt).frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                }
+
+                LoadStateView(state: state, retry: retry) { detail in
+                    feeds(detail)
+                }
+            }
+            .padding()
+        }
+        .navigationTitle(item.title)
+        .navigationBarTitleDisplayMode(.inline)
+        .task(id: attempt) { await load() }
+    }
+
+    private func retry() {
+        state = .loading
+        attempt += 1
+    }
+
+    private func load() async {
+        guard let result = await LoadState.run({ try await context.model.catalogue.video(contentId: item.contentId) })
+        else { return }
+        state = result
+        // A single feed plays straight away (once, and only when signed in).
+        if case .loaded(let detail) = result, detail.channels.count == 1, context.isSignedIn, !autoPlayed {
+            autoPlayed = true
+            play(detail, detail.channels[0])
+        }
+    }
+
+    private func play(_ detail: VideoDetail, _ channel: Channel) {
+        guard context.isSignedIn else {
+            context.onSignIn()
+            return
+        }
+        context.onPlay(detail.contentId, channel)
+    }
+
+    @ViewBuilder
+    private func feeds(_ detail: VideoDetail) -> some View {
+        // Default feed first, then the rest in F1 TV's order.
+        let ordered = detail.channels.filter(\.isDefault) + detail.channels.filter { !$0.isDefault }
+        if ordered.count == 1 {
+            Button {
+                play(detail, ordered[0])
+            } label: {
+                Label("Play", systemImage: "play.fill").frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.large)
+        } else {
+            VStack(spacing: 8) {
+                ForEach(Array(ordered.enumerated()), id: \.offset) { _, channel in
+                    ChannelRow(channel: channel) { play(detail, channel) }
+                }
+            }
+        }
+    }
+}
+
+private struct ChannelRow: View {
+    let channel: Channel
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                if channel.isOnboard {
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(Color(hex: channel.teamColorHex) ?? .gray)
+                        .frame(width: 5, height: 32)
+                } else {
+                    Image(systemName: "play.fill").frame(width: 5)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(channel.displayTitle).font(.body.weight(.semibold))
+                    if channel.isOnboard && !channel.teamName.isEmpty {
+                        Text(channel.teamName).font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+                Spacer()
+            }
+            .padding(12)
+            .background(.quaternary, in: RoundedRectangle(cornerRadius: 10))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(channel.isOnboard && !channel.teamName.isEmpty
+            ? "\(channel.displayTitle), \(channel.teamName)" : channel.displayTitle)
+    }
+}
+
+extension Color {
+    /// "#E10600" or "E10600"; nil for anything else.
+    init?(hex: String) {
+        var text = hex.trimmingCharacters(in: .whitespaces)
+        if text.hasPrefix("#") { text.removeFirst() }
+        guard text.count == 6, let value = UInt32(text, radix: 16) else { return nil }
+        self.init(
+            red: Double((value >> 16) & 0xFF) / 255,
+            green: Double((value >> 8) & 0xFF) / 255,
+            blue: Double(value & 0xFF) / 255)
+    }
+}

@@ -2,7 +2,7 @@ import Foundation
 
 /// Something to watch: a session, a live event, highlights or a show; or a series page
 /// (a show or documentary bundle, which has a `pageId`).
-public struct CatalogItem: Sendable, Equatable, Identifiable {
+public struct CatalogItem: Sendable, Hashable, Identifiable {
     public var contentId: Int
     public var title: String
     /// F1 TV's content subtype: REPLAY, RACE HIGHLIGHTS, PRESS CONFERENCE, LIVE, LIVE_EVENT...
@@ -66,12 +66,13 @@ public struct CatalogItem: Sendable, Equatable, Identifiable {
     }
 
     static func sessionTime(_ date: Date, calendar: Calendar) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.calendar = calendar
-        formatter.timeZone = calendar.timeZone
-        formatter.dateFormat = "EEE, MMM d · h:mm a"
-        return formatter.string(from: date)
+        // A value-type format style: no shared formatter to cache or lock (Swift 6 safe).
+        let style = Date.VerbatimFormatStyle(
+            format: "\(weekday: .abbreviated), \(month: .abbreviated) \(day: .defaultDigits) · \(hour: .defaultDigits(clock: .twelveHour, hourCycle: .oneBased)):\(minute: .twoDigits) \(dayPeriod: .standard(.abbreviated))",
+            locale: Locale(identifier: "en_US_POSIX"),
+            timeZone: calendar.timeZone,
+            calendar: calendar)
+        return date.formatted(style)
     }
 }
 
@@ -98,7 +99,7 @@ public struct CatalogRow: Sendable, Equatable {
 }
 
 /// A race weekend (or test) in the season calendar.
-public struct Meeting: Sendable, Equatable, Identifiable {
+public struct Meeting: Sendable, Hashable, Identifiable {
     public var key: String
     /// Championship round; nil for testing.
     public var round: Int?
