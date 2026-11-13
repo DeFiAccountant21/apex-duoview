@@ -8,10 +8,12 @@ struct RootView: View {
     @State private var planDismissed = false
     @State private var sheet: ActiveSheet?
     /// The fold, tracked from the root so its frame is in root coordinates. In beta.1 only the
-    /// Settings placement lays out by it; it is in the environment for later betas.
+    /// Settings panel lays out by it; it is in the environment for later betas.
     @State private var fold = FoldState()
-    /// Settings shown on the right-hand screen (book posture) instead of as a sheet.
-    @State private var settingsInPane = false
+    /// Settings drawn by the app (`SettingsPanel`) instead of the system sheet: on a wide screen
+    /// such as the Duo's inner one, so it can sit on the right-hand screen and glide between there
+    /// and the middle as the phone folds.
+    @State private var settingsPanelOpen = false
 
     private enum ActiveSheet: Identifiable {
         case settings
@@ -30,27 +32,25 @@ struct RootView: View {
             onSettings: { showSettings() })
     }
 
-    /// Half-open like a book, with a known fold and a right-hand screen wide enough for Settings:
-    /// Settings goes there. A system sheet would open on the left one, and the SDK has no way to
-    /// choose the side. A simulated fold on a regular phone leaves too narrow a half, so it keeps
-    /// the sheet.
-    private var settingsBelongsInPane: Bool {
-        guard fold.posture == .book, let frame = fold.foldFrame else { return false }
-        return fold.rootSize.width - frame.maxX >= Self.minimumPaneWidth
+    /// Wide screens get the app's own Settings panel; a narrow one (a phone in portrait, or the
+    /// Duo's outer screen) keeps the system sheet. `rootSize` is zero until the first layout,
+    /// which also means the sheet.
+    private var usesSettingsPanel: Bool {
+        fold.rootSize.width >= Self.minimumPanelScreenWidth
     }
 
-    private static let minimumPaneWidth: CGFloat = 320
+    private static let minimumPanelScreenWidth: CGFloat = 600
 
     private func showSettings() {
-        if settingsBelongsInPane {
-            withAnimation(.snappy) { settingsInPane = true }
+        if usesSettingsPanel {
+            withAnimation(.snappy) { settingsPanelOpen = true }
         } else {
             sheet = .settings
         }
     }
 
     private func closeSettings() {
-        if settingsInPane { withAnimation(.snappy) { settingsInPane = false } }
+        if settingsPanelOpen { withAnimation(.snappy) { settingsPanelOpen = false } }
         if sheet == .settings { sheet = nil }
     }
 
@@ -101,10 +101,10 @@ struct RootView: View {
                         onDismiss: { model.dismissMessage() })
                 }
             }
-            // Settings on the right-hand screen: the left one is dimmed, and tapping it closes
-            // Settings, as tapping outside a sheet would.
+            // The app's Settings panel over a dimmed screen; tapping the dimmed part closes it, as
+            // tapping outside a sheet would.
             .overlay {
-                if settingsInPane {
+                if settingsPanelOpen {
                     Color.black.opacity(0.5)
                         .ignoresSafeArea()
                         .onTapGesture { closeSettings() }
@@ -114,22 +114,20 @@ struct RootView: View {
                 }
             }
             .overlay {
-                if settingsInPane, let foldFrame = fold.foldFrame {
-                    TrailingPane(foldFrame: foldFrame) { settingsView }
-                        .transition(.move(edge: .trailing))
+                if settingsPanelOpen {
+                    SettingsPanel(fold: fold) { settingsView }
+                        .transition(.move(edge: SettingsPanel<SettingsView>.isPane(fold) ? .trailing : .bottom))
                 }
             }
-            // Folding the phone moves an open Settings: into the right-hand pane on reaching book
-            // posture, back into the sheet on leaving it (the pane needs the fold to draw).
-            // Another sheet (sign-in, plan) is never replaced. Only the real hinge moves the sheet
-            // into the pane: the Simulate fold switch lives inside Settings, and moving it then
-            // would rebuild Settings under your finger.
-            .onChange(of: settingsBelongsInPane) { _, inPane in
-                if inPane, sheet == .settings, fold.source == .system {
+            // Only a change of screen width (rotating, or switching between the Duo's screens)
+            // swaps the panel and the system sheet. Folding never does: the panel just moves.
+            // Another sheet (sign-in, plan) is never replaced.
+            .onChange(of: usesSettingsPanel) { _, panel in
+                if panel, sheet == .settings {
                     sheet = nil
-                    withAnimation(.snappy) { settingsInPane = true }
-                } else if !inPane, settingsInPane {
-                    withAnimation(.snappy) { settingsInPane = false }
+                    settingsPanelOpen = true
+                } else if !panel, settingsPanelOpen {
+                    settingsPanelOpen = false
                     if sheet == nil { sheet = .settings }
                 }
             }
@@ -191,26 +189,81 @@ struct RootView: View {
     }
 }
 
-/// Fills the screen to the right of the fold. `foldFrame` is in full-screen coordinates, and this
-/// reader keeps the safe area so its content clears the status bar, so the fold's edge is
-/// converted through global space (the window's space, which is the screen's).
-private struct TrailingPane<Content: View>: View {
-    let foldFrame: CGRect
+/// Settings drawn by the app on a wide screen. Half-open like a book (with a right-hand screen at
+/// least 320 pt wide) it fills the screen to the right of the fold; otherwise it is a card in the
+/// middle, like a sheet. It is one view whose frame animates, so folding and unfolding glide it
+/// between the two places instead of closing one Settings and opening another. A system sheet
+/// can't do this: in book posture it opens on the left screen, and the SDK has no way to choose
+/// the side.
+///
+/// Coordinates: the inner reader ignores the safe area, so its space is the full screen, the same
+/// space as `FoldState.foldFrame`. The outer reader keeps the safe area only to read its insets,
+/// which pad the content wherever the panel touches a screen edge.
+struct SettingsPanel<Content: View>: View {
+    let fold: FoldState
     @ViewBuilder let content: Content
 
+    static var minimumPaneWidth: CGFloat { 320 }
+
+    /// Whether the panel sits on the right-hand screen rather than in the middle.
+    @MainActor static func isPane(_ fold: FoldState) -> Bool {
+        guard fold.posture == .book, let frame = fold.foldFrame else { return false }
+        return fold.rootSize.width - frame.maxX >= minimumPaneWidth
+    }
+
+    private struct Layout: Equatable {
+        var frame: CGRect
+        var padding: EdgeInsets
+        var cornerRadius: CGFloat
+        var isPane: Bool
+    }
+
     var body: some View {
-        GeometryReader { proxy in
-            let leading = max(0, foldFrame.maxX - proxy.frame(in: .global).minX)
-            HStack(spacing: 0) {
-                Color.clear
-                    .frame(width: min(leading, proxy.size.width))
-                    .allowsHitTesting(false)
+        GeometryReader { safe in
+            let insets = safe.safeAreaInsets
+            GeometryReader { screen in
+                let layout = layout(screen: screen.size, insets: insets)
                 content
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Theme.background.ignoresSafeArea())
+                    .padding(layout.padding)
+                    .frame(width: layout.frame.width, height: layout.frame.height)
+                    .background(Theme.background)
+                    .clipShape(RoundedRectangle(cornerRadius: layout.cornerRadius, style: .continuous))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: layout.cornerRadius, style: .continuous)
+                            .strokeBorder(Theme.hairline, lineWidth: layout.isPane ? 0 : 1)
+                    }
+                    .shadow(color: .black.opacity(0.45), radius: 24)
+                    .position(x: layout.frame.midX, y: layout.frame.midY)
+                    .animation(.snappy, value: layout)
                     .accessibilityAddTraits(.isModal)
             }
+            .ignoresSafeArea()
         }
+    }
+
+    private func layout(screen: CGSize, insets: EdgeInsets) -> Layout {
+        if Self.isPane(fold), let foldFrame = fold.foldFrame {
+            let x = min(foldFrame.maxX, screen.width)
+            return Layout(
+                frame: CGRect(x: x, y: 0, width: screen.width - x, height: screen.height),
+                padding: EdgeInsets(
+                    top: insets.top, leading: 0, bottom: insets.bottom, trailing: insets.trailing),
+                cornerRadius: 0,
+                isPane: true)
+        }
+        let safeWidth = screen.width - insets.leading - insets.trailing
+        let safeHeight = screen.height - insets.top - insets.bottom
+        let width = max(0, min(safeWidth - 48, 620))
+        let height = max(0, min(safeHeight - 32, 760))
+        return Layout(
+            frame: CGRect(
+                x: insets.leading + (safeWidth - width) / 2,
+                y: insets.top + (safeHeight - height) / 2,
+                width: width,
+                height: height),
+            padding: EdgeInsets(),
+            cornerRadius: 24,
+            isPane: false)
     }
 }
 

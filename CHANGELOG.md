@@ -24,7 +24,8 @@ Versions follow the standard in [docs/roadmap.md](docs/roadmap.md).
 - Settings shows the app version, for example "Apex DuoView v1.0-beta.1 (build N)".
 - A fold adapter that reads the phone's hinge, with a readout in Settings and a simulated fold
   for testing without the hardware. The first thing that follows the fold: when the phone is
-  half-open like a book, Settings opens on the right-hand screen instead of the left.
+  half-open like a book, Settings sits on the right-hand screen instead of the left, and glides
+  to the middle when you open the phone flat and back when you fold it again.
 - A dark style with near-black backgrounds, silver text and racing red, and a new app icon,
   also shown on the launch screen, the sign-in screen and in About.
 - A hidden test screen that checks how well two feeds stay in step, for the multiview work

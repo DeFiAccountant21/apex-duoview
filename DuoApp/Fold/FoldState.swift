@@ -40,7 +40,7 @@ struct HingeReading: Sendable, Equatable {
 
 /// The fold, as the rest of the app sees it. `SystemFoldProvider` feeds it from the device;
 /// `FakeFoldProvider` replaces those values from Settings → Debug. In beta.1 Settings shows it,
-/// and in book posture `RootView` opens Settings on the right-hand screen.
+/// and `SettingsPanel` moves Settings to the right-hand screen in book posture.
 @MainActor
 @Observable
 final class FoldState {

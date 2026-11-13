@@ -2,8 +2,8 @@ import F1TV
 import SwiftUI
 
 /// Settings: account, a live fold readout, About, credits and the debug fold simulator.
-/// Shown as a sheet, or on the right-hand screen when the phone is folded like a book, so it
-/// closes through `onDone` rather than the environment's dismiss action.
+/// Shown in the system sheet on a narrow screen, and in the app's own `SettingsPanel` on a wide
+/// one, so it closes through `onDone` rather than the environment's dismiss action.
 struct SettingsView: View {
     let model: AppModel
     let fold: FoldState
