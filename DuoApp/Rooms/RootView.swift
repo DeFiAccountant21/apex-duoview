@@ -222,7 +222,7 @@ struct SettingsPanel<Content: View>: View {
         GeometryReader { safe in
             let insets = safe.safeAreaInsets
             GeometryReader { screen in
-                let placement = placement(screen: screen.size, insets: insets)
+                let placement = makePlacement(screen: screen.size, insets: insets)
                 content
                     .padding(placement.padding)
                     .frame(width: placement.frame.width, height: placement.frame.height)
@@ -234,14 +234,14 @@ struct SettingsPanel<Content: View>: View {
                     }
                     .shadow(color: .black.opacity(0.45), radius: 24)
                     .position(x: placement.frame.midX, y: placement.frame.midY)
-                    .animation(.snappy, value: layout)
+                    .animation(.snappy, value: placement)
                     .accessibilityAddTraits(.isModal)
             }
             .ignoresSafeArea()
         }
     }
 
-    private func placement(screen: CGSize, insets: EdgeInsets) -> Layout {
+    private func makePlacement(screen: CGSize, insets: EdgeInsets) -> Layout {
         if Self.isPane(fold), let foldFrame = fold.foldFrame {
             let x = min(foldFrame.maxX, screen.width)
             return Layout(
