@@ -7,7 +7,8 @@ import Observation
 import UIKit
 
 /// Plays up to four feeds of one session together, from one multiview PLAY: one `AVPlayer` per
-/// filled slot, the sound on slot 0 (the main feed), every feed kept in step with the main one.
+/// filled slot, every feed kept in step with slot 0 (the main feed). The sound is on one feed of
+/// the viewer's choice (`audioChannelId`), the main one when the multiview opens.
 /// Owned by the app model, not by a view, so a layout or fold change never stops or recreates a
 /// player; tiles only show a player's picture.
 /// Never logs or prints a stream URL, token or `MultiPlayInfo`.
@@ -43,19 +44,27 @@ final class MultiviewController {
     private(set) var isPresented = false
     private(set) var isLoading = false
     private(set) var errorText: String?
-    /// Four entries; index 0 is the main feed, the one with the sound. nil is an empty slot.
+    /// Four entries; index 0 is the main feed (the biggest spot, and the one the others keep in
+    /// step with). nil is an empty slot.
     private(set) var slots: [Channel?] = [nil, nil, nil, nil]
+    /// The one feed that is heard. Chosen per tile, apart from the main spot: swapping, dragging,
+    /// folding and layout changes never move it. Opening starts on the main feed; when this feed
+    /// leaves the slots, stops or ends, the sound goes to the main feed. Not saved.
+    private(set) var audioChannelId: Int?
     /// The session's feeds that the multiview PLAY returned a stream for.
     private(set) var channels: [Channel] = []
     private(set) var isPaused = false
     /// The speed chosen for every feed; sync nudges go on top of it.
     private(set) var rate: Double = 1
-    /// The phone couldn't keep up: every feed but the main one is paused on its last frame.
+    /// The phone couldn't keep up: every feed but the main one and the one with the sound is
+    /// paused on its last frame.
     private(set) var othersFrozen = false
     /// Why a feed other than the main one stopped, by channel id; its tile shows it.
     private(set) var feedProblems: [Int: String] = [:]
     /// Observed, so a tile picks up a player created after it appeared (a swap or a refresh).
     private var players: [Int: AVPlayer] = [:]
+    /// Bumped when a layout choice is stored: the store isn't observed, this makes views re-read it.
+    private var layoutRevision = 0
 
     @ObservationIgnored private let coordinator: PlayCoordinator
     @ObservationIgnored private let store: MultiviewStore
@@ -183,6 +192,8 @@ final class MultiviewController {
         picks = remembered
         slots = FeedPick.resolve(picks, in: channels)
         promoteMainIfEmpty()
+        // Each opening starts with the sound on the main feed.
+        audioChannelId = slots[0]?.id
 
         let session = AVAudioSession.sharedInstance()
         try? session.setCategory(.playback, mode: .moviePlayback)
@@ -234,15 +245,17 @@ final class MultiviewController {
         picks = Array(repeating: nil, count: Self.slotCount)
         channels = []
         feedProblems = [:]
+        audioChannelId = nil
     }
 
     // MARK: Slots
 
-    /// Swaps a feed into the main spot; the sound moves with it.
+    /// Swaps a feed into the main spot: the two trade places, so the same call on the old main's
+    /// new slot puts them back. The sound stays where it is.
     func makeMain(slot: Int) {
-        // A feed that stopped can't take the main spot (it has no player to hear).
-        guard slot > 0, slots.indices.contains(slot), let id = slots[slot]?.id, feeds[id] != nil,
-              feeds[id]?.ended != true, !refreshing, errorText == nil else { return }
+        // A feed that stopped can't take the main spot (it has no player to keep the others in step).
+        guard slot > 0, slots.indices.contains(slot), let id = slots[slot]?.id, canBeMain(channelId: id),
+              !refreshing, errorText == nil else { return }
         // Choosing a feed counts as the tap that brings frozen feeds back.
         if othersFrozen { unfreezeOthers() }
         slots.swapAt(0, slot)
@@ -250,9 +263,84 @@ final class MultiviewController {
         slotsChanged()
     }
 
+    /// Trades two slots' places (press, hold and drag one tile onto another). No PLAY, and the
+    /// sound stays where it is. When one of them is slot 0, the main feed (the sync reference)
+    /// changes exactly as `makeMain` changes it, so the feed going into slot 0 must have a player.
+    func moveFeed(from: Int, to: Int) {
+        guard from != to, slots.indices.contains(from), slots.indices.contains(to),
+              slots[from] != nil, !refreshing, errorText == nil else { return }
+        if from == 0 || to == 0 {
+            let incoming = from == 0 ? to : from
+            guard let id = slots[incoming]?.id, canBeMain(channelId: id) else { return }
+        }
+        // Like a tap, handling a feed brings frozen feeds back.
+        if othersFrozen { unfreezeOthers() }
+        slots.swapAt(from, to)
+        picks.swapAt(from, to)
+        slotsChanged()
+    }
+
+    /// Moves the sound to this feed: it alone is unmuted. Only a feed in a slot that is playing
+    /// (not stopped, not at its end) can take it.
+    func setAudio(channelId: Int) {
+        guard channelId != audioChannelId, slots.contains(where: { $0?.id == channelId }),
+              let feed = feeds[channelId], !feed.ended, feedProblems[channelId] == nil,
+              !refreshing, errorText == nil else { return }
+        // Brought back first, so a frozen feed taking the sound is lined up again before it plays
+        // on; the feed that had the sound kept playing and needs nothing.
+        if othersFrozen { unfreezeOthers() }
+        audioChannelId = channelId
+        applyRoles()
+    }
+
+    /// Whether this feed can take the main spot: it has a player that hasn't reached its end.
+    func canBeMain(channelId: Int) -> Bool {
+        guard let feed = feeds[channelId] else { return false }
+        return !feed.ended
+    }
+
+    /// Whether this feed is paused on its last frame to keep the main feed smooth. The main feed
+    /// and the feed with the sound never are.
+    func isFrozen(channelId: Int) -> Bool {
+        othersFrozen && slots[0]?.id != channelId && audioChannelId != channelId
+    }
+
+    // MARK: Layout choice
+
+    /// The layout chosen for this posture and feed count (remembered across sessions), or the
+    /// posture's default. `LayoutEngine.frames` falls back if it doesn't fit the screen.
+    func layoutOption(for posture: Multiview.Posture, feedCount: Int) -> String {
+        _ = layoutRevision
+        let count = Self.layoutCount(feedCount)
+        let options = LayoutEngine.optionIDs(posture: posture, feedCount: count)
+        if let saved = store.layoutChoice(for: LayoutKey(posture: posture, feedCount: count)),
+           options.contains(saved) {
+            return saved
+        }
+        return options[0]
+    }
+
+    /// "Switch layout": the next layout among `usable` (the options that fit this screen, from
+    /// `LayoutEngine.usableOptionIDs`; all of the posture's options when nil), stored as the
+    /// choice for this posture and feed count.
+    func cycleLayout(posture: Multiview.Posture, feedCount: Int, usable: [String]? = nil) {
+        let count = Self.layoutCount(feedCount)
+        let options = usable ?? LayoutEngine.optionIDs(posture: posture, feedCount: count)
+        guard options.count > 1 else { return }
+        // A choice that doesn't fit shows the first option that does: cycle on from that one.
+        let current = layoutOption(for: posture, feedCount: count)
+        let shown = options.firstIndex(of: current) ?? 0
+        store.setLayoutChoice(options[(shown + 1) % options.count], for: LayoutKey(posture: posture, feedCount: count))
+        layoutRevision += 1
+    }
+
+    private static func layoutCount(_ feedCount: Int) -> Int {
+        min(max(feedCount, 1), slotCount)
+    }
+
     /// Puts a feed in a slot, or empties it (nil). A feed already in another slot swaps places
     /// with this slot's: one feed never fills two slots. Emptying the main slot moves the next
-    /// feed (and the sound) into it.
+    /// feed into it; emptying the slot with the sound moves the sound to the main feed.
     func setFeed(_ channel: Channel?, at slot: Int) {
         guard slots.indices.contains(slot), currentItem != nil, !refreshing, errorText == nil else { return }
         if othersFrozen { unfreezeOthers() }
@@ -285,6 +373,10 @@ final class MultiviewController {
     }
 
     private func slotsChanged() {
+        // A feed put in (or moved out of) the slots never leaves the main spot empty while
+        // another slot has a feed.
+        promoteMainIfEmpty()
+        keepAudioOnAFeed()
         applyRoles()
         // The new main feed may be mid-nudge, or parked waiting for the old main feed's moment:
         // it is the reference now, so it plays from where it is.
@@ -301,11 +393,23 @@ final class MultiviewController {
         store.lastUsed = picks
     }
 
-    /// An empty main slot takes the first filled one: the sound and the main spot go to the next feed.
+    /// An empty main slot takes the first filled one: the main spot goes to the next feed.
     private func promoteMainIfEmpty() {
         guard slots[0] == nil, let first = slots.firstIndex(where: { $0 != nil }) else { return }
         slots.swapAt(0, first)
         picks.swapAt(0, first)
+    }
+
+    /// The sound goes to the main feed when its feed left the slots, stopped or reached its end.
+    /// Judged by the slots, not by `feeds`: a link refresh empties `feeds` while the slots stay.
+    /// The caller applies the roles.
+    private func keepAudioOnAFeed() {
+        if let id = audioChannelId, slots.contains(where: { $0?.id == id }), feedProblems[id] == nil,
+           feeds[id]?.ended != true {
+            return
+        }
+        let main = slots[0]?.id
+        if audioChannelId != main { audioChannelId = main }
     }
 
     // MARK: Playback controls
@@ -342,12 +446,11 @@ final class MultiviewController {
             feed.parked = false
         }
         seek(main, toSeconds: target, purpose: .move)
-        if !othersFrozen {
-            for feed in otherFeeds where feed.positioned {
-                let time = feed.player.currentTime()
-                guard time.isNumeric else { continue }
-                seek(feed, toSeconds: time.seconds + shift, purpose: .move)
-            }
+        // Frozen feeds are lined up again when they come back.
+        for feed in otherFeeds where feed.positioned && !isFrozen(feed) {
+            let time = feed.player.currentTime()
+            guard time.isNumeric else { continue }
+            seek(feed, toSeconds: time.seconds + shift, purpose: .move)
         }
         steadySince = Date()
     }
@@ -366,13 +469,15 @@ final class MultiviewController {
     /// Brings frozen feeds back (a tap, or 30 s without a stall), in step with the main feed.
     func unfreezeOthers() {
         guard othersFrozen else { return }
+        // The feed with the sound kept playing in step: only the frozen ones are lined up again.
+        let frozen = otherFeeds.filter { isFrozen($0) }
         othersFrozen = false
         frozenAt = nil
         // The stalls that froze them are still in the monitor's window: forget them.
         struggle.reset()
         steadySince = Date()
-        for feed in otherFeeds {
-            feed.droppedTotal = nil
+        for feed in otherFeeds { feed.droppedTotal = nil }
+        for feed in frozen {
             guard feed.positioned else { continue }
             // Any seek still pending from before the freeze no longer counts.
             feed.seekToken += 1
@@ -415,6 +520,10 @@ final class MultiviewController {
         slots[0]?.id == feed.channelId
     }
 
+    private func isFrozen(_ feed: MultiviewFeed) -> Bool {
+        isFrozen(channelId: feed.channelId)
+    }
+
     private func attach(_ channel: Channel) {
         guard let id = channel.id, feeds[id] == nil, let url = feedURLs[id] else { return }
         // These URLs come from a PLAY that identified as Android Chrome (F1 TV only sends every
@@ -446,16 +555,16 @@ final class MultiviewController {
         feed.player.replaceCurrentItem(with: nil)
     }
 
-    /// Sound and quality follow the slot: the main feed is heard and unlimited, the others are
-    /// silent and capped to their tile.
+    /// Sound follows `audioChannelId`: that feed alone is heard. Quality follows the slot: the
+    /// main feed is unlimited, the others are capped to their tile.
     private func applyRoles() {
         for feed in feeds.values { applyRole(feed) }
     }
 
     private func applyRole(_ feed: MultiviewFeed) {
-        let main = isMain(feed)
-        feed.player.isMuted = !main
-        if main {
+        let muted = feed.channelId != audioChannelId
+        if feed.player.isMuted != muted { feed.player.isMuted = muted }
+        if isMain(feed) {
             feed.item.preferredMaximumResolution = .zero
             feed.item.preferredPeakBitRate = 0
         } else {
@@ -521,7 +630,12 @@ final class MultiviewController {
     private func feedEnded(channelId: Int, itemID: ObjectIdentifier) {
         guard let feed = liveFeed(channelId, itemID) else { return }
         feed.ended = true
-        guard isMain(feed) else { return }
+        guard isMain(feed) else {
+            // The feed with the sound ended: the sound goes to the main feed.
+            keepAudioOnAFeed()
+            applyRoles()
+            return
+        }
         save()
         isPaused = true
         for other in feeds.values { updatePlayback(other) }
@@ -544,6 +658,8 @@ final class MultiviewController {
             // Like Android's tiles: only this feed stops, and its tile says why.
             detach(channelId)
             feedProblems[channelId] = text
+            keepAudioOnAFeed()
+            applyRoles()
             maybeStart()
         }
     }
@@ -628,7 +744,7 @@ final class MultiviewController {
 
     private func shouldPlay(_ feed: MultiviewFeed) -> Bool {
         started && feed.positioned && !feed.ended && !feed.parked && !isPaused && !refreshing
-            && (isMain(feed) || !othersFrozen)
+            && !isFrozen(feed)
     }
 
     /// Plays or pauses a feed to match the multiview. `play()` uses the feed's `defaultRate`.
@@ -746,13 +862,14 @@ final class MultiviewController {
 
     /// Twice a second, like Android's `syncTick`: each other feed against the main one. Far off:
     /// a seek (aimed ahead by what that feed's seeks cost). Slightly off: a small rate nudge
-    /// while playing. Feeds that are buffering, seeking or frozen are left alone.
+    /// while playing. Feeds that are buffering, seeking or frozen are left alone; while the others
+    /// are frozen, the feed with the sound is still kept in step.
     private func sync() {
-        guard !othersFrozen, let main = mainFeed, main.positioned, main.seekStartedAt == nil, !main.ended else { return }
+        guard let main = mainFeed, main.positioned, main.seekStartedAt == nil, !main.ended else { return }
         let mainRunning = main.player.timeControlStatus == .playing
         // The main feed is buffering: wait for it rather than chase it.
         if !isPaused && !mainRunning { return }
-        for feed in otherFeeds {
+        for feed in otherFeeds where !isFrozen(feed) {
             guard feed.positioned, feed.seekStartedAt == nil, !feed.ended else { continue }
             let offset = offsetSeconds(of: feed, from: main)
             if feed.parked {
@@ -854,13 +971,13 @@ final class MultiviewController {
         freezeIfStruggling(now)
     }
 
-    /// When the phone can't keep up, the other feeds pause on their last frame and the main one
-    /// keeps playing.
+    /// When the phone can't keep up, the other feeds pause on their last frame; the main one and
+    /// the one with the sound keep playing.
     private func freezeIfStruggling(_ now: Date) {
         guard !othersFrozen, struggle.shouldFreezeOthers(at: now) else { return }
         othersFrozen = true
         frozenAt = now
-        for feed in otherFeeds {
+        for feed in otherFeeds where isFrozen(feed) {
             feed.measureLead = false
             updatePlayback(feed)
         }
@@ -915,6 +1032,7 @@ final class MultiviewController {
                 if let id = slots[index]?.id, info.feeds[id] == nil { slots[index] = nil }
             }
             promoteMainIfEmpty()
+            keepAudioOnAFeed()
             for channel in slots.compactMap({ $0 }) { attach(channel) }
             applyRoles()
             if feeds.isEmpty { isLoading = false }

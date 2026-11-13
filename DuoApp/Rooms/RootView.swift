@@ -7,8 +7,8 @@ struct RootView: View {
     let model: AppModel
     @State private var planDismissed = false
     @State private var sheet: ActiveSheet?
-    /// The fold, tracked from the root so its frame is in root coordinates. In beta.1 only the
-    /// Settings panel lays out by it; it is in the environment for later betas.
+    /// The fold, tracked from the root so its frame is in root coordinates. The Settings panel and
+    /// the multiview lay out by it; it is also in the environment.
     @State private var fold = FoldState()
     /// Settings drawn by the app (`SettingsPanel`) instead of the system sheet: on a wide screen
     /// such as the Duo's inner one, so it can sit on the right-hand screen and glide between there
@@ -158,7 +158,7 @@ struct RootView: View {
                 get: { model.multiview.isPresented },
                 set: { if !$0 { model.multiview.close() } })
             ) {
-                MultiviewView(controller: model.multiview)
+                MultiviewView(controller: model.multiview, fold: fold)
             }
             .onChange(of: model.auth) { _, auth in
                 if case .signedIn(let account) = auth {

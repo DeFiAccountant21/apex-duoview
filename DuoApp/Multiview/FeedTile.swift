@@ -3,13 +3,17 @@ import F1TV
 import SwiftUI
 import UIKit
 
-/// One multiview slot: the feed's picture (aspect-fit, never cropped), its name, and the red
-/// SOUND badge on the main slot. An empty slot is a dark tile reading "Pick a feed".
+/// One multiview slot: the feed's picture (aspect-fit, never cropped), its name, the red SOUND
+/// badge on the feed with the sound, and a speaker button (top right) that moves the sound to
+/// this feed. An empty slot is a dark tile reading "Pick a feed".
 /// The tile only shows a player; the controller owns it.
 struct FeedTile: View {
     let controller: MultiviewController
     let channel: Channel?
     let slot: Int
+    /// False while the layout hides this feed (it plays on, out of sight): it then asks for the
+    /// lowest quality instead of its tile's size.
+    let isVisible: Bool
     /// While the multiview loads, empty tiles stay blank rather than ask for a pick.
     let showsPickPrompt: Bool
 
@@ -24,12 +28,14 @@ struct FeedTile: View {
     }
 
     private func feed(_ channel: Channel, id: Int) -> some View {
-        ZStack {
+        let hasSound = controller.audioChannelId == id
+        let problem = controller.feedProblems[id]
+        return ZStack {
             Color.black
             FeedPlayerLayer(player: controller.player(for: id))
-            if let problem = controller.feedProblems[id] {
+            if let problem {
                 note(problem)
-            } else if slot != 0 && controller.othersFrozen {
+            } else if controller.isFrozen(channelId: id) {
                 note("Paused to keep the main feed smooth")
             }
         }
@@ -38,7 +44,7 @@ struct FeedTile: View {
                 Text(channel.displayTitle)
                     .rowTitle(.caption)
                     .lineLimit(1)
-                if slot == 0 {
+                if hasSound {
                     Text("SOUND").liveBadge()
                 }
             }
@@ -52,7 +58,8 @@ struct FeedTile: View {
         // `onChange` runs on the main actor.
         .background {
             GeometryReader { proxy in
-                let size = proxy.size
+                // A hidden feed needs no picture: the smallest size asks for the lowest quality.
+                let size = isVisible ? proxy.size : CGSize(width: 1, height: 1)
                 Color.clear
                     .onChange(of: size, initial: true) { _, newSize in
                         controller.setTileSize(
@@ -64,8 +71,34 @@ struct FeedTile: View {
             .allowsHitTesting(false)
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(slot == 0 ? "\(channel.displayTitle), sound on" : channel.displayTitle)
+        .accessibilityLabel(hasSound ? "\(channel.displayTitle), sound on" : channel.displayTitle)
         .accessibilityAddTraits(slot == 0 ? AccessibilityTraits() : .isButton)
+        // After the tile's own accessibility element, so the button stays its own element; its
+        // own Button, so a tap on it never reaches the tile's tap or drag.
+        .overlay(alignment: .topTrailing) {
+            if problem == nil {
+                speakerButton(id: id, title: channel.displayTitle, hasSound: hasSound)
+            }
+        }
+    }
+
+    /// The speaker: on the feed with the sound a speaker with waves, on the others a crossed-out
+    /// one; tapping it moves the sound here. A 44 pt hit area around a smaller disc.
+    private func speakerButton(id: Int, title: String, hasSound: Bool) -> some View {
+        Button {
+            controller.setAudio(channelId: id)
+        } label: {
+            Image(systemName: hasSound ? "speaker.wave.2.fill" : "speaker.slash")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.white)
+                .frame(width: 30, height: 30)
+                .background(Color.black.opacity(0.55), in: Circle())
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(hasSound ? "Sound from \(title)" : "Play sound from \(title)")
+        .accessibilityAddTraits(hasSound ? .isSelected : AccessibilityTraits())
     }
 
     private var empty: some View {
