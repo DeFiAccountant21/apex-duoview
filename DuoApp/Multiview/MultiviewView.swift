@@ -172,6 +172,9 @@ struct MultiviewView: View {
         .onChange(of: controlsPinned) { _, pinned in
             if pinned { controlsShown = true }
         }
+        // A tile's speaker answers its own taps (it isn't the touch surface): a sound move counts
+        // as a tile tap, without another gesture beside it.
+        .onChange(of: controller.audioChannelId) { _, _ in noteInteraction() }
         .statusBarHidden(true)
         // The cover reads the fold too: the root's reader sits under the cover, and may not see
         // a change while the cover is up. Both write the same full-screen values; `FoldState`
@@ -346,7 +349,8 @@ struct MultiviewView: View {
             canSwitchLayout: usable.count > 1,
             scrubbing: $scrubbing,
             onShow: { showControls() },
-            onInteraction: { noteInteraction() },
+            // A control used, even from a menu that outlived the fade: the controls are up again.
+            onInteraction: { showControls() },
             onSwitchLayout: {
                 controller.cycleLayout(posture: posture, feedCount: feedCount, usable: usable)
             },
@@ -377,8 +381,8 @@ struct MultiviewView: View {
         }
     }
 
-    /// A tile touch or a control used while the controls show: they stay another 4 s. Hidden,
-    /// they stay hidden.
+    /// A tile touch (or a speaker moving the sound) while the controls show: they stay another
+    /// 4 s. Hidden, they stay hidden.
     private func noteInteraction() {
         if controlsShown { controlsTouch += 1 }
     }
