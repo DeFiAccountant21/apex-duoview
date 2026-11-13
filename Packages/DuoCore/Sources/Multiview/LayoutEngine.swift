@@ -56,24 +56,51 @@ public enum LayoutEngine {
 
     // MARK: Frames
 
+    /// Exactly `feedCount` frames (none for `feedCount <= 0`); index 0 is the main tile. For
+    /// `feedCount > 4` the extra tiles are hidden and take the main tile's rect. A zero or negative
+    /// screen yields hidden zero rects. An unknown or nil `optionID` means the default, and an
+    /// option that does not fit this screen falls back as described in `compute`.
     public static func frames(screen: CGSize, foldFrame: CGRect?, posture: Posture,
                               feedCount: Int, optionID: String?) -> [TileFrame] {
         guard feedCount > 0 else { return [] }
+        guard screen.width > 0, screen.height > 0 else {
+            return Array(repeating: TileFrame(rect: .zero, visible: false), count: feedCount)
+        }
         let n = min(feedCount, 4)
         var result = compute(screen: screen, foldFrame: foldFrame, posture: posture, n: n, optionID: optionID)
-        // More than 4 feeds: extra tiles are hidden behind the main one.
         while result.count < feedCount, let main = result.first {
             result.append(TileFrame(rect: main.rect, visible: false))
         }
         return result
     }
 
+    /// The options that fit this screen and fold (every visible tile at least 200 pt wide), in
+    /// `optionIDs` order of the posture the layout really uses (book or laptop without a usable
+    /// fold lay out as flat). Never empty: if nothing fits, the first option.
+    public static func usableOptionIDs(screen: CGSize, foldFrame: CGRect?, posture: Posture,
+                                       feedCount: Int) -> [String] {
+        let n = min(max(feedCount, 1), 4)
+        if posture == .closed { return optionIDs(posture: .closed, feedCount: n) }
+        let (effective, fold) = resolve(screen: screen, foldFrame: foldFrame, posture: posture)
+        let all = optionIDs(posture: effective, feedCount: n)
+        guard screen.width > 0, screen.height > 0 else { return [all[0]] }
+        let ok = all.filter { id in
+            build(id: id, screen: screen, fold: fold, n: n).map { fits($0, screen: screen) } ?? false
+        }
+        return ok.isEmpty ? [all[0]] : ok
+    }
+
+    /// The laptop lower region (below the fold region), clamped to the screen inset by the margin.
     public static func reservedArea(screen: CGSize, foldFrame: CGRect?, posture: Posture,
                                     feedCount: Int) -> CGRect? {
-        guard posture == .laptop, feedCount == 1, let fold = foldFrame else { return nil }
-        let y = fold.maxY + gap
-        let r = CGRect(x: margin, y: y, width: screen.width - 2 * margin, height: screen.height - margin - y)
-        return r.width > 0 && r.height > 0 ? r : nil
+        guard posture == .laptop, feedCount == 1, screen.width > 0, screen.height > 0 else { return nil }
+        let (effective, fold) = resolve(screen: screen, foldFrame: foldFrame, posture: posture)
+        guard effective == .laptop, let f = fold else { return nil }
+        let whole = CGRect(x: margin, y: margin, width: screen.width - 2 * margin, height: screen.height - 2 * margin)
+        let top = f.maxY + gap
+        let clamped = CGRect(x: whole.minX, y: top, width: whole.width, height: whole.maxY - top)
+            .intersection(whole)
+        return clamped.isNull || clamped.width <= 0 || clamped.height <= 0 ? nil : clamped
     }
 
     public static func screenUse(_ frames: [TileFrame], screen: CGSize) -> Double {
@@ -85,28 +112,43 @@ public enum LayoutEngine {
 
     // MARK: Resolution and fallbacks
 
+    /// Effective posture and sanitised fold: the fold is clipped to the screen; one that misses the
+    /// screen or has the wrong orientation for the posture (book needs taller than wide, laptop
+    /// wider than tall) counts as nil, and book/laptop then lay out as flat.
+    private static func resolve(screen: CGSize, foldFrame: CGRect?, posture: Posture) -> (Posture, CGRect?) {
+        let effective: Posture = (posture == .unknown) ? .flat : posture
+        guard effective == .book || effective == .laptop, let raw = foldFrame else { return (.flat, nil) }
+        let f = raw.intersection(CGRect(origin: .zero, size: screen))
+        guard !f.isNull, f.width > 0, f.height > 0 else { return (.flat, nil) }
+        if effective == .book && !(f.height > f.width) { return (.flat, nil) }
+        if effective == .laptop && !(f.width > f.height) { return (.flat, nil) }
+        return (effective, f)
+    }
+
+    private static func fits(_ frames: [TileFrame], screen: CGSize) -> Bool {
+        let bounds = CGRect(origin: .zero, size: screen).insetBy(dx: -0.01, dy: -0.01)
+        return frames.filter(\.visible).allSatisfy {
+            $0.rect.width >= minWidth - 0.01 && bounds.contains($0.rect)
+        }
+    }
+
+    /// Preferred option first, then the posture's other options in order; if none fits, a single
+    /// main tile (the 200 pt minimum is relaxed only for it) with the rest hidden.
     private static func compute(screen: CGSize, foldFrame: CGRect?, posture: Posture,
                                 n: Int, optionID: String?) -> [TileFrame] {
         if posture == .closed { return closed(screen: screen, n: n) }
-
-        var effective: Posture = (posture == .unknown) ? .flat : posture
-        if (effective == .book || effective == .laptop) && foldFrame == nil { effective = .flat }
-
+        let (effective, fold) = resolve(screen: screen, foldFrame: foldFrame, posture: posture)
         let options = optionIDs(posture: effective, feedCount: n)
         let chosen = optionID.flatMap { options.contains($0) ? $0 : nil } ?? options[0]
-
-        // Preferred option, then the posture's other options, then flat's.
-        var order = [chosen] + options.filter { $0 != chosen }
-        if effective != .flat { order += optionIDs(posture: .flat, feedCount: n) }
-
-        var best: (frames: [TileFrame], width: CGFloat)?
-        for id in order {
-            let f = build(id: id, screen: screen, fold: foldFrame, n: n)
-            let w = f.filter(\.visible).map(\.rect.width).min() ?? 0
-            if w >= minWidth - 0.01 { return f }
-            if best == nil || w > best!.width { best = (f, w) }
+        for id in [chosen] + options.filter({ $0 != chosen }) {
+            if let f = build(id: id, screen: screen, fold: fold, n: n), fits(f, screen: screen) { return f }
         }
-        return best?.frames ?? []
+        // Last resort.
+        let whole = wholeRegion(screen) ?? Region(x: 0, y: 0, w: screen.width, h: screen.height)
+        var region = whole
+        if effective == .laptop, let f = fold, let (top, _) = halves(whole, f), top.w >= minWidth { region = top }
+        let main = one(region)
+        return (0..<n).map { TileFrame(rect: main, visible: $0 == 0) }
     }
 
     private static func closed(screen: CGSize, n: Int) -> [TileFrame] {
@@ -212,23 +254,38 @@ public enum LayoutEngine {
 
     // MARK: Option builder
 
-    private static func build(id: String, screen: CGSize, fold: CGRect?, n: Int) -> [TileFrame] {
-        let whole = Region(x: margin, y: margin, w: screen.width - 2 * margin, h: screen.height - 2 * margin)
-        func visibleAll(_ rs: [CGRect]) -> [TileFrame] { rs.map { TileFrame(rect: $0) } }
+    private static func wholeRegion(_ screen: CGSize) -> Region? {
+        let r = Region(x: margin, y: margin, w: screen.width - 2 * margin, h: screen.height - 2 * margin)
+        return r.w > 0 && r.h > 0 ? r : nil
+    }
 
-        // Left/right halves around a vertical fold, top/bottom halves around a horizontal one.
-        func sides() -> (Region, Region)? {
-            guard let f = fold else { return nil }
-            let l = Region(x: margin, y: margin, w: f.minX - gap - margin, h: whole.h)
-            let rx = f.maxX + gap
-            return (l, Region(x: rx, y: margin, w: screen.width - margin - rx, h: whole.h))
-        }
-        func halves() -> (Region, Region)? {
-            guard let f = fold else { return nil }
-            let t = Region(x: margin, y: margin, w: whole.w, h: f.minY - gap - margin)
-            let by = f.maxY + gap
-            return (t, Region(x: margin, y: by, w: whole.w, h: screen.height - margin - by))
-        }
+    private static func clamp(_ whole: Region, x0: CGFloat, y0: CGFloat, x1: CGFloat, y1: CGFloat) -> Region? {
+        let ax = max(x0, whole.x), ay = max(y0, whole.y)
+        let bx = min(x1, whole.x + whole.w), by = min(y1, whole.y + whole.h)
+        return bx - ax > 0 && by - ay > 0 ? Region(x: ax, y: ay, w: bx - ax, h: by - ay) : nil
+    }
+
+    /// Left and right regions around a vertical fold, each clamped to the inset screen.
+    private static func sides(_ whole: Region, _ f: CGRect) -> (Region, Region)? {
+        guard let l = clamp(whole, x0: whole.x, y0: whole.y, x1: f.minX - gap, y1: whole.y + whole.h),
+              let r = clamp(whole, x0: f.maxX + gap, y0: whole.y, x1: whole.x + whole.w, y1: whole.y + whole.h)
+        else { return nil }
+        return (l, r)
+    }
+
+    /// Top and bottom regions around a horizontal fold, each clamped to the inset screen.
+    private static func halves(_ whole: Region, _ f: CGRect) -> (Region, Region)? {
+        guard let t = clamp(whole, x0: whole.x, y0: whole.y, x1: whole.x + whole.w, y1: f.minY - gap),
+              let b = clamp(whole, x0: whole.x, y0: f.maxY + gap, x1: whole.x + whole.w, y1: whole.y + whole.h)
+        else { return nil }
+        return (t, b)
+    }
+
+    /// Frames for one option, or nil when its regions are empty or the id is not for this fold.
+    private static func build(id: String, screen: CGSize, fold: CGRect?, n: Int) -> [TileFrame]? {
+        guard let whole = wholeRegion(screen) else { return nil }
+        func s() -> (Region, Region)? { fold.flatMap { sides(whole, $0) } }
+        func h() -> (Region, Region)? { fold.flatMap { halves(whole, $0) } }
 
         let rects: [CGRect]?
         switch id {
@@ -239,20 +296,21 @@ public enum LayoutEngine {
         case "flat.mainBesideBelow": rects = mainBesideBelow(whole)
         case "flat.grid": rects = gridCells(whole).cells
         case "book.across":
+            guard fold != nil else { return nil }
             let main = one(whole)
             return (0..<n).map { TileFrame(rect: main, visible: $0 == 0) }
-        case "book.oneSide": rects = sides().map { [one($0.0)] }
-        case "book.perScreen": rects = sides().map { [one($0.0), one($0.1)] }
-        case "book.oneLeftTwoRight": rects = sides().map { [one($0.0)] + column($0.1, 2) }
-        case "book.twoPerScreen": rects = sides().map { column($0.0, 2) + column($0.1, 2) }
-        case "laptop.mainUp": rects = halves().map { [one($0.0)] }
-        case "laptop.oneUpOneDown": rects = halves().map { [one($0.0), one($0.1)] }
-        case "laptop.twoStacked": rects = halves().map { [one($0.0)] + column($0.1, 2) }
-        case "laptop.twoSideBySide": rects = halves().map { [one($0.0)] + row($0.1, 2) }
-        case "laptop.pyramid": rects = halves().map { [one($0.0)] + pyramid($0.1) }
+        case "book.oneSide": rects = s().map { [one($0.0)] }
+        case "book.perScreen": rects = s().map { [one($0.0), one($0.1)] }
+        case "book.oneLeftTwoRight": rects = s().map { [one($0.0)] + column($0.1, 2) }
+        case "book.twoPerScreen": rects = s().map { column($0.0, 2) + column($0.1, 2) }
+        case "laptop.mainUp": rects = h().map { [one($0.0)] }
+        case "laptop.oneUpOneDown": rects = h().map { [one($0.0), one($0.1)] }
+        case "laptop.twoStacked": rects = h().map { [one($0.0)] + column($0.1, 2) }
+        case "laptop.twoSideBySide": rects = h().map { [one($0.0)] + row($0.1, 2) }
+        case "laptop.pyramid": rects = h().map { [one($0.0)] + pyramid($0.1) }
         default: rects = nil
         }
-        guard let rs = rects, rs.count == n else { return [] }
-        return visibleAll(rs)
+        guard let rs = rects, rs.count == n else { return nil }
+        return rs.map { TileFrame(rect: $0) }
     }
 }
