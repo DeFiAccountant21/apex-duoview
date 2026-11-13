@@ -1,4 +1,9 @@
 import Foundation
+#if canImport(CoreGraphics)
+// On Apple platforms CGRect's Equatable conformance lives in CoreGraphics; Foundation alone
+// doesn't make it visible. On Linux Foundation defines the CG types itself.
+import CoreGraphics
+#endif
 
 /// Device posture as the layout engine sees it (the app maps its own posture to this one).
 public enum Posture: String, Codable, Sendable, CaseIterable {
