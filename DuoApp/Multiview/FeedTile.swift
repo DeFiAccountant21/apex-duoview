@@ -87,6 +87,8 @@ struct FeedTile: View {
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+        // A tap opens the feeds editor on this slot.
+        .accessibilityAddTraits(showsPickPrompt ? .isButton : AccessibilityTraits())
     }
 
     private func note(_ text: String) -> some View {

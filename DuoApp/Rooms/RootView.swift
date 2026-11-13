@@ -14,11 +14,15 @@ struct RootView: View {
     /// such as the Duo's inner one, so it can sit on the right-hand screen and glide between there
     /// and the middle as the phone folds.
     @State private var settingsPanelOpen = false
+    /// The drivers for the first-run "Pick your driver" sheet, once loaded.
+    @State private var driverChoices: [Channel] = []
 
     private enum ActiveSheet: Identifiable {
         case settings
         case signIn
         case plan
+        /// "Pick your driver": its drivers are in `driverChoices`.
+        case driver
         var id: Self { self }
     }
 
@@ -66,14 +70,42 @@ struct RootView: View {
             onSignOut: { signOutAndClearWebData(model) })
     }
 
-    /// The one sheet binding. Dismissing the plan sheet any way at all counts as "seen".
+    /// The one sheet binding. Dismissing the plan sheet any way at all counts as "seen";
+    /// swiping "Pick your driver" away counts as "Skip".
     private var sheetBinding: Binding<ActiveSheet?> {
         Binding(
             get: { sheet },
             set: { newValue in
                 if newValue == nil, sheet == .plan { planDismissed = true }
+                if newValue == nil, sheet == .driver { model.answerDriverPrompt(nil) }
                 sheet = newValue
             })
+    }
+
+    // MARK: Pick your driver
+
+    /// Signed in and never answered: load the latest race's drivers (after the first sign-in, or
+    /// at launch). If they can't load, or there are none, nothing shows and the flag stays unset,
+    /// so it is offered again next launch.
+    private func loadDriverPrompt() async {
+        guard case .signedIn = model.auth, !model.driverPromptShown, driverChoices.isEmpty else { return }
+        guard let drivers = try? await model.driverChoices(), !drivers.isEmpty, !Task.isCancelled else { return }
+        driverChoices = drivers
+        offerDriverPrompt()
+    }
+
+    /// Shows "Pick your driver" once nothing else is up: no other sheet, no Settings panel, and
+    /// never over the player or the multiview (it waits until they close).
+    private func offerDriverPrompt() {
+        guard !driverChoices.isEmpty, case .signedIn = model.auth, !model.driverPromptShown,
+              sheet == nil, !settingsPanelOpen, !model.playback.isPresented, !model.multiview.isPresented
+        else { return }
+        sheet = .driver
+    }
+
+    private func answerDriverPrompt(_ lastName: String?) {
+        model.answerDriverPrompt(lastName)
+        sheet = nil
     }
 
     var body: some View {
@@ -122,6 +154,9 @@ struct RootView: View {
             // Only a change of screen width (rotating, or switching between the Duo's screens)
             // swaps the panel and the system sheet. Folding never does: the panel just moves.
             // Another sheet (sign-in, plan) is never replaced.
+            .onChange(of: settingsPanelOpen) { _, open in
+                if !open { offerDriverPrompt() }
+            }
             .onChange(of: usesSettingsPanel) { _, panel in
                 if panel, sheet == .settings {
                     sheet = nil
@@ -131,7 +166,8 @@ struct RootView: View {
                     if sheet == nil { sheet = .settings }
                 }
             }
-            .sheet(item: sheetBinding) { active in
+            // Each dismissal finishes before "Pick your driver" is offered again.
+            .sheet(item: sheetBinding, onDismiss: { offerDriverPrompt() }) { active in
                 switch active {
                 case .settings:
                     settingsView
@@ -146,20 +182,28 @@ struct RootView: View {
                     }
                 case .plan:
                     PlanSheet { signOutAndClearWebData(model) }
+                case .driver:
+                    DriverPromptSheet(
+                        drivers: driverChoices,
+                        onChoose: { answerDriverPrompt($0) },
+                        onSkip: { answerDriverPrompt(nil) })
                 }
             }
             .fullScreenCover(isPresented: Binding(
                 get: { model.playback.isPresented },
-                set: { if !$0 { model.playback.close() } })
+                set: { if !$0 { model.playback.close() } }),
+                onDismiss: { offerDriverPrompt() }
             ) {
                 PlayerCover(controller: model.playback)
             }
             .fullScreenCover(isPresented: Binding(
                 get: { model.multiview.isPresented },
-                set: { if !$0 { model.multiview.close() } })
+                set: { if !$0 { model.multiview.close() } }),
+                onDismiss: { offerDriverPrompt() }
             ) {
                 MultiviewView(controller: model.multiview, fold: fold)
             }
+            .task(id: model.auth) { await loadDriverPrompt() }
             .onChange(of: model.auth) { _, auth in
                 if case .signedIn(let account) = auth {
                     if !account.hasVideoPlan && !planDismissed {
@@ -173,6 +217,9 @@ struct RootView: View {
                 }
                 planDismissed = false
                 if sheet == .plan { sheet = nil }
+                // Signing out closes "Pick your driver" unanswered: it is offered after the next sign-in.
+                if sheet == .driver { sheet = nil }
+                driverChoices = []
             }
             .environment(fold)
     }

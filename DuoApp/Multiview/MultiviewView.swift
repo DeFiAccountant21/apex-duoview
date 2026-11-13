@@ -12,7 +12,10 @@ import SwiftUI
 ///
 /// Touch: a tap swaps a feed with the main one; press and hold, then drag a feed onto another to
 /// trade places; on the closed layout a horizontal swipe changes the main feed; each tile's
-/// speaker button moves the sound.
+/// speaker button moves the sound; a "Pick a feed" tile opens the feeds editor on its slot.
+///
+/// Feeds: the top bar's "Feeds" opens the feeds editor (a sheet). With fewer than four feeds the
+/// once-only "fewer feeds" question shows, never over the editor.
 ///
 /// Coordinates: the inner reader ignores the safe area, so its space is the full screen, the same
 /// space as `FoldState.foldFrame` and as the drag's global locations. The outer reader keeps the
@@ -26,11 +29,22 @@ struct MultiviewView: View {
     @GestureState(resetTransaction: Transaction(animation: .snappy)) private var drag: TileDrag? = nil
     /// The tile dragged last stays above the others while it glides into place.
     @State private var raised: TileKey?
+    /// The feeds editor, while it is asked for.
+    @State private var editor: EditorRequest?
+    /// True from opening the editor until its sheet has finished closing: the "fewer feeds"
+    /// question waits for that, so it is never presented over the editor or during its dismissal.
+    @State private var editorShowing = false
 
     /// How long a press is held before the tile lifts and follows the finger.
     static let holdBeforeDrag: Double = 0.35
     /// How far a horizontal swipe on the closed layout goes before it changes the main feed.
     static let swipeDistance: CGFloat = 60
+
+    private struct EditorRequest: Identifiable {
+        let id = UUID()
+        /// Opens straight on this slot's feed list.
+        let slot: Int?
+    }
 
     /// A tile's identity: its feed, or the empty slot it stands in for.
     private enum TileKey: Hashable {
@@ -120,6 +134,10 @@ struct MultiviewView: View {
             .ignoresSafeArea()
         }
         .overlay { status }
+        .sheet(item: $editor, onDismiss: { editorShowing = false }) { request in
+            FeedsEditor(controller: controller, startSlot: request.slot)
+        }
+        .fewerFeedsPrompt(controller, enabled: !editorShowing)
         .statusBarHidden(true)
         // The cover reads the fold too: the root's reader sits under the cover, and may not see
         // a change while the cover is up. Both write the same full-screen values; `FoldState`
@@ -131,9 +149,10 @@ struct MultiviewView: View {
 
     /// The tiles' frames for this screen, in full-screen coordinates. The tiles are laid out inside
     /// the safe area (spec: tiles stay out of cutouts; the optional edge-to-edge main feed is left
-    /// out), and the closed check still uses the whole screen's width. Until the "fewer feeds"
-    /// choice (Task 9), the layout fits the filled slots; empty slots are only laid out ("Pick a
-    /// feed") when all four are empty.
+    /// out), and the closed check still uses the whole screen's width. With "keep four spots" (or
+    /// no feed at all) the layout has four tiles and every empty slot shows "Pick a feed" in its
+    /// slot's frame (slot index = frame index; slot 0 always has a feed when any slot does);
+    /// otherwise it fits the filled slots.
     private func arrangement(screen full: CGSize, insets: EdgeInsets) -> Arrangement {
         let safeRect = CGRect(
             x: insets.leading,
@@ -146,7 +165,7 @@ struct MultiviewView: View {
         let screen = input.screen
         let all = entries
         let filled = all.filter { $0.channel != nil }
-        let shown = filled.isEmpty ? all : filled
+        let shown = controller.effectiveFeedCount == all.count ? all : filled
         let count = shown.count
         let option = controller.layoutOption(for: input.posture, feedCount: count)
         let frames = LayoutEngine.frames(
@@ -246,10 +265,13 @@ struct MultiviewView: View {
         controller.makeMain(slot: slot)
     }
 
-    /// Without controls yet (Task 10), a tap resumes what is paused, brings frozen feeds back,
-    /// or makes the tapped feed the main one.
+    /// Without controls yet (Task 10), a tap on a "Pick a feed" tile opens the feeds editor on
+    /// that slot; any other tap resumes what is paused, brings frozen feeds back, or makes the
+    /// tapped feed the main one.
     private func tapped(slot: Int) {
-        if controller.isPaused {
+        if controller.slots.indices.contains(slot), controller.slots[slot] == nil {
+            openEditor(slot: slot)
+        } else if controller.isPaused {
             controller.play()
         } else if controller.othersFrozen {
             controller.unfreezeOthers()
@@ -258,10 +280,17 @@ struct MultiviewView: View {
         }
     }
 
+    private func openEditor(slot: Int?) {
+        // Not before the session's feeds are known, and not over an error.
+        guard controller.errorText == nil, !controller.channels.isEmpty, editor == nil else { return }
+        editorShowing = true
+        editor = EditorRequest(slot: slot)
+    }
+
     // MARK: Chrome
 
-    /// Close, and "Switch layout" when this screen has more than one layout for these feeds.
-    /// (Task 10 moves ⟳ into the full controls.)
+    /// Close, "Switch layout" when this screen has more than one layout for these feeds, and
+    /// "Feeds" (the feeds editor). (Task 10 moves them into the full controls.)
     private func topBar(_ layout: Arrangement) -> some View {
         HStack(spacing: 8) {
             if controller.errorText == nil {
@@ -292,9 +321,30 @@ struct MultiviewView: View {
                     }
                     .buttonStyle(.plain)
                 }
+                if !controller.channels.isEmpty {
+                    Button {
+                        openEditor(slot: nil)
+                    } label: {
+                        chromeLabel("Feeds", systemImage: "rectangle.grid.2x2")
+                    }
+                    .buttonStyle(.plain)
+                }
             }
         }
         .padding(12)
+    }
+
+    /// A top-bar button's look: white condensed text on a dark capsule, in a 44 pt high hit area.
+    private func chromeLabel(_ title: String, systemImage: String) -> some View {
+        Label(title, systemImage: systemImage)
+            .font(.footnote.bold())
+            .fontWidth(.condensed)
+            .foregroundStyle(.white)
+            .padding(.horizontal, 12)
+            .frame(minHeight: 32)
+            .background(Color.black.opacity(0.5), in: Capsule())
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
     }
 
     @ViewBuilder

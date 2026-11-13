@@ -33,6 +33,9 @@ final class AppModel {
     @ObservationIgnored let multiviewStore: MultiviewStore
     /// The multiview player, shown full screen by the root while it has something to show.
     @ObservationIgnored let multiview: MultiviewController
+    /// Your driver (Settings › Multiview › My driver): their onboard is the second default feed.
+    /// Mirrors the multiview store, which isn't observed.
+    private(set) var favouriteDriver: String?
 
     init() {
         let session = F1TVSession(http: URLSessionHTTPClient())
@@ -52,6 +55,37 @@ final class AppModel {
         self.multiviewStore = multiviewStore
         self.multiview = MultiviewController(
             coordinator: player, store: multiviewStore, recents: recents, history: history)
+        favouriteDriver = multiviewStore.favouriteDriver
+    }
+
+    // MARK: Your driver
+
+    /// The first-run "Pick your driver" sheet was answered (a driver, or Skip).
+    var driverPromptShown: Bool { multiviewStore.driverPromptShown }
+
+    /// The drivers to choose from: the onboard feeds of the latest race F1 TV lists, by racing
+    /// number. Empty when that race lists none.
+    func driverChoices() async throws -> [Channel] {
+        guard let race = DriverChoice.newestRace(try await catalogue.archiveRaces()) else { return [] }
+        let detail = try await catalogue.video(contentId: race.contentId)
+        return DriverChoice.drivers(in: detail.channels)
+    }
+
+    /// Settings › Multiview › My driver. Only the driver changes; the last-used feeds stay.
+    func setFavouriteDriver(_ lastName: String?) {
+        multiviewStore.favouriteDriver = lastName
+        favouriteDriver = multiviewStore.favouriteDriver
+    }
+
+    /// The first-run sheet's answer: a driver (also resets the last-used feeds to the new
+    /// default), or nil for "Skip". Either way it isn't asked again.
+    func answerDriverPrompt(_ lastName: String?) {
+        if let lastName {
+            multiviewStore.favouriteDriver = lastName
+            multiviewStore.resetToDefault()
+            favouriteDriver = multiviewStore.favouriteDriver
+        }
+        multiviewStore.driverPromptShown = true
     }
 
     /// Opens a session's multiview where its bookmark left off (a live one at the live edge).

@@ -65,6 +65,11 @@ final class MultiviewController {
     private var players: [Int: AVPlayer] = [:]
     /// Bumped when a layout choice is stored: the store isn't observed, this makes views re-read it.
     private var layoutRevision = 0
+    /// The saved presets, read back from the store after every change (the store isn't observed).
+    private(set) var presets: [Preset] = []
+    /// What to do with fewer than four feeds: ask, keep four spots, or fit them to the screen.
+    /// Mirrors the store; change it with `setFewerFeeds`.
+    private(set) var fewerFeeds: FewerFeeds = .ask
 
     @ObservationIgnored private let coordinator: PlayCoordinator
     @ObservationIgnored private let store: MultiviewStore
@@ -108,6 +113,8 @@ final class MultiviewController {
         self.store = store
         self.recents = recents
         self.history = history
+        presets = store.presets
+        fewerFeeds = store.fewerFeeds
     }
 
     isolated deinit {
@@ -357,19 +364,145 @@ final class MultiviewController {
                     picks.swapAt(slot, other)
                 }
             } else {
-                if let old = slots[slot]?.id { detach(old) }
+                if let old = slots[slot]?.id {
+                    keepPlace(leaving: [old])
+                    detach(old)
+                }
                 slots[slot] = chosen
                 picks[slot] = FeedPick(chosen)
                 attach(chosen)
             }
         } else {
             guard let old = slots[slot]?.id else { return }
+            keepPlace(leaving: [old])
             detach(old)
             slots[slot] = nil
             picks[slot] = nil
             promoteMainIfEmpty()
         }
         slotsChanged()
+    }
+
+    // MARK: Choosing feeds
+
+    /// How many slots have a feed.
+    var filledCount: Int {
+        slots.reduce(0) { $0 + ($1 == nil ? 0 : 1) }
+    }
+
+    /// How many tiles the layout has: four when empty spots are kept ("Pick a feed" in each) or
+    /// when no slot has a feed, otherwise the filled slots (fit to the screen; also while the
+    /// answer is still to be asked).
+    var effectiveFeedCount: Int {
+        let filled = filledCount
+        if fewerFeeds == .keepSpots || filled == 0 { return Self.slotCount }
+        return filled
+    }
+
+    /// The "fewer feeds" question is due: never answered, and the multiview is showing one to three
+    /// feeds (one removed, a remembered feed missing from this session, or a short session).
+    var asksFewerFeeds: Bool {
+        guard fewerFeeds == .ask, isPresented, !isLoading, errorText == nil else { return false }
+        let filled = filledCount
+        return filled > 0 && filled < Self.slotCount
+    }
+
+    /// Stores the "fewer feeds" answer (the prompt, or Settings › Multiview).
+    func setFewerFeeds(_ value: FewerFeeds) {
+        store.fewerFeeds = value
+        fewerFeeds = value
+    }
+
+    /// Empties every slot. The players stop; the next feed picked starts where the main one was.
+    func clearAll() {
+        replacePicks(Array(repeating: nil, count: Self.slotCount))
+    }
+
+    /// Puts the default feeds back (your driver's onboard among them).
+    func resetToDefault() {
+        replacePicks(store.defaultPicks)
+    }
+
+    /// The current feeds become the default ("Reset to default" brings them back).
+    func makeCurrentFeedsDefault() {
+        store.defaultPicks = picks
+    }
+
+    /// Loads a preset's feeds and its layout choices. Like every slot change, no PLAY: the feeds
+    /// come from the links this multiview already has.
+    func apply(_ preset: Preset) {
+        guard currentItem != nil, !refreshing, errorText == nil else { return }
+        for posture in Multiview.Posture.allCases {
+            for count in 1...Self.slotCount {
+                let key = LayoutKey(posture: posture, feedCount: count)
+                if let choice = preset.layouts[key.string] { store.setLayoutChoice(choice, for: key) }
+            }
+        }
+        layoutRevision += 1
+        replacePicks(preset.picks)
+    }
+
+    /// Saves the current feeds and layout choices under a name. Throws `PresetError`.
+    func saveAsPreset(name: String) throws {
+        defer { presets = store.presets }
+        try store.savePreset(name: name, picks: picks, layouts: currentLayouts())
+    }
+
+    func renamePreset(id: UUID, to name: String) throws {
+        defer { presets = store.presets }
+        try store.renamePreset(id: id, to: name)
+    }
+
+    /// The preset takes the current feeds and layout choices; its name stays.
+    func updatePreset(id: UUID) throws {
+        defer { presets = store.presets }
+        try store.updatePreset(id: id, picks: picks, layouts: currentLayouts())
+    }
+
+    func deletePreset(id: UUID) {
+        store.deletePreset(id: id)
+        presets = store.presets
+    }
+
+    /// Every stored layout choice, keyed by `LayoutKey.string`, for a preset.
+    private func currentLayouts() -> [String: String] {
+        var layouts: [String: String] = [:]
+        for posture in Multiview.Posture.allCases {
+            for count in 1...Self.slotCount {
+                let key = LayoutKey(posture: posture, feedCount: count)
+                if let choice = store.layoutChoice(for: key) { layouts[key.string] = choice }
+            }
+        }
+        return layouts
+    }
+
+    /// Fills all four slots from picks at once (clear all, reset, a preset): feeds that stay keep
+    /// playing, feeds that leave stop, new ones start from the links already in hand and line up
+    /// with the others. Never a PLAY.
+    private func replacePicks(_ wanted: [FeedPick?]) {
+        guard currentItem != nil, !refreshing, errorText == nil else { return }
+        if othersFrozen { unfreezeOthers() }
+        var newPicks = Array(wanted.prefix(Self.slotCount))
+        while newPicks.count < Self.slotCount { newPicks.append(nil) }
+        let newSlots = FeedPick.resolve(newPicks, in: channels)
+        let staying = Set(newSlots.compactMap { $0?.id })
+        let leaving = slots.compactMap { $0?.id }.filter { !staying.contains($0) }
+        keepPlace(leaving: Set(leaving))
+        for id in leaving { detach(id) }
+        slots = newSlots
+        picks = newPicks
+        for channel in newSlots.compactMap({ $0 }) { attach(channel) }
+        // Nothing left to start: no spinner waiting for a feed.
+        if feeds.isEmpty { isLoading = false }
+        slotsChanged()
+    }
+
+    /// Before the feeds in `leaving` stop: when no feed that stays is in place, the next feed to
+    /// start begins where the main one is now, not where the multiview opened.
+    private func keepPlace(leaving: Set<Int>) {
+        guard !slotFeeds.contains(where: { $0.positioned && !leaving.contains($0.channelId) }) else { return }
+        save()
+        if let start = mainStart() { pendingStart = start }
     }
 
     private func slotsChanged() {
