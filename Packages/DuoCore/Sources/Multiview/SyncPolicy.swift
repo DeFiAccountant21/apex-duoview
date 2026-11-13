@@ -84,3 +84,25 @@ public struct StruggleMonitor: Sendable {
         drops.removeAll { at.timeIntervalSince($0.at) > Self.droppedWindow }
     }
 }
+
+/// The speeds this phone couldn't keep every feed smooth at, for the app's run (Android 0.99.9):
+/// per number of feeds, the slowest above 1× that made the others freeze. Choosing that speed or a
+/// faster one with that many feeds goes straight to one picture; a slower one doesn't.
+public struct StruggledSpeeds: Sendable {
+    private var slowest: [Int: Double] = [:]
+
+    public init() {}
+
+    /// The others froze at `speed` with `feedCount` feeds. Only speeds above 1× with more than one
+    /// feed count.
+    public mutating func record(speed: Double, feedCount: Int) {
+        guard speed > 1, feedCount > 1 else { return }
+        slowest[feedCount] = min(slowest[feedCount] ?? speed, speed)
+    }
+
+    /// Whether `speed` with `feedCount` feeds should hold the others frozen from the start.
+    public func holds(speed: Double, feedCount: Int) -> Bool {
+        guard speed > 1, feedCount > 1, let struggled = slowest[feedCount] else { return false }
+        return struggled <= speed
+    }
+}

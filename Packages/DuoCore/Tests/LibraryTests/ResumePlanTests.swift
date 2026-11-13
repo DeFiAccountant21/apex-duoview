@@ -90,4 +90,20 @@ import Foundation
         #expect(p.channelId == nil)
         #expect(p.start.resolved(for: .replay(durationMs: 600_000)) == .position(60_000))
     }
+
+    // MARK: From the start (Android 0.98: a start given with a live stream must survive it)
+
+    @Test func beginningStaysOnLive() {
+        #expect(Start.beginning.resolved(for: .live) == .beginning)
+    }
+
+    @Test func beginningOnReplayIsZero() {
+        #expect(Start.beginning.resolved(for: .replay(durationMs: 600_000)) == .position(0))
+        #expect(Start.beginning.resolved(for: .replay(durationMs: 0)) == .position(0))
+    }
+
+    @Test func otherStartsOnLiveStillGoToLiveEdge() {
+        #expect(Start.position(60_000).resolved(for: .live) == .liveEdge)
+        #expect(Start.liveEdge.resolved(for: .live) == .liveEdge)
+    }
 }

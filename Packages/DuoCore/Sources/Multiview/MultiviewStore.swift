@@ -53,6 +53,7 @@ public final class MultiviewStore: @unchecked Sendable {
     static let fewerFeedsKey = "multiview.fewerFeeds"
     static let favouriteDriverKey = "multiview.favouriteDriver"
     static let driverPromptShownKey = "multiview.driverPromptShown"
+    static let speedKey = "multiview.speed"
 
     private let lock = NSLock()
     private let store: any KeyValueStore
@@ -165,6 +166,20 @@ public final class MultiviewStore: @unchecked Sendable {
     public var driverPromptShown: Bool {
         get { lock.lock(); defer { lock.unlock() }; return read(Bool.self, Self.driverPromptShownKey) ?? false }
         set { lock.lock(); defer { lock.unlock() }; write(newValue, Self.driverPromptShownKey) }
+    }
+
+    /// The playback speed chosen for every feed, kept for the next multiview (Android 0.99.5).
+    /// Only the speeds on offer (`SyncPolicy.speeds`) are kept; anything else reads as 1.
+    public var speed: Double {
+        get {
+            lock.lock(); defer { lock.unlock() }
+            guard let value = read(Double.self, Self.speedKey), SyncPolicy.speeds.contains(value) else { return 1 }
+            return value
+        }
+        set {
+            lock.lock(); defer { lock.unlock() }
+            write(SyncPolicy.speeds.contains(newValue) ? newValue : 1, Self.speedKey)
+        }
     }
 
     // MARK: - Private (callers hold the lock)

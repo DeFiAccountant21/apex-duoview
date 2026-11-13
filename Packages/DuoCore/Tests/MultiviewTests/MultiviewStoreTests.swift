@@ -195,7 +195,7 @@ import Library
     @Test func corruptDataFallsBackToStartingValues() {
         let mem = MemoryStore()
         for k in ["multiview.defaults", "multiview.lastUsed", "multiview.presets", "multiview.layouts", "multiview.fewerFeeds",
-                  "multiview.favouriteDriver", "multiview.driverPromptShown"] {
+                  "multiview.favouriteDriver", "multiview.driverPromptShown", "multiview.speed"] {
             mem.set(Data("garbage".utf8), forKey: k)
         }
         let s = MultiviewStore(store: mem)
@@ -206,11 +206,34 @@ import Library
         #expect(s.presets.isEmpty)
         #expect(s.layoutChoice(for: LayoutKey(posture: .book, feedCount: 4)) == nil)
         #expect(s.fewerFeeds == .ask)
+        #expect(s.speed == 1)
     }
 
     @Test func feedPickCodableRoundTrip() throws {
         let picks: [FeedPick?] = [.worldFeed, .f1Live, .tracker, .data, .onboard(lastName: "Pérez"), .other(title: "Pit Lane"), nil]
         let data = try JSONEncoder().encode(picks)
         #expect(try JSONDecoder().decode([FeedPick?].self, from: data) == picks)
+    }
+
+    // MARK: Speed (Android 0.99.5: kept between videos)
+
+    @Test func speedStartsAtNormal() {
+        let (s, _) = Self.make()
+        #expect(s.speed == 1)
+    }
+
+    @Test func speedPersistsAcrossInstances() {
+        let (s, mem) = Self.make()
+        s.speed = 1.5
+        #expect(s.speed == 1.5)
+        #expect(MultiviewStore(store: mem).speed == 1.5)
+    }
+
+    @Test func speedNotOnOfferReadsAsNormal() {
+        let (s, mem) = Self.make()
+        s.speed = 1.75
+        #expect(s.speed == 1)
+        mem.set(try? JSONEncoder().encode(3.0), forKey: "multiview.speed")
+        #expect(MultiviewStore(store: mem).speed == 1)
     }
 }

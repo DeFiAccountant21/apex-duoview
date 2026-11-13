@@ -83,4 +83,34 @@ private func bookmark(
         let reopened = RecentsStore(store: backing, now: { Date(timeIntervalSince1970: 100) })
         #expect(reopened.all().map(\.contentId) == [4])
     }
+
+    @Test func oldBookmarksDecodeAsSingleFeed() {
+        // Saved by beta.1 / build 6: no "multiview" key. `savedAt` is a number, as JSONEncoder writes it.
+        let json = """
+        [{"contentId":42,"title":"Race","channelId":7,"positionMs":61000,"durationMs":3600000,"live":false,"savedAt":100}]
+        """
+        let backing = MemoryStore()
+        backing.set(Data(json.utf8), forKey: "recents")
+        let all = RecentsStore(store: backing).all()
+        #expect(all.map(\.contentId) == [42])
+        #expect(all.first?.multiview == false)
+        #expect(all.first?.positionMs == 61_000)
+        #expect(all.first?.channelId == 7)
+    }
+
+    @Test func multiviewFlagRoundTrips() {
+        let backing = MemoryStore()
+        let store = RecentsStore(store: backing, now: { Date(timeIntervalSince1970: 100) })
+        var multi = bookmark(1)
+        multi.multiview = true
+        store.save(multi)
+        store.save(bookmark(2))
+        let reopened = RecentsStore(store: backing).all()
+        #expect(reopened.map(\.contentId) == [2, 1])
+        #expect(reopened.map(\.multiview) == [false, true])
+    }
+
+    @Test func bookmarkDefaultsToSingleFeed() {
+        #expect(bookmark(3).multiview == false)
+    }
 }

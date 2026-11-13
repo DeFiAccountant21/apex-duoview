@@ -4,6 +4,10 @@ import Foundation
 public enum Start: Equatable, Sendable {
     case liveEdge
     case position(Int64)
+    /// "From the start" of a live session: the earliest moment the stream keeps (or the session's
+    /// start within it, `LiveStart.beginning`), sought once the item's seekable range is known.
+    /// On a replay it is position 0.
+    case beginning
 }
 
 /// How to resume a bookmark given what the feed offers now. Never fails: falls back
@@ -44,17 +48,19 @@ public enum Timeline: Equatable, Sendable {
 
 extension Start {
     /// The start to really use, once the item's timeline is known. Never fails:
-    /// - now live: the live edge (a saved replay position means nothing on a live stream);
+    /// - now live: the live edge (a saved replay position means nothing on a live stream), except
+    ///   `.beginning`, which stays (Android 0.98: a start given with a live stream must survive
+    ///   the player learning it is live);
     /// - a live-edge start on a replay: the beginning;
     /// - a position at or past the end (or negative): the beginning;
     /// - otherwise unchanged (a replay of unknown length, `durationMs <= 0`, keeps its position).
     public func resolved(for timeline: Timeline) -> Start {
         switch timeline {
         case .live:
-            return .liveEdge
+            return self == .beginning ? .beginning : .liveEdge
         case .replay(let durationMs):
             switch self {
-            case .liveEdge:
+            case .liveEdge, .beginning:
                 return .position(0)
             case .position(let ms):
                 if ms < 0 { return .position(0) }
