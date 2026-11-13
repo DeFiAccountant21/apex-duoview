@@ -8,8 +8,10 @@ Status: approved by the owner on 2026-11-12. Roadmap, versioning and the full id
 The first build of the iPhone app that does something real: sign in with your own F1 TV account,
 find a session, watch it, and come back to it.
 
-**Exit test (owner, on the 15 Pro Max):** sign in, play the 2026 São Paulo race replay, close the
-app, reopen it, and it resumes at the same moment.
+**Exit test (owner, in the simulator):** sign in, play the 2026 São Paulo race replay, close the
+app, reopen it, and it resumes at the same moment. Changed by the owner on 2026-11-13 from "on the
+15 Pro Max": the app is built for the iPhone Duo, so a 15 Pro Max adds little, and testing stays in
+the simulator until the Duo arrives (real-device checks are beta.7).
 
 Also checked, not part of the exit test: the same build runs in the iPhone Duo simulator folded and
 unfolded, and the posture readout in Settings changes when the simulator folds.

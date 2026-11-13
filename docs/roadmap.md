@@ -11,7 +11,7 @@ the launch. Adding a beta needs the owner's written yes.
 
 | Release | Title | Exit test (checked by the owner) |
 |---|---|---|
-| v1.0-beta.1 | Foundation | On the 15 Pro Max: sign in, play the São Paulo race replay, close the app, reopen it and it resumes at the same moment |
+| v1.0-beta.1 | Foundation | In the simulator: sign in, play the São Paulo race replay, close the app, reopen it and it resumes at the same moment |
 | v1.0-beta.2 | Multiview and fold | Four São Paulo feeds play together for 10 minutes without stalling; in the Duo simulator, folding and unfolding keeps the same feeds and position |
 | v1.0-beta.3 | Live data | On a replay, the track map and timing match the picture; tapping a car brings up its onboard; laptop pose shows Race Engineer and Scrub Deck |
 | v1.0-beta.4 | Radio and the closed phone | Team radio plays by lap with transcripts; the closed-phone modes work in the simulator; haptics fire on flags |

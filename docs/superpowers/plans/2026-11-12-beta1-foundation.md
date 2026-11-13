@@ -42,7 +42,7 @@ These are done by the owner, guided by Claude. Tasks that need them say so.
 - **O-A (before Task 4):** run the fixture recording from Task 1 on the Mac and send the resulting `fixtures.zip` (no tokens in it) as a chat upload.
 - **O-B (before Task 8):** install Xcode 27.1 or later and XcodeGen (`brew install xcodegen`); clone the repo and check out `ios`; choose a bundle ID (spec O2).
 - **O-C (before Task 12):** run the SDK declarations command given in Task 12 and paste its output.
-- **O-D (Task 14):** the exit test on the 15 Pro Max.
+- **O-D (Task 14):** the exit test, in the simulator (owner's change, 2026-11-13; it was the 15 Pro Max).
 
 ---
 
@@ -496,14 +496,14 @@ SDK=$(xcrun --sdk iphoneos --show-sdk-path); for m in SwiftUI UIKit; do f=$(find
   - Makes one `player_bm` PLAY request per feed, 1 second apart, and starts four muted `AVPlayer`s in a 2×2 grid.
   - Per player, shows the time to first frame, the stall count (from `AVPlayerItem.playbackStallTime` notifications), dropped frames from `AVPlayerItemAccessLog` (`numberOfDroppedVideoFrames`), and the indicated bitrate.
   - Has a "Copy report" button that copies these numbers as text, with no URLs.
-- [ ] **Step 2:** Owner's Mac session builds it. The owner runs it on the 15 Pro Max for 2 minutes and pastes the report. Not part of the exit test.
+- [ ] **Step 2:** Owner's Mac session builds it. The owner runs it in the simulator (on the Duo once it arrives) for 2 minutes and pastes the report. Not part of the exit test.
 - [ ] **Step 3:** Commit and push.
 
 ### Task 14: Review and release v1.0-beta.1
 **Model:** Opus 5.5 reviews. Haiku 5.5 writes the changelog.
 
 - [ ] **Step 1:** Opus reviews the whole branch against the spec and this plan's Review Focus, and fixes what it finds.
-- [ ] **Step 2:** The owner runs the exit test on the 15 Pro Max: sign in, play the São Paulo race replay, close the app, reopen it, tap Resume, and it resumes at the same moment. Pass or fail is the owner's call.
+- [ ] **Step 2:** The owner runs the exit test in the simulator (owner's change, 2026-11-13; it was the 15 Pro Max): sign in, play the São Paulo race replay, close the app, reopen it, tap Resume, and it resumes at the same moment. Pass or fail is the owner's call.
 - [ ] **Step 3:** Haiku moves the CHANGELOG "Unreleased" entries into `## v1.0-beta.1 — Foundation (2026-MM-DD)` and starts a new empty "Unreleased" section.
 - [ ] **Step 4:** Tag and release:
 

@@ -30,11 +30,16 @@ struct RootView: View {
             onSettings: { showSettings() })
     }
 
-    /// Half-open like a book, with a known fold: Settings goes on the right-hand screen. A system
-    /// sheet would open on the left one, and the SDK has no way to choose the side.
+    /// Half-open like a book, with a known fold and a right-hand screen wide enough for Settings:
+    /// Settings goes there. A system sheet would open on the left one, and the SDK has no way to
+    /// choose the side. A simulated fold on a regular phone leaves too narrow a half, so it keeps
+    /// the sheet.
     private var settingsBelongsInPane: Bool {
-        fold.posture == .book && fold.foldFrame != nil
+        guard fold.posture == .book, let frame = fold.foldFrame else { return false }
+        return fold.rootSize.width - frame.maxX >= Self.minimumPaneWidth
     }
+
+    private static let minimumPaneWidth: CGFloat = 320
 
     private func showSettings() {
         if settingsBelongsInPane {
@@ -114,13 +119,12 @@ struct RootView: View {
                         .transition(.move(edge: .trailing))
                 }
             }
-            // Folding into or out of book posture moves an open Settings between the pane and
-            // the sheet. Another sheet (sign-in, plan) is never replaced.
+            // Where Settings goes is decided when it opens. Leaving book posture while it is in
+            // the pane turns it into the sheet, since the pane needs the fold to draw; another
+            // sheet (sign-in, plan) is never replaced. A sheet that is already open stays a sheet,
+            // so the Simulate fold switch inside it doesn't move Settings out from under you.
             .onChange(of: settingsBelongsInPane) { _, inPane in
-                if inPane, sheet == .settings {
-                    sheet = nil
-                    withAnimation(.snappy) { settingsInPane = true }
-                } else if !inPane, settingsInPane {
+                if !inPane, settingsInPane {
                     withAnimation(.snappy) { settingsInPane = false }
                     if sheet == nil { sheet = .settings }
                 }
