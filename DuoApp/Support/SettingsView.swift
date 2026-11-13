@@ -2,12 +2,14 @@ import F1TV
 import SwiftUI
 
 /// Settings: account, a live fold readout, About, credits and the debug fold simulator.
+/// Shown as a sheet, or on the right-hand screen when the phone is folded like a book, so it
+/// closes through `onDone` rather than the environment's dismiss action.
 struct SettingsView: View {
     let model: AppModel
     let fold: FoldState
+    let onDone: () -> Void
     let onSignIn: () -> Void
     let onSignOut: () -> Void
-    @Environment(\.dismiss) private var dismiss
 
     private var fake: FakeFoldProvider { FakeFoldProvider(state: fold) }
 
@@ -26,7 +28,7 @@ struct SettingsView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
+                    Button("Done", action: onDone)
                 }
             }
         }
@@ -40,7 +42,7 @@ struct SettingsView: View {
             case .signedIn(let account):
                 LabeledContent("Signed in", value: account.tier)
                 Button("Sign out", role: .destructive) {
-                    dismiss()
+                    onDone()
                     onSignOut()
                 }
             case .signingIn:

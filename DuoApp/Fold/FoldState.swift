@@ -39,8 +39,8 @@ struct HingeReading: Sendable, Equatable {
 }
 
 /// The fold, as the rest of the app sees it. `SystemFoldProvider` feeds it from the device;
-/// `FakeFoldProvider` replaces those values from Settings → Debug. In beta.1 nothing uses it for
-/// layout; Settings shows it.
+/// `FakeFoldProvider` replaces those values from Settings → Debug. In beta.1 Settings shows it,
+/// and in book posture `RootView` opens Settings on the right-hand screen.
 @MainActor
 @Observable
 final class FoldState {

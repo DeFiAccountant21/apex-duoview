@@ -7,9 +7,11 @@ struct RootView: View {
     let model: AppModel
     @State private var planDismissed = false
     @State private var sheet: ActiveSheet?
-    /// The fold, tracked from the root so its frame is in root coordinates. Nothing lays out by
-    /// it in beta.1; it is in the environment for later betas.
+    /// The fold, tracked from the root so its frame is in root coordinates. In beta.1 only the
+    /// Settings placement lays out by it; it is in the environment for later betas.
     @State private var fold = FoldState()
+    /// Settings shown on the right-hand screen (book posture) instead of as a sheet.
+    @State private var settingsInPane = false
 
     private enum ActiveSheet: Identifiable {
         case settings
@@ -25,7 +27,38 @@ struct RootView: View {
                 Task { await model.playback.play(item: item, channel: channel) }
             },
             onSignIn: { sheet = .signIn },
-            onSettings: { sheet = .settings })
+            onSettings: { showSettings() })
+    }
+
+    /// Half-open like a book, with a known fold: Settings goes on the right-hand screen. A system
+    /// sheet would open on the left one, and the SDK has no way to choose the side.
+    private var settingsBelongsInPane: Bool {
+        fold.posture == .book && fold.foldFrame != nil
+    }
+
+    private func showSettings() {
+        if settingsBelongsInPane {
+            withAnimation(.snappy) { settingsInPane = true }
+        } else {
+            sheet = .settings
+        }
+    }
+
+    private func closeSettings() {
+        if settingsInPane { withAnimation(.snappy) { settingsInPane = false } }
+        if sheet == .settings { sheet = nil }
+    }
+
+    private var settingsView: SettingsView {
+        SettingsView(
+            model: model,
+            fold: fold,
+            onDone: { closeSettings() },
+            onSignIn: {
+                closeSettings()
+                sheet = .signIn
+            },
+            onSignOut: { signOutAndClearWebData(model) })
     }
 
     /// The one sheet binding. Dismissing the plan sheet any way at all counts as "seen".
@@ -63,14 +96,39 @@ struct RootView: View {
                         onDismiss: { model.dismissMessage() })
                 }
             }
+            // Settings on the right-hand screen: the left one is dimmed, and tapping it closes
+            // Settings, as tapping outside a sheet would.
+            .overlay {
+                if settingsInPane {
+                    Color.black.opacity(0.5)
+                        .ignoresSafeArea()
+                        .onTapGesture { closeSettings() }
+                        .accessibilityLabel("Close Settings")
+                        .accessibilityAddTraits(.isButton)
+                        .transition(.opacity)
+                }
+            }
+            .overlay {
+                if settingsInPane, let foldFrame = fold.foldFrame {
+                    TrailingPane(foldFrame: foldFrame) { settingsView }
+                        .transition(.move(edge: .trailing))
+                }
+            }
+            // Folding into or out of book posture moves an open Settings between the pane and
+            // the sheet. Another sheet (sign-in, plan) is never replaced.
+            .onChange(of: settingsBelongsInPane) { _, inPane in
+                if inPane, sheet == .settings {
+                    sheet = nil
+                    withAnimation(.snappy) { settingsInPane = true }
+                } else if !inPane, settingsInPane {
+                    withAnimation(.snappy) { settingsInPane = false }
+                    if sheet == nil { sheet = .settings }
+                }
+            }
             .sheet(item: sheetBinding) { active in
                 switch active {
                 case .settings:
-                    SettingsView(
-                        model: model,
-                        fold: fold,
-                        onSignIn: { self.sheet = .signIn },
-                        onSignOut: { signOutAndClearWebData(model) })
+                    settingsView
                 case .signIn:
                     NavigationStack {
                         SignInView(model: model)
@@ -122,6 +180,29 @@ struct RootView: View {
         .tabViewStyle(.sidebarAdaptable)
         // Red selection in the tab bar and sidebar; each room sets its content back to silver.
         .tint(Theme.accent)
+    }
+}
+
+/// Fills the screen to the right of the fold. `foldFrame` is in full-screen coordinates, and this
+/// reader keeps the safe area so its content clears the status bar, so the fold's edge is
+/// converted through global space (the window's space, which is the screen's).
+private struct TrailingPane<Content: View>: View {
+    let foldFrame: CGRect
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        GeometryReader { proxy in
+            let leading = max(0, foldFrame.maxX - proxy.frame(in: .global).minX)
+            HStack(spacing: 0) {
+                Color.clear
+                    .frame(width: min(leading, proxy.size.width))
+                    .allowsHitTesting(false)
+                content
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Theme.background.ignoresSafeArea())
+                    .accessibilityAddTraits(.isModal)
+            }
+        }
     }
 }
 
