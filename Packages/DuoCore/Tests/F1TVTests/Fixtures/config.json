@@ -29,8 +29,8 @@
    }
   },
   "bitmovinKeys": {
-   "player": "f142443f-c4c6-4b76-852f-bd1962c06732",
-   "analytics": "ca24a2e0-aa36-4e2b-baa8-f7540cf1fa79"
+   "player": "<removed>",
+   "analytics": "<removed>"
   },
   "chromecast": {
    "receiverApplicationId": "B3E81094",
@@ -226,8 +226,8 @@
  "authentication": {
   "domain": "api.formula1.com",
   "apiKey": "<removed>",
-  "distributionChannel": "95d6cc7d-63fe-453b-b734-1cde4fa3d08c",
-  "systemID": "60a9ad84-e93d-480f-80d6-af37494f2e22",
+  "distributionChannel": "<removed>",
+  "systemID": "<removed>",
   "deviceType": 4,
   "url": {
    "rendezvousRegisterDevice": "/v1/account/Subscriber/RegisterDevice"
