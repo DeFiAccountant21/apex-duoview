@@ -119,12 +119,16 @@ struct RootView: View {
                         .transition(.move(edge: .trailing))
                 }
             }
-            // Where Settings goes is decided when it opens. Leaving book posture while it is in
-            // the pane turns it into the sheet, since the pane needs the fold to draw; another
-            // sheet (sign-in, plan) is never replaced. A sheet that is already open stays a sheet,
-            // so the Simulate fold switch inside it doesn't move Settings out from under you.
+            // Folding the phone moves an open Settings: into the right-hand pane on reaching book
+            // posture, back into the sheet on leaving it (the pane needs the fold to draw).
+            // Another sheet (sign-in, plan) is never replaced. Only the real hinge moves the sheet
+            // into the pane: the Simulate fold switch lives inside Settings, and moving it then
+            // would rebuild Settings under your finger.
             .onChange(of: settingsBelongsInPane) { _, inPane in
-                if !inPane, settingsInPane {
+                if inPane, sheet == .settings, fold.source == .system {
+                    sheet = nil
+                    withAnimation(.snappy) { settingsInPane = true }
+                } else if !inPane, settingsInPane {
                     withAnimation(.snappy) { settingsInPane = false }
                     if sheet == nil { sheet = .settings }
                 }
