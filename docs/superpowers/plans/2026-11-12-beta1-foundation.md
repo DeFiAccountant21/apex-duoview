@@ -465,6 +465,20 @@ SDK=$(xcrun --sdk iphoneos --show-sdk-path); for m in SwiftUI UIKit; do f=$(find
 - [ ] **Step 5:** Owner's Mac session builds it. In the Duo simulator, folding, half-opening and rotating change the readout.
 - [ ] **Step 6:** Commit and push.
 
+### Task 12b: Style (added 2026-11-13, owner approved)
+**Model:** Sonnet 5.5
+
+**Files:**
+- Create: `DuoApp/Style/Theme.swift` (colours, fonts, shared modifiers such as `liveBadge()` and `sectionLabel()`)
+- Create: colour assets `AccentColor` (racing red) and `LaunchBackground` (near-black) in `Assets.xcassets`, and an image asset `Logo` made from `Design/AppIcon-1024.png`
+- Modify: `project.yml` (`ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor`), `DuoApp/Info.plist` (`UILaunchScreen` → `UIColorName = LaunchBackground`), and the existing views in `DuoApp/Rooms`, `DuoApp/Components`, `DuoApp/SignIn`, `DuoApp/Support/SettingsView.swift` and `DuoApp/Player/ResumeBanner.swift`
+
+- [ ] **Step 1:** Write `Theme` with exactly the colours and type rules in the spec's "Look" section.
+- [ ] **Step 2:** Apply it: dark only, background everywhere, surface cards for tiles, LIVE capsule, red progress bars, condensed headings and section labels, monospaced digits for times, red tint for tabs and sidebar, the sign-in screen with the logo.
+- [ ] **Step 3:** No behaviour changes. Package tests still pass.
+- [ ] **Step 4:** Owner's Mac session builds it and sends simulator screenshots of each room, a detail page, Settings and the sign-in screen, folded and unfolded.
+- [ ] **Step 5:** Commit and push.
+
 ### Task 13: Multiview probe (debug)
 **Model:** Sonnet 5.5
 

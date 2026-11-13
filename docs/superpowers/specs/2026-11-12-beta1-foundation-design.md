@@ -210,6 +210,31 @@ uses it for layout yet.
 - Settings shows a live posture / fold / hinge readout, which checks the API names against the real
   simulator early.
 
+### Look (app) — added 2026-11-13, owner approved
+
+Dark first, taken from the app icon: near-black, brushed silver and one racing red. Beta.1 sets
+the style; later betas polish each new screen in it.
+
+- **Colours** (in one `Theme` file, never hard-coded in views):
+  - background `#0A0A0B`, surface `#151517`, raised surface `#1E1E21`, hairline `#2A2A2E`
+  - text: primary silver `#E9E9EC`, secondary `#9A9AA2`, tertiary `#66666D`
+  - accent: racing red `#EC0014`, sampled from the icon. Only for the live badge, progress bars,
+    the selected tab and sidebar row, toggles and primary buttons. Never for body text: on the
+    background it is about 4.3:1, fine for shapes and large text, not for small text.
+  - team colours on onboards, as F1 TV's graphics do.
+- **Dark only in beta.1** (`preferredColorScheme(.dark)`), black launch screen. A light look can
+  come later if it's wanted.
+- **Type:** San Francisco throughout. Headings and row titles bold and condensed (`fontWidth(.condensed)`),
+  section labels small, uppercase, condensed with a little tracking; times, positions and counts
+  use monospaced digits, as on a timing screen.
+- **Tiles:** 10 pt corners on a surface card, image placeholder in the raised surface; LIVE is a red
+  capsule with white bold condensed text; continue-watching progress is a red bar on a hairline
+  track; upcoming sessions at 40% opacity.
+- **Sign-in screen:** the icon's A, "Apex DuoView" in the condensed heading style, then the two
+  sign-in buttons (red primary, silver outline secondary).
+- **Player:** Apple's player as it is.
+- Text sizes follow Dynamic Type; nothing relies on colour alone.
+
 ### Multiview probe (app, debug only)
 
 A hidden screen that starts four players on four feeds of one session at once, with each feed's
