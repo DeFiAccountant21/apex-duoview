@@ -374,6 +374,9 @@ final class ProbeFeed {
     @ObservationIgnored private var playStartedAt: Double?
     @ObservationIgnored private var baselineTime: Double?
     @ObservationIgnored private var currentItemID: ObjectIdentifier?
+    /// The item this feed last began measuring. Not cleared by `teardown()`, so the final
+    /// access-log read in `stop()` or `fail()` can still land after the player is torn down.
+    @ObservationIgnored private var measuredItemID: ObjectIdentifier?
     @ObservationIgnored private var timeObserver: Any?
     @ObservationIgnored private var observedPlayer: AVPlayer?
     @ObservationIgnored private var statusObservation: NSKeyValueObservation?
@@ -424,6 +427,7 @@ final class ProbeFeed {
         player.isMuted = true
         let itemID = ObjectIdentifier(item)
         currentItemID = itemID
+        measuredItemID = itemID
         self.player = player
         observedPlayer = player
         phase = .loading
@@ -464,13 +468,21 @@ final class ProbeFeed {
     }
 
     /// Reads the access log and the clock. Called every second by the model.
+    /// The log is fetched asynchronously (`accessLog()` is deprecated in iOS 27). The result is
+    /// written only if the item is still the one this feed is measuring.
     func refresh() {
         if let startedAt = playStartedAt, phase == .loading || phase == .playing {
             elapsed = ProcessInfo.processInfo.systemUptime - startedAt
         }
-        guard let item = player?.currentItem, let events = item.accessLog()?.events else { return }
-        droppedFrames = events.reduce(0) { $0 + max($1.numberOfDroppedVideoFrames, 0) }
-        if let last = events.last, last.indicatedBitrate > 0 { indicatedBitrate = last.indicatedBitrate }
+        guard let item = player?.currentItem else { return }
+        let itemID = ObjectIdentifier(item)
+        Task { @MainActor [weak self] in
+            guard let self, let log = await item.fetchAccessLog(),
+                  self.measuredItemID == itemID else { return }
+            let events = log.events
+            self.droppedFrames = events.reduce(0) { $0 + max($1.numberOfDroppedVideoFrames, 0) }
+            if let last = events.last, last.indicatedBitrate > 0 { self.indicatedBitrate = last.indicatedBitrate }
+        }
     }
 
     /// Tears down the player and every observer. The numbers stay for the report.
