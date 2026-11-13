@@ -30,7 +30,10 @@ final class PlayerController {
     /// Saving waits until the item is ready (and any resume seek is done), so a not-yet-seeked
     /// position 0 never overwrites a good bookmark.
     @ObservationIgnored private var canSave = false
-    @ObservationIgnored private var pendingSeekMs: Int64?
+    /// Where to start, decided against the real timeline once the item is ready.
+    @ObservationIgnored private var pendingStart: Start = .position(0)
+    /// The AVPlayerItem callbacks are for; anything from another item is dropped.
+    @ObservationIgnored private var currentItemID: ObjectIdentifier?
     /// Bumped by every start, resume and close, so a slow answer for something superseded is dropped.
     @ObservationIgnored private var generation = 0
     @ObservationIgnored private var stopTask: Task<Void, Never>?
@@ -182,67 +185,82 @@ final class PlayerController {
 
         let item = AVPlayerItem(url: url)
         let player = AVPlayer(playerItem: item)
-        if case .position(let ms) = startAt, ms > 0 { pendingSeekMs = ms } else { pendingSeekMs = nil }
+        pendingStart = startAt
+        let itemID = ObjectIdentifier(item)
+        currentItemID = itemID
         canSave = false
         self.player = player
         observedPlayer = player
 
-        statusObservation = item.observe(\.status, options: [.new]) { [weak self] item, _ in
-            let status = item.status
-            let reason = item.error?.localizedDescription ?? ""
-            Task { @MainActor [weak self] in self?.statusChanged(status, reason: reason) }
+        // The callbacks may arrive on any thread: they carry only the item's identity, hop to the
+        // main actor, and read the item there.
+        statusObservation = item.observe(\.status, options: [.new]) { @Sendable [weak self] _, _ in
+            Task { @MainActor [weak self] in self?.statusChanged(itemID: itemID) }
         }
         timeObserver = player.addPeriodicTimeObserver(
             forInterval: CMTime(seconds: Self.saveInterval, preferredTimescale: 1), queue: .main
-        ) { [weak self] _ in
-            MainActor.assumeIsolated { self?.tick() }
+        ) { @Sendable [weak self] _ in
+            MainActor.assumeIsolated { self?.tick(itemID: itemID) }
         }
 
         let center = NotificationCenter.default
         notificationTokens.append(center.addObserver(
             forName: AVPlayerItem.failedToPlayToEndTimeNotification, object: item, queue: .main
-        ) { [weak self] note in
+        ) { @Sendable [weak self] note in
             let error = note.userInfo?[AVPlayerItemFailedToPlayToEndTimeErrorKey] as? Error
             let reason = error?.localizedDescription ?? ""
-            Task { @MainActor [weak self] in self?.feedStopped(reason: reason) }
+            Task { @MainActor [weak self] in
+                guard self?.currentItemID == itemID else { return }
+                self?.feedStopped(reason: reason)
+            }
         })
         notificationTokens.append(center.addObserver(
             forName: AVPlayerItem.didPlayToEndTimeNotification, object: item, queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor [weak self] in self?.save() }
+        ) { @Sendable [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard self?.currentItemID == itemID else { return }
+                self?.save()
+            }
         })
-        // The one background save: no scenePhase involved, so nothing saves twice.
+        // The one background save: no scenePhase involved, so nothing saves twice. Delivered on
+        // the main queue, so it runs now, before the app can be suspended.
         notificationTokens.append(center.addObserver(
             forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor [weak self] in self?.save() }
+        ) { @Sendable [weak self] _ in
+            MainActor.assumeIsolated { self?.save() }
         })
     }
 
-    private func statusChanged(_ status: AVPlayerItem.Status, reason: String) {
-        guard let player else { return }
-        switch status {
+    private func statusChanged(itemID: ObjectIdentifier) {
+        guard itemID == currentItemID, let player, let item = player.currentItem,
+              ObjectIdentifier(item) == itemID else { return }
+        switch item.status {
         case .readyToPlay:
             isLoading = false
             guard !canSave else { return }
-            if let ms = pendingSeekMs {
-                pendingSeekMs = nil
+            let duration = item.duration
+            let timeline: Timeline = duration.isIndefinite
+                ? .live
+                : .replay(durationMs: duration.isNumeric ? Int64((duration.seconds * 1_000).rounded()) : 0)
+            let start = pendingStart.resolved(for: timeline)
+            pendingStart = .position(0)
+            if case .position(let ms) = start, ms > 0 {
                 let target = CMTime(value: CMTimeValue(ms), timescale: 1_000)
-                let identity = ObjectIdentifier(player)
-                player.seek(to: target, toleranceBefore: .zero, toleranceAfter: .zero) { [weak self] _ in
+                player.seek(to: target, toleranceBefore: .zero, toleranceAfter: .zero) { @Sendable [weak self] _ in
                     Task { @MainActor [weak self] in
-                        // Dropped if the player was replaced or closed while seeking.
-                        guard let self, let current = self.player, ObjectIdentifier(current) == identity else { return }
+                        // Dropped if the item was replaced or closed while seeking.
+                        guard let self, self.currentItemID == itemID, let current = self.player else { return }
                         self.canSave = true
                         current.play()
                     }
                 }
             } else {
+                // The live edge, or the beginning: AVKit starts there on its own.
                 canSave = true
                 player.play()
             }
         case .failed:
-            feedStopped(reason: reason)
+            feedStopped(reason: item.error?.localizedDescription ?? "")
         default:
             break
         }
@@ -256,13 +274,15 @@ final class PlayerController {
         errorText = Self.stoppedMessage(reason)
     }
 
-    private func tick() {
-        guard let player, player.timeControlStatus == .playing else { return }
-        save()
+    /// Every 5 s once saving is possible, playing or not, so a seek or pause just before the app
+    /// is killed keeps its position. Paused ticks leave the watch history alone (it counts time).
+    private func tick(itemID: ObjectIdentifier) {
+        guard itemID == currentItemID, let player else { return }
+        save(recordHistory: player.timeControlStatus == .playing)
     }
 
     /// Bookmark and watch history, together. Skipped until the item is ready.
-    private func save() {
+    private func save(recordHistory: Bool = true) {
         guard canSave, let item = currentItem, let channel = currentChannel,
               let player, let playerItem = player.currentItem else { return }
         let duration = playerItem.duration
@@ -279,7 +299,9 @@ final class PlayerController {
             durationMs: durationMs,
             live: live,
             savedAt: Date()))
-        history.record(contentId: item.contentId, positionMs: positionMs, durationMs: durationMs)
+        if recordHistory {
+            history.record(contentId: item.contentId, positionMs: positionMs, durationMs: durationMs)
+        }
     }
 
     private func teardownPlayback() {
@@ -288,7 +310,8 @@ final class PlayerController {
         player?.replaceCurrentItem(with: nil)
         player = nil
         canSave = false
-        pendingSeekMs = nil
+        pendingStart = .position(0)
+        currentItemID = nil
     }
 
     private func removeObservers() {

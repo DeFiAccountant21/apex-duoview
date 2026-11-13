@@ -58,3 +58,36 @@ import Foundation
         #expect(p.channelId == 6)
     }
 }
+
+@Suite struct StartResolvedTests {
+    @Test func normalCaseKeepsPosition() {
+        #expect(Start.position(60_000).resolved(for: .replay(durationMs: 600_000)) == .position(60_000))
+    }
+
+    @Test func positionPastNewDurationClampsToStart() {
+        #expect(Start.position(700_000).resolved(for: .replay(durationMs: 600_000)) == .position(0))
+        #expect(Start.position(600_000).resolved(for: .replay(durationMs: 600_000)) == .position(0))
+        #expect(Start.position(-5).resolved(for: .replay(durationMs: 600_000)) == .position(0))
+    }
+
+    @Test func savedReplayNowLiveGoesToLiveEdge() {
+        #expect(Start.position(60_000).resolved(for: .live) == .liveEdge)
+    }
+
+    @Test func savedLiveNowReplayStartsAtBeginning() {
+        #expect(Start.liveEdge.resolved(for: .replay(durationMs: 600_000)) == .position(0))
+    }
+
+    @Test func liveStaysLiveAndUnknownLengthKeepsPosition() {
+        #expect(Start.liveEdge.resolved(for: .live) == .liveEdge)
+        #expect(Start.position(90_000).resolved(for: .replay(durationMs: 0)) == .position(90_000))
+    }
+
+    @Test func feedNoLongerListedFallsBackToDefault() {
+        let b = WatchBookmark(contentId: 1, title: "T", picturePath: nil, channelId: 9,
+                              positionMs: 60_000, durationMs: 600_000, live: false, savedAt: Date(timeIntervalSince1970: 0))
+        let p = ResumePlan.make(bookmark: b, availableChannelIds: [nil, 5], defaultChannelId: nil, isLiveNow: false, durationMs: nil)
+        #expect(p.channelId == nil)
+        #expect(p.start.resolved(for: .replay(durationMs: 600_000)) == .position(60_000))
+    }
+}
