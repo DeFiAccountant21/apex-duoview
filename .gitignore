@@ -13,3 +13,6 @@ build/
 
 # Personal signing values (bundle identifier, team).
 Config/Signing.local.xcconfig
+
+# Local planning ledger.
+.superpowers/
