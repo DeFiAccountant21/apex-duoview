@@ -17,6 +17,9 @@ final class AppModel {
 
     var auth: AuthState = .signedOut
     var message: String?
+    /// A token is saved but the last launch attempt failed for network or server reasons (not
+    /// refused). Foreground and the banner's "Try again" retry it; a refusal never does.
+    private(set) var restorePending = false
 
     @ObservationIgnored let session: F1TVSession
     @ObservationIgnored let catalogue: Catalogue
@@ -50,27 +53,38 @@ final class AppModel {
         // Browsing before sign-in needs the anonymous location; a failure here is retried by callers.
         try? await session.prepare()
         guard let token = saved else {
+            restorePending = false
             auth = .signedOut
             message = Self.signInPrompt
             return
         }
         do {
             let account = try await session.signIn(token: token)
+            restorePending = false
             auth = .signedIn(account)
             message = nil
         } catch is CancellationError {
             if Task.isCancelled { auth = .signedOut }
             return
         } catch F1TVError.refused {
-            await session.signOut()
-            auth = .signedOut
-            message = Self.expiredMessage
+            await expire(message: Self.expiredMessage)
         } catch {
-            // The saved token stays: this may be only a bad connection.
+            // The saved token stays: this may be only a bad connection. Foreground and
+            // "Try again" retry it.
+            restorePending = true
             auth = .signedOut
             message = Self.failureMessage(error)
         }
     }
+
+    /// Retries a launch that failed for network or server reasons. Does nothing otherwise, and
+    /// never retries a refused token (that token is already deleted).
+    func retryRestore() async {
+        guard restorePending, auth == .signedOut else { return }
+        await restore()
+    }
+
+    func dismissMessage() { message = nil }
 
     func signIn(token: String) async {
         auth = .signingIn
@@ -83,9 +97,7 @@ final class AppModel {
             if Task.isCancelled { auth = .signedOut }
             return
         } catch F1TVError.refused {
-            await session.signOut()
-            auth = .signedOut
-            message = "F1 TV didn't accept that sign-in. Try again."
+            await expire(message: "F1 TV didn't accept that sign-in. Try again.")
         } catch {
             auth = .signedOut
             message = Self.failureMessage(error)
@@ -94,6 +106,7 @@ final class AppModel {
 
     func signOut() {
         Keychain.deleteToken()
+        restorePending = false
         auth = .signedOut
         message = Self.signInPrompt
         // Closing also stops the play session and keeps the bookmark.
@@ -108,20 +121,38 @@ final class AppModel {
 
     /// Foreground re-check of the saved sign-in.
     func revalidate() async {
+        if case .signedOut = auth, restorePending {
+            await retryRestore()
+            return
+        }
         guard case .signedIn = auth, let token = Keychain.loadToken() else { return }
         do {
             let account = try await session.signIn(token: token)
+            // A sign-out the user made while we waited stands.
+            guard case .signedIn = auth else { return }
             auth = .signedIn(account)
         } catch is CancellationError {
             return
         } catch F1TVError.refused {
-            // Saved bookmark and recents stay; only the session and the signed-in state go.
-            await session.signOut()
-            auth = .signedOut
-            message = Self.expiredMessage
+            guard case .signedIn = auth else { return }
+            await expire(message: Self.expiredMessage)
         } catch {
             // A bad connection doesn't end a sign-in that may still be good.
         }
+    }
+
+    /// The one path for a refused sign-in (restore, sign-in, foreground check): the same as
+    /// signing out, plus the reason. The bookmark and recents stay; the token, playback and the
+    /// play session go.
+    private func expire(message newMessage: String) async {
+        Keychain.deleteToken()
+        restorePending = false
+        // Saves the bookmark first, then closes the player and stops its play session.
+        playback.close()
+        await player.stop()
+        await session.signOut()
+        auth = .signedOut
+        message = newMessage
     }
 
     private static func failureMessage(_ error: Error) -> String {

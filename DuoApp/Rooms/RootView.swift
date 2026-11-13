@@ -52,6 +52,15 @@ struct RootView: View {
                         .background(.regularMaterial, in: Capsule())
                         .padding(.top, 8)
                         .allowsHitTesting(false)
+                } else if case .signedOut = model.auth,
+                    let message = model.message, message != AppModel.signInPrompt
+                {
+                    MessageBanner(
+                        message: message,
+                        canRetry: model.restorePending,
+                        onSignIn: { sheet = .signIn },
+                        onRetry: { Task { await model.retryRestore() } },
+                        onDismiss: { model.dismissMessage() })
                 }
             }
             .sheet(item: sheetBinding) { active in
@@ -113,5 +122,49 @@ struct RootView: View {
         .tabViewStyle(.sidebarAdaptable)
         // Red selection in the tab bar and sidebar; each room sets its content back to silver.
         .tint(Theme.accent)
+    }
+}
+
+/// Sign-in news over the rooms: expired, refused, or a launch that couldn't reach F1 TV.
+private struct MessageBanner: View {
+    let message: String
+    let canRetry: Bool
+    let onSignIn: () -> Void
+    let onRetry: () -> Void
+    let onDismiss: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .top, spacing: 8) {
+                Text(message)
+                    .font(.subheadline)
+                    .foregroundStyle(Theme.textPrimary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Button(action: onDismiss) {
+                    Image(systemName: "xmark")
+                        .font(.footnote.bold())
+                        .foregroundStyle(Theme.textSecondary)
+                        .frame(width: 32, height: 32)
+                }
+                .accessibilityLabel("Dismiss")
+            }
+            HStack(spacing: 8) {
+                if canRetry {
+                    Button("Try again", action: onRetry)
+                        .buttonStyle(.bordered)
+                        .tint(Theme.textPrimary)
+                }
+                Button("Sign in", action: onSignIn)
+                    .buttonStyle(.borderedProminent)
+                    .tint(Theme.accent)
+            }
+        }
+        .padding(12)
+        .background(Theme.raised, in: RoundedRectangle(cornerRadius: Theme.cornerRadius))
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.cornerRadius).stroke(Theme.hairline, lineWidth: 1)
+        )
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
     }
 }
