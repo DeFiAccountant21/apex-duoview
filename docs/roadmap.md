@@ -38,7 +38,7 @@ All of 1 to 23 are in. 24 to 28 are experiments for beta.7, tried on the real de
 | 9 | Gap Thermometer: two cars, colour shifts as the gap closes | Closed | 4 |
 | 10 | Island Flag Ring: flag, lap and position in the Dynamic Island (needs device test) | Closed | 6 |
 | 11 | Director's Desk: big picture, thumbnail feeds, tower and map (needs device test) | Open | 3 |
-| 12 | Race Table: flat between two people, each half faces its viewer | Open | 2 |
+| 12 | Race Table: flat between two people, each half faces its viewer | Open | 7 (moved from 2 on 2026-11-13: needs the real hardware) |
 | 13 | Strategy Lab: tyre stints and a "pit now?" rejoin estimate | Open | 5 |
 | 14 | Archive Atlas: pick a circuit, every race there since 1981 | Open | 6 |
 | 15 | Mirror Lap: two onboards synced by track position, gap on the hinge (replays first) | Book | 5 |
@@ -146,7 +146,7 @@ What 0.95 to 0.99.9 added, and where it lands here:
 
 | Android | What it does | Here |
 |---|---|---|
-| 0.95 | While watching live, offers the next live programme when one starts | beta.2 |
+| 0.95 | While watching live, offers the next live programme when one starts | beta.3 (moved from beta.2 on 2026-11-13: needs a live session to test) |
 | 0.96–0.98 | Before a live session plays, the feed picker asks "From the start" or "Watch live"; from the start really starts at the beginning; the pit circle works when joining live | beta.2 (player) |
 | 0.99.4 | Records live timing to disk from the moment a session starts, so the map has the whole session even when joined late | beta.3, adapted: iOS can't start a recording by alarm in the background, so it records while the app is open or playing, plus F1's archive once the session ends |
 | 0.99.5 | Playback speed 0.5× to 2× for every feed together | beta.2 |
