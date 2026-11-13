@@ -92,6 +92,7 @@ sign-in stays on your phone.
 - How F1's timing archive and live feed are laid out follows [FastF1](https://github.com/theOehrly/Fast-F1).
 - Turn numbers and circuit outlines come from [MultiViewer](https://multiviewer.app)'s public
   circuit data.
+- Thanks to Brother ADLL for helping pick the app icon.
 
 ## License
 

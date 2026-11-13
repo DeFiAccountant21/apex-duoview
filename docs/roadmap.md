@@ -110,7 +110,7 @@ inner screens of a half-open iPhone Duo, with a silver F1 car crossing a chequer
 replaces the earlier "A" made of two hinged panels (Higgsfield concept 2), which is kept in git
 history. The owner supplied the image; its pre-rounded white corners were filled black so iOS
 can apply its own mask. It is kept at `Design/AppIcon-1024.png` (1024 × 1024, opaque RGB) and is
-both the app icon and the sign-in logo. A clean vector version, and a check of how it reads at
+both the app icon and the sign-in logo. Brother ADLL helped pick it. A clean vector version, and a check of how it reads at
 small sizes on the home screen, come later, before the App Store.
 
 ## Screenshots
