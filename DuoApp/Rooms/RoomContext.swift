@@ -18,8 +18,8 @@ enum Route: Hashable {
 @MainActor
 struct RoomContext {
     let model: AppModel
-    /// Plays one feed of a session. Task 11 wires the player behind this.
-    let onPlay: @MainActor (Int, Channel) -> Void
+    /// Plays one feed of a session, full screen.
+    let onPlay: @MainActor (CatalogItem, Channel) -> Void
     let onSignIn: @MainActor () -> Void
     let onSettings: @MainActor () -> Void
 

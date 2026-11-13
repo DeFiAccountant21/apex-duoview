@@ -23,15 +23,23 @@ final class AppModel {
     @ObservationIgnored let player: PlayCoordinator
     @ObservationIgnored let recents: RecentsStore
     @ObservationIgnored let history: WatchHistory
+    /// The one player, shown full screen by the root while it has something to show.
+    @ObservationIgnored let playback: PlayerController
 
     init() {
         let session = F1TVSession(http: URLSessionHTTPClient())
         let store = UserDefaultsStore()
+        let catalogue = Catalogue(session: session)
+        let player = PlayCoordinator(session: session)
+        let recents = RecentsStore(store: store)
+        let history = WatchHistory(store: store)
         self.session = session
-        self.catalogue = Catalogue(session: session)
-        self.player = PlayCoordinator(session: session)
-        self.recents = RecentsStore(store: store)
-        self.history = WatchHistory(store: store)
+        self.catalogue = catalogue
+        self.player = player
+        self.recents = recents
+        self.history = history
+        self.playback = PlayerController(
+            coordinator: player, recents: recents, history: history, catalogue: catalogue)
     }
 
     /// Launch: load the anonymous catalogue config, then sign in with the saved token.
@@ -88,6 +96,8 @@ final class AppModel {
         Keychain.deleteToken()
         auth = .signedOut
         message = Self.signInPrompt
+        // Closing also stops the play session and keeps the bookmark.
+        playback.close()
         let session = session
         let player = player
         Task {

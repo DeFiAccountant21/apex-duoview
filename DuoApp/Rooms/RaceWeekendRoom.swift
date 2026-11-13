@@ -22,6 +22,7 @@ struct RaceWeekendRoom: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
+                    resumeBanner
                     continueWatching
                     LoadStateView(state: live, retry: retryLive) { items in
                         RowView(title: "Live now", items: items, now: now)
@@ -37,6 +38,10 @@ struct RaceWeekendRoom: View {
             .navigationTitle("Race Weekend")
             .roomChrome(context)
             .onAppear { bookmarks = context.model.recents.all() }
+            // Back from the player: the bookmark has moved.
+            .onChange(of: context.model.playback.isPresented) { _, presented in
+                if !presented { bookmarks = context.model.recents.all() }
+            }
             // Re-runs "Live now" every 60 s while the room is visible; cancelled when it goes.
             .task(id: liveAttempt) { await liveLoop() }
             .task(id: weekendAttempt) { if !weekend.isLoaded { await loadWeekend() } }
@@ -45,6 +50,22 @@ struct RaceWeekendRoom: View {
                 await loadLive()
                 await loadWeekend()
             }
+        }
+    }
+
+    // MARK: Resume banner
+
+    /// The latest bookmark, when it is under 3 days old, signed in, nothing is playing and the
+    /// banner hasn't been dismissed this run.
+    @ViewBuilder
+    private var resumeBanner: some View {
+        let playback = context.model.playback
+        if context.isSignedIn, !playback.isPresented, !playback.resumeBannerDismissed,
+           let latest = bookmarks.first, ResumeBanner.isFresh(latest) {
+            ResumeBanner(
+                bookmark: latest,
+                onResume: { Task { await playback.resume(latest) } },
+                onDismiss: { playback.resumeBannerDismissed = true })
         }
     }
 

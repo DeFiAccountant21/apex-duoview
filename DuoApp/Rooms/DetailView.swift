@@ -85,7 +85,9 @@ struct DetailView: View {
             context.onSignIn()
             return
         }
-        context.onPlay(detail.contentId, channel)
+        var playing = item
+        if playing.title.isEmpty { playing.title = detail.title }
+        context.onPlay(playing, channel)
     }
 
     @ViewBuilder

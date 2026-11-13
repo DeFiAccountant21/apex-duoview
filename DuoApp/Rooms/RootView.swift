@@ -7,7 +7,6 @@ struct RootView: View {
     let model: AppModel
     @State private var planDismissed = false
     @State private var sheet: ActiveSheet?
-    @State private var playbackNotice: String?
 
     private enum ActiveSheet: Identifiable {
         case settings
@@ -19,8 +18,9 @@ struct RootView: View {
     private var context: RoomContext {
         RoomContext(
             model: model,
-            // Task 11 replaces this: it starts the player.
-            onPlay: { _, _ in playbackNotice = "Playback comes in the next build" },
+            onPlay: { item, channel in
+                Task { await model.playback.play(item: item, channel: channel) }
+            },
             onSignIn: { sheet = .signIn },
             onSettings: { sheet = .settings })
     }
@@ -69,14 +69,11 @@ struct RootView: View {
                     PlanSheet { signOutAndClearWebData(model) }
                 }
             }
-            .alert(
-                "Playback", isPresented: Binding(
-                    get: { playbackNotice != nil },
-                    set: { if !$0 { playbackNotice = nil } })
+            .fullScreenCover(isPresented: Binding(
+                get: { model.playback.isPresented },
+                set: { if !$0 { model.playback.close() } })
             ) {
-                Button("OK") { playbackNotice = nil }
-            } message: {
-                Text(playbackNotice ?? "")
+                PlayerCover(controller: model.playback)
             }
             .onChange(of: model.auth) { _, auth in
                 if case .signedIn(let account) = auth {

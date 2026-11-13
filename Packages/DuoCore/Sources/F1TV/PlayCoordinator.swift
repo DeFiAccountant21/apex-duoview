@@ -33,7 +33,14 @@ public actor PlayCoordinator {
         if let playing, playing.key == key { return playing.info }
         // The same item is already being requested: wait for that one request.
         if let pending, pending.key == key {
-            let info = try await pending.task.value
+            let info: PlayInfo
+            do {
+                info = try await pending.task.value
+            } catch {
+                // Superseded or stopped meanwhile: the failure is a cancellation, not a network error.
+                if generation != pending.generation { throw CancellationError() }
+                throw error
+            }
             if let playing, playing.key == key, generation == pending.generation { return playing.info }
             guard generation == pending.generation else { throw CancellationError() }
             return info
@@ -54,7 +61,10 @@ public actor PlayCoordinator {
             pending = nil
             return info
         } catch {
-            if generation == mine { pending = nil }
+            // Superseded by a newer play or by stop(): a cancelled request surfaces from the session
+            // as a network error, but the caller must see a cancellation.
+            guard generation == mine else { throw CancellationError() }
+            pending = nil
             throw error
         }
     }

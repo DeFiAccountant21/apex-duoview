@@ -151,4 +151,29 @@ private let playSuffix = "/3.0/R/ENG/WEB_HLS/ALL/CONTENT/PLAY"
         _ = await t.result
         #expect(await p.active == nil)
     }
+
+    @Test func supersededCallerGetsCancellationNotNetworkError() async throws {
+        let f = await Self.fake()
+        await f.fail(pathSuffix: playSuffix, with: URLError(.cancelled))
+        let gate = GatedHTTPClient(f, gatedSuffix: "/CONTENT/PLAY")
+        let s = F1TVSession(http: gate)
+        try await s.prepare()
+        _ = try await s.signIn(token: "TOK")
+        let p = PlayCoordinator(session: s)
+        let t = Task { try await p.play(contentId: 1000010431, channelId: nil) }
+        await gate.waitUntilHeld()
+        await p.stop()
+        await gate.release()
+        let result = await t.result
+        #expect({ if case .failure(let e) = result, e is CancellationError { return true } else { return false } }())
+        #expect(await p.active == nil)
+    }
+
+    @Test func genuineFailureStaysNetworkError() async throws {
+        let f = await Self.fake()
+        await f.fail(pathSuffix: playSuffix, with: URLError(.notConnectedToInternet))
+        let p = PlayCoordinator(session: try await Self.signedIn(f))
+        let result = await Task { try await p.play(contentId: 1000010431, channelId: nil) }.result
+        #expect({ if case .failure(let e) = result, case F1TVError.network = e { return true } else { return false } }())
+    }
 }
