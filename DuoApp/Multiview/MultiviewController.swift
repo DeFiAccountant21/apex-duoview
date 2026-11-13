@@ -847,17 +847,32 @@ final class MultiviewController {
         }
     }
 
-    /// The others follow the main feed. If something outside the app paused the main one
-    /// (headphones unplugged, an interruption), the multiview counts as paused; otherwise a
-    /// non-main feed the system paused is started again.
+    /// The others follow the main feed. If something outside the app paused the main one or the
+    /// feed with the sound (headphones unplugged, an interruption), the multiview counts as paused;
+    /// otherwise a silent feed the system paused is started again.
     private func followMain() {
         guard UIApplication.shared.applicationState == .active, let main = mainFeed, main.positioned else { return }
-        if !isPaused, !main.ended, main.player.rate == 0 {
+        let mainStopped = !main.ended && main.player.rate == 0
+        if !isPaused, mainStopped || audibleFeedPausedFromOutside {
             isPaused = true
             for feed in feeds.values { updatePlayback(feed) }
             return
         }
         for feed in otherFeeds { updatePlayback(feed) }
+    }
+
+    /// The feed with the sound, when it isn't the main one, should be playing but stands still:
+    /// something outside the app paused it. Not when it is at its end: a player stops there before
+    /// the end notification arrives.
+    private var audibleFeedPausedFromOutside: Bool {
+        guard let id = audioChannelId, let feed = feeds[id], !isMain(feed), shouldPlay(feed),
+              feed.player.rate == 0 else { return false }
+        let duration = feed.item.duration
+        let now = feed.player.currentTime()
+        if duration.isNumeric, !duration.isIndefinite, now.isNumeric, now.seconds >= duration.seconds - 1 {
+            return false
+        }
+        return true
     }
 
     /// Twice a second, like Android's `syncTick`: each other feed against the main one. Far off:

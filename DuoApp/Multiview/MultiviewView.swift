@@ -94,7 +94,7 @@ struct MultiviewView: View {
         GeometryReader { safe in
             let insets = safe.safeAreaInsets
             GeometryReader { proxy in
-                let layout = arrangement(screen: proxy.size)
+                let layout = arrangement(screen: proxy.size, insets: insets)
                 ZStack(alignment: .topLeading) {
                     Color.black
                     if let rect = layout.reserved {
@@ -129,10 +129,21 @@ struct MultiviewView: View {
 
     // MARK: Layout
 
-    /// The tiles' frames for this screen. Until the "fewer feeds" choice (Task 9), the layout fits
-    /// the filled slots; empty slots are only laid out ("Pick a feed") when all four are empty.
-    private func arrangement(screen: CGSize) -> Arrangement {
-        let input = MultiviewLayout.input(posture: fold.posture, foldFrame: fold.foldFrame, screen: screen)
+    /// The tiles' frames for this screen, in full-screen coordinates. The tiles are laid out inside
+    /// the safe area (spec: tiles stay out of cutouts; the optional edge-to-edge main feed is left
+    /// out), and the closed check still uses the whole screen's width. Until the "fewer feeds"
+    /// choice (Task 9), the layout fits the filled slots; empty slots are only laid out ("Pick a
+    /// feed") when all four are empty.
+    private func arrangement(screen full: CGSize, insets: EdgeInsets) -> Arrangement {
+        let safeRect = CGRect(
+            x: insets.leading,
+            y: insets.top,
+            width: full.width - insets.leading - insets.trailing,
+            height: full.height - insets.top - insets.bottom)
+        let input = MultiviewLayout.input(
+            posture: fold.posture, foldFrame: fold.foldFrame, screen: full, safeRect: safeRect)
+        // The engine works in the safe area's own space; its rects are shifted back to be drawn.
+        let screen = input.screen
         let all = entries
         let filled = all.filter { $0.channel != nil }
         let shown = filled.isEmpty ? all : filled
@@ -146,9 +157,12 @@ struct MultiviewView: View {
             feedCount: count,
             usableOptions: LayoutEngine.usableOptionIDs(
                 screen: screen, foldFrame: input.foldFrame, posture: input.posture, feedCount: count),
-            tiles: zip(shown, frames).map { PlacedTile(entry: $0.0, frame: $0.1) },
+            tiles: zip(shown, frames).map {
+                PlacedTile(entry: $0.0, frame: TileFrame(rect: input.onScreen($0.1.rect), visible: $0.1.visible))
+            },
             reserved: LayoutEngine.reservedArea(
-                screen: screen, foldFrame: input.foldFrame, posture: input.posture, feedCount: count))
+                screen: screen, foldFrame: input.foldFrame, posture: input.posture, feedCount: count)
+                .map { input.onScreen($0) })
     }
 
     private func tile(_ placed: PlacedTile, in layout: Arrangement) -> some View {
@@ -162,14 +176,21 @@ struct MultiviewView: View {
             controller: controller,
             channel: entry.channel,
             slot: entry.slot,
+            isVisible: visible,
             showsPickPrompt: !controller.isLoading)
             .frame(width: rect.width, height: rect.height)
             .contentShape(Rectangle())
             // The hold-and-drag is attached inside the tap, so it takes precedence: a press that
-            // was held never ends as a tap. The speaker button is a Button inside the tile, which
-            // takes precedence over both.
+            // was held never ends as a tap.
             .gesture(moveGesture(entry, in: layout), including: canDrag ? .all : .subviews)
             .onTapGesture { tapped(slot: entry.slot) }
+            // The speaker sits over the tile, outside the view that carries the tap and the drag,
+            // so neither a tap nor a hold on it reaches them. It moves with the tile.
+            .overlay(alignment: .topTrailing) {
+                if let channel = entry.channel, let id = channel.id, controller.feedProblems[id] == nil {
+                    FeedSpeakerButton(controller: controller, channelId: id, title: channel.displayTitle)
+                }
+            }
             .scaleEffect(dragging ? 1.03 : 1)
             .offset(dragging ? (drag?.translation ?? .zero) : .zero)
             .position(x: rect.midX, y: rect.midY)

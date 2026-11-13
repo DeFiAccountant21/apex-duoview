@@ -3,14 +3,18 @@ import F1TV
 import SwiftUI
 import UIKit
 
-/// One multiview slot: the feed's picture (aspect-fit, never cropped), its name, the red SOUND
-/// badge on the feed with the sound, and a speaker button (top right) that moves the sound to
-/// this feed. An empty slot is a dark tile reading "Pick a feed".
+/// One multiview slot: the feed's picture (aspect-fit, never cropped), its name and the red SOUND
+/// badge on the feed with the sound. An empty slot is a dark tile reading "Pick a feed".
+/// The speaker button (`FeedSpeakerButton`) is laid over the tile by `MultiviewView`, outside the
+/// tile's tap and drag.
 /// The tile only shows a player; the controller owns it.
 struct FeedTile: View {
     let controller: MultiviewController
     let channel: Channel?
     let slot: Int
+    /// False while the layout hides this feed (it plays on, out of sight, under the main tile):
+    /// its quality cap is then the default for a non-main feed, not the main tile's size it shares.
+    let isVisible: Bool
     /// While the multiview loads, empty tiles stay blank rather than ask for a pick.
     let showsPickPrompt: Bool
 
@@ -55,13 +59,14 @@ struct FeedTile: View {
         // `onChange` runs on the main actor.
         .background {
             GeometryReader { proxy in
-                // A hidden tile has the main tile's size: the size it shows at when swiped in.
-                let size = proxy.size
+                // `.zero` stands for "hidden" (a shown tile is never that small).
+                let size = isVisible ? proxy.size : CGSize.zero
                 Color.clear
                     .onChange(of: size, initial: true) { _, newSize in
-                        controller.setTileSize(
-                            CGSize(width: newSize.width * displayScale, height: newSize.height * displayScale),
-                            for: id)
+                        let pixels = newSize == .zero
+                            ? MultiviewController.defaultOtherResolution
+                            : CGSize(width: newSize.width * displayScale, height: newSize.height * displayScale)
+                        controller.setTileSize(pixels, for: id)
                     }
             }
             .accessibilityHidden(true)
@@ -70,32 +75,6 @@ struct FeedTile: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(hasSound ? "\(channel.displayTitle), sound on" : channel.displayTitle)
         .accessibilityAddTraits(slot == 0 ? AccessibilityTraits() : .isButton)
-        // After the tile's own accessibility element, so the button stays its own element; its
-        // own Button, so a tap on it never reaches the tile's tap or drag.
-        .overlay(alignment: .topTrailing) {
-            if problem == nil {
-                speakerButton(id: id, title: channel.displayTitle, hasSound: hasSound)
-            }
-        }
-    }
-
-    /// The speaker: on the feed with the sound a speaker with waves, on the others a crossed-out
-    /// one; tapping it moves the sound here. A 44 pt hit area around a smaller disc.
-    private func speakerButton(id: Int, title: String, hasSound: Bool) -> some View {
-        Button {
-            controller.setAudio(channelId: id)
-        } label: {
-            Image(systemName: hasSound ? "speaker.wave.2.fill" : "speaker.slash")
-                .font(.footnote.weight(.semibold))
-                .foregroundStyle(.white)
-                .frame(width: 30, height: 30)
-                .background(Color.black.opacity(0.55), in: Circle())
-                .frame(width: 44, height: 44)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(hasSound ? "Sound from \(title)" : "Play sound from \(title)")
-        .accessibilityAddTraits(hasSound ? .isSelected : AccessibilityTraits())
     }
 
     private var empty: some View {
@@ -119,6 +98,35 @@ struct FeedTile: View {
             .padding(.vertical, 6)
             .background(Color.black.opacity(0.65), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
             .padding(8)
+    }
+}
+
+// MARK: - Speaker
+
+/// A feed's speaker: a speaker with waves on the feed with the sound, a crossed-out one on the
+/// others; tapping it moves the sound to this feed. A 44 pt hit area around a smaller disc.
+/// Its own Button and its own accessibility element.
+struct FeedSpeakerButton: View {
+    let controller: MultiviewController
+    let channelId: Int
+    let title: String
+
+    var body: some View {
+        let hasSound = controller.audioChannelId == channelId
+        Button {
+            controller.setAudio(channelId: channelId)
+        } label: {
+            Image(systemName: hasSound ? "speaker.wave.2.fill" : "speaker.slash")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.white)
+                .frame(width: 30, height: 30)
+                .background(Color.black.opacity(0.55), in: Circle())
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(hasSound ? "Sound from \(title)" : "Play sound from \(title)")
+        .accessibilityAddTraits(hasSound ? .isSelected : AccessibilityTraits())
     }
 }
 

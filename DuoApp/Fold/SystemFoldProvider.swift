@@ -5,7 +5,9 @@ import SwiftUI
 // no availability checks.
 
 extension View {
-    /// Feeds `state` from the device's hinge and fold. Attach once, at the root.
+    /// Feeds `state` from the device's hinge and fold. Attach at the root and on full-screen
+    /// covers (the root's reader may not see a change while a cover is up): every reader measures
+    /// the same full-screen space, and `FoldState` only publishes real changes.
     func foldTracking(_ state: FoldState) -> some View {
         modifier(SystemFoldProvider(state: state))
     }
