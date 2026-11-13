@@ -65,6 +65,8 @@ final class MultiviewController {
     @ObservationIgnored private var currentItem: CatalogItem?
     @ObservationIgnored private var defaultChannelId: Int?
     @ObservationIgnored private var feedURLs: [Int: URL] = [:]
+    /// Every feed the session lists, whether or not the PLAY returned a stream for it.
+    @ObservationIgnored private var sessionChannels: [Channel] = []
     /// What each slot asks for, parallel to `slots` (moved with them). A pick whose feed this
     /// session lacks stays here, so saving `lastUsed` after a change never forgets it.
     @ObservationIgnored private var picks: [FeedPick?] = [nil, nil, nil, nil]
@@ -170,7 +172,11 @@ final class MultiviewController {
         guard generation == mine else { return }
 
         feedURLs = info.feeds
-        channels = detail.channels.filter { channel in channel.id.map { info.feeds[$0] != nil } ?? false }
+        // Links can't have expired seconds after this PLAY: a failure in the first minute is an
+        // ordinary failure with its real message, never a second PLAY.
+        lastRefreshAt = Date()
+        sessionChannels = detail.channels
+        channels = Self.playable(sessionChannels, in: info.feeds)
         // A remembered feed this session lacks leaves its slot empty; nothing else fills it.
         var remembered = Array(store.lastUsed.prefix(Self.slotCount))
         while remembered.count < Self.slotCount { remembered.append(nil) }
@@ -223,6 +229,7 @@ final class MultiviewController {
     }
 
     private func resetSlots() {
+        sessionChannels = []
         slots = Array(repeating: nil, count: Self.slotCount)
         picks = Array(repeating: nil, count: Self.slotCount)
         channels = []
@@ -235,7 +242,7 @@ final class MultiviewController {
     func makeMain(slot: Int) {
         // A feed that stopped can't take the main spot (it has no player to hear).
         guard slot > 0, slots.indices.contains(slot), let id = slots[slot]?.id, feeds[id] != nil,
-              !refreshing, errorText == nil else { return }
+              feeds[id]?.ended != true, !refreshing, errorText == nil else { return }
         // Choosing a feed counts as the tap that brings frozen feeds back.
         if othersFrozen { unfreezeOthers() }
         slots.swapAt(0, slot)
@@ -279,8 +286,15 @@ final class MultiviewController {
 
     private func slotsChanged() {
         applyRoles()
-        // The new main feed may be mid-nudge.
-        if let main = mainFeed { setRunningRate(main, rate) }
+        // The new main feed may be mid-nudge, or parked waiting for the old main feed's moment:
+        // it is the reference now, so it plays from where it is.
+        if let main = mainFeed {
+            if main.parked {
+                main.parked = false
+                updatePlayback(main)
+            }
+            setRunningRate(main, rate)
+        }
         steadySince = Date()
         placeWaiting()
         maybeStart()
@@ -584,7 +598,8 @@ final class MultiviewController {
         let target = time.seconds - offset + lead
         // This stream begins after the reference's moment: wait at its start until the
         // reference gets there, rather than seek to 0 again and again.
-        feed.parked = target < 0
+        // The main feed never parks: it is what the others wait for.
+        feed.parked = target < 0 && !isMain(feed)
         seek(feed, toSeconds: target, purpose: .join)
     }
 
@@ -895,6 +910,7 @@ final class MultiviewController {
             errorText = Self.message(for: error)
         case .success(let info):
             feedURLs = info.feeds
+            channels = Self.playable(sessionChannels, in: info.feeds)
             for index in slots.indices {
                 if let id = slots[index]?.id, info.feeds[id] == nil { slots[index] = nil }
             }
@@ -903,6 +919,11 @@ final class MultiviewController {
             applyRoles()
             if feeds.isEmpty { isLoading = false }
         }
+    }
+
+    /// The session's feeds that a multiview PLAY returned a stream for.
+    private static func playable(_ channels: [Channel], in feeds: [Int: URL]) -> [Channel] {
+        channels.filter { channel in channel.id.map { feeds[$0] != nil } ?? false }
     }
 
     /// The main feed's place (or, while it isn't in place, another feed's), for starting again

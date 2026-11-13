@@ -110,6 +110,8 @@ private struct FeedPlayerLayer: UIViewRepresentable {
     func makeUIView(context: Context) -> FeedLayerUIView {
         let view = FeedLayerUIView()
         view.backgroundColor = .black
+        // Taps go to the SwiftUI tile, not this view.
+        view.isUserInteractionEnabled = false
         view.playerLayer.videoGravity = .resizeAspect
         view.playerLayer.player = player
         return view
