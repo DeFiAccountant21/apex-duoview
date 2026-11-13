@@ -1,6 +1,6 @@
 # v1.0-beta.2 — Multiview and fold: design
 
-Owner-approved in conversation on 2026-11-13. The interactive sketch the owner reviewed is the
+Owner-approved on 2026-11-13 ("all is good, proceed"). The interactive sketch the owner reviewed is the
 "Duo Multiview Layouts" artifact (private to the owner); this document is the source of truth.
 
 ## Goal and exit test
@@ -107,13 +107,16 @@ Percentages are the share of the whole screen showing video.
 | 1 | Full screen · 78% | **Across the fold** · 78% (owner's pick); ⟳ one screen · 17% | Main above the hinge · 38% (beta.3 timing and map below) |
 | 2 | Main full width + one below · 82%; ⟳ two equal, stacked · 59% | One per screen · 35%; ⟳ across the fold · 78% | Main above, one below, both full width · 76% |
 | 3 | Main full width + two below · 86%; ⟳ three equal (two over one) · 58% | Main alone on the left, two stacked on the right · 52%; ⟳ across the fold · 78% | Main above, two stacked below · 65%; ⟳ two side by side below · 57% |
-| 4 | Main full width + three below · 91%; ⟳ main + one beside + two below · 86%; ⟳ 2 × 2 grid · 77% | Two per screen · 70%; ⟳ across the fold · 78% | Main above, three below (two over one) · 66%; ⟳ row of three below · 50% |
+| 4 | Main full width + three below · 91%; ⟳ main + one beside + two below · 86%; ⟳ 2 × 2 grid · 77% | Two per screen · 70%; ⟳ across the fold · 78% | Main above, three below (two over one) · 66% |
 
 - **Closed (outer screen):** the main feed fills the screen whatever the count; swipe left/right
   to make another feed the main one. The others keep playing silently, out of sight.
 - **Across the fold** means one picture spanning both halves, over the bend; the other feeds keep
   playing out of sight. It is the default only for one feed; with two or more, nothing crosses the
   fold unless the user picks it with ⟳.
+- **Space kept for a later beta** is always drawn and labelled, in sketches and in the app where
+  it shows (owner's rule): today only laptop posture's lower half with one feed, "Timing + map,
+  beta.3". Laptop's "row of three" layout was dropped: it only made room for beta.3.
 - **Unknown posture:** flat's layouts. Narrow screens (a phone in portrait): the closed layout.
 - Research (Apple TV app, F1 TV, YouTube TV, ESPN, DAZN, Peacock, from web-search summaries): four
   feeds is the common limit, one large plus smaller ones the usual shape, layouts re-fit when the
