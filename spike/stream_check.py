@@ -1677,6 +1677,320 @@ def dump_multiview(content_id, token, base_dir=None):
     return written
 
 
+# --- --probe-multiview: which request shape gives all feeds, and can separate sessions coexist ----
+
+PROBE_WAIT_S = 20
+
+
+def _probe_err(e):
+    """Status (or exception type name) only: never a message, which could carry a URL."""
+    if isinstance(e, HttpError):
+        return str(e.status) if e.status else "network"
+    return type(e).__name__
+
+
+def _probe_text(v, limit=60):
+    """A printable scalar: URL-like or long text is replaced, so a link can never be echoed."""
+    t = str(v)
+    if "://" in t or "eyJ" in t:
+        return "<text>"
+    return t[:limit]
+
+
+def probe_multiview(content_id, token, base_dir=None):
+    """Owner-run probe (see --probe-multiview). Prints only statuses, counts, ids and url kinds, and
+    writes the same facts to <base_dir>/multiview-probe.json. Stream URLs live in memory only and are
+    never given to out()/print/json; every request has its own try/except."""
+    base_dir = base_dir or os.path.dirname(os.path.abspath(__file__))
+    facts = {"content_id": content_id, "tier": None, "default_channel": None, "channels": [],
+             "shape_matrix": [], "probe_a": {}, "probe_b": {}, "probe_c": {}}
+    versions = {"play": "3.0", "video": "4.0"}
+    sessions = {}
+
+    def attempt(desc, fn):
+        """Runs fn(); on failure prints one line and returns (False, None)."""
+        try:
+            return True, fn()
+        except Exception as e:
+            out("  %s: failed (%s)" % (desc, _probe_err(e)))
+            if isinstance(e, HttpError) and e.body:
+                out("    body: %s" % scrub(URL_RE.sub("<url>", e.body))[:120])
+            return False, None
+
+    def session(platform, ua):
+        key = (platform, ua)
+        if key not in sessions:
+            time.sleep(FIXTURE_GAP_S)
+            sessions[key] = sign_in(token, platform, ua, False)
+        return sessions[key]
+
+    def play(platform, ua, devinfo, channel_id, player="player_tm"):
+        """Returns (status, body). Raises on failure."""
+        ent, tier, _ = session(platform, ua)
+        query = "contentId=%d&player=%s" % (content_id, player)
+        if channel_id is not None:
+            query += "&channelId=%d" % int(channel_id)
+        headers = {"ascendontoken": token, "entitlementtoken": ent, "x-f1-device-info": devinfo}
+        time.sleep(FIXTURE_GAP_S)
+        return f1_get(api_url(versions["play"], platform, "CONTENT/PLAY") + "?" + query, ua, headers)
+
+    def stream_url(body):
+        """First feed url (else resultObj.url) of a PLAY body, or None. Memory only."""
+        result = body.get("resultObj") if isinstance(body, dict) else None
+        result = result if isinstance(result, dict) else {}
+        tme = result.get("tme") if isinstance(result.get("tme"), dict) else {}
+        feeds = tme.get("feeds") if isinstance(tme.get("feeds"), list) else []
+        for f in feeds:
+            if isinstance(f, dict) and isinstance(f.get("url"), str) and f["url"]:
+                add_secret(f["url"])
+                return f["url"]
+        u = result.get("url")
+        if isinstance(u, str) and u:
+            add_secret(u)
+            return u
+        return None
+
+    def get_playlist(url, ua):
+        """(status text, body text or None). Status only on failure; no F1 headers."""
+        try:
+            status, text, _ = http_get(url, {"User-Agent": ua}, cap=MANIFEST_CAP)
+            return str(status), text
+        except Exception as e:
+            return "failed (%s)" % _probe_err(e), None
+
+    def first_variant(master_url, master_text):
+        if not master_text or "#EXTM3U" not in master_text[:1024]:
+            return None
+        info = parse_hls(master_text)
+        if info["variants"]:
+            return urllib.parse.urljoin(master_url, info["variants"][0][1])
+        if "#EXTINF:" in master_text:
+            return master_url
+        return None
+
+    def check_pair(tag, url, ua):
+        """GET master then first variant; returns (master status, variant status, variant url)."""
+        ms, text = get_playlist(url, ua)
+        vurl = first_variant(url, text)
+        if vurl is None:
+            vs = "no variant"
+        else:
+            vs, _ = get_playlist(vurl, ua)
+        out("  %s: master %s, variant %s" % (tag, ms, vs))
+        return ms, vs, vurl
+
+    def variant_only(tag, vurl, ua):
+        if vurl is None:
+            out("  %s: no variant to fetch" % tag)
+            return "no variant"
+        vs, _ = get_playlist(vurl, ua)
+        out("  %s: variant %s" % (tag, vs))
+        return vs
+
+    # -- 1. sign in, video, channels
+    out("== Multiview probe, contentId %d ==" % content_id)
+    ok, cfg = attempt("config", lambda: f1_get(BASE + "/config", SAFARI_UA))
+    if ok:
+        try:
+            api = cfg[1].get("apiConfig") if isinstance(cfg[1], dict) else None
+            if isinstance(api, dict):
+                for key, field in (("play", "playAPIVersion"), ("video", "videoAPIVersion")):
+                    v = str(api.get(field, "")).strip()
+                    if API_VERSION.match(v):
+                        versions[key] = v
+        except Exception:
+            pass
+    out("  API versions: play %s, video %s" % (versions["play"], versions["video"]))
+
+    out("== 1. Sign in and CONTENT/VIDEO ==")
+    ok, sess = attempt("sign-in", lambda: session("WEB_HLS", SAFARI_UA))
+    channels = []
+    default = None
+    if ok:
+        tier, group = sess[1], sess[2]
+        facts["tier"] = _probe_text(tier)
+        out("  tier %s" % _probe_text(tier))
+
+        def get_video():
+            time.sleep(FIXTURE_GAP_S)
+            return f1_get(api_url(versions["video"], "WEB_HLS", "CONTENT/VIDEO/%d/%s/%s" % (content_id, tier, group)),
+                          SAFARI_UA, {"entitlementtoken": sess[0]})
+        ok, got = attempt("CONTENT/VIDEO", get_video)
+        if ok:
+            video = got[1]
+            default = default_channel_id(video)
+            streams = find_key_deep(video, "additionalStreams")
+            for st in streams if isinstance(streams, list) else []:
+                if not isinstance(st, dict):
+                    continue
+                try:
+                    cid = int(st.get("channelId"))
+                except (TypeError, ValueError):
+                    continue
+                channels.append({"id": cid, "title": _probe_text(st.get("title", "")),
+                                 "type": _probe_text(st.get("type", "")),
+                                 "racingNumber": _probe_text(st.get("racingNumber", "")),
+                                 "driverLastName": _probe_text(st.get("driverLastName", ""))})
+    facts["default_channel"] = default
+    out("  default channel: %s" % (default if default is not None else "none"))
+    out("  channels (%d):" % len(channels))
+    for c in channels:
+        if c["type"] == "obc":
+            out("    %s %s type=%s racingNumber=%s driverLastName=%s" % (
+                c["id"], c["title"], c["type"], c["racingNumber"], c["driverLastName"]))
+        else:
+            out("    %s %s" % (c["id"], c["title"]))
+    facts["channels"] = channels
+    ids = [c["id"] for c in channels]
+    if default is None and ids:
+        default = ids[0]
+        out("  (no default flag; using first channel %s)" % default)
+
+    def pick(title_words, exclude):
+        for c in channels:
+            if c["id"] in exclude:
+                continue
+            if any(w in c["title"].lower() for w in title_words):
+                return c["id"]
+        return None
+
+    world = None
+    for c in channels:
+        if c["id"] != default and (c["id"] == 1025 or "international" in c["title"].lower()):
+            world = c["id"]
+            break
+    if world is None:
+        world = next((i for i in ids if i != default), None)
+    out("  second channel for probes A/B: %s" % (world if world is not None else "none"))
+
+    # -- 2. shape matrix
+    out("== 2. Shape matrix (player_tm) ==")
+    shapes = [
+        ("safari/WEB_DASH/ch", "WEB_DASH", SAFARI_UA, safari_device_info(True), default),
+        ("safari/WEB_HLS/ch", "WEB_HLS", SAFARI_UA, safari_device_info(True), default),
+        ("android/WEB_DASH/ch", "WEB_DASH", ANDROID_UA, android_device_info(True), default),
+        ("android/WEB_HLS/ch", "WEB_HLS", ANDROID_UA, android_device_info(True), default),
+        ("safari/WEB_HLS/no-channelId", "WEB_HLS", SAFARI_UA, safari_device_info(True), None),
+        ("safari/WEB_HLS/p=false", "WEB_HLS", SAFARI_UA, safari_device_info(False), default),
+    ]
+    for label, platform, ua, dev, ch in shapes:
+        row = {"label": label}
+        ok, got = attempt(label, lambda: play(platform, ua, dev, ch))
+        if ok:
+            status, body = got
+            result = body.get("resultObj") if isinstance(body, dict) else None
+            result = result if isinstance(result, dict) else {}
+            tme = result.get("tme") if isinstance(result.get("tme"), dict) else {}
+            feeds = tme.get("feeds") if isinstance(tme.get("feeds"), list) else []
+            fids, kinds = [], []
+            for f in feeds:
+                f = f if isinstance(f, dict) else {}
+                meta = f.get("metadata") if isinstance(f.get("metadata"), dict) else {}
+                fids.append(_probe_text(meta.get("channel_id", "?")))
+                kinds.append(url_kind(f.get("url")))
+            row.update({"status": status, "feeds": len(feeds), "feed_channel_ids": fids, "url_kinds": kinds,
+                        "laURL": bool(result.get("laURL")), "streamType": _probe_text(result.get("streamType", "none")),
+                        "tme_channel": _probe_text(tme.get("channel", "none")),
+                        "tme_keys": sorted(_probe_text(k, 40) for k in tme.keys())})
+            out("  %s: HTTP %s, feeds %d, channel_ids [%s], url kinds [%s], laURL %s, streamType %s, tme.channel %s" % (
+                label, status, len(feeds), ",".join(fids), ",".join(kinds), "yes" if row["laURL"] else "no",
+                row["streamType"], row["tme_channel"]))
+            out("    tme keys: %s" % ", ".join(row["tme_keys"]))
+        else:
+            row["status"] = "failed"
+        facts["shape_matrix"].append(row)
+        # raw bodies are deliberately not kept: the probes below ask for their own sessions
+
+    # -- 3/4. coexistence A/B
+    def coexist(name, player, out_key):
+        out("== %s ==" % name)
+        rec = facts[out_key]
+        if world is None:
+            out("  skipped: no second channel")
+            rec["skipped"] = "no second channel"
+            return
+        ua, dev = SAFARI_UA, safari_device_info(True)
+        ok, got = attempt("PLAY %s default" % player, lambda: play("WEB_HLS", ua, dev, default, player))
+        url_a = stream_url(got[1]) if ok else None
+        out("  PLAY A: %s" % ("HTTP %s, url %s" % (got[0], url_kind(url_a)) if ok else "no session"))
+        if url_a is None:
+            rec["skipped"] = "no url A"
+            return
+        ms, vs, va = check_pair("A before B", url_a, ua)
+        rec["A_before"] = {"master": ms, "variant": vs}
+        ok, got = attempt("PLAY %s second" % player, lambda: play("WEB_HLS", ua, dev, world, player))
+        url_b = stream_url(got[1]) if ok else None
+        out("  PLAY B: %s" % ("HTTP %s, url %s" % (got[0], url_kind(url_b)) if ok else "no session"))
+        same = None
+        if url_b is not None:
+            ms, vs, _ = check_pair("A after B", url_a, ua)
+            rec["A_after"] = {"master": ms, "variant": vs}
+            ms, vs, vb = check_pair("B", url_b, ua)
+            rec["B"] = {"master": ms, "variant": vs}
+            out("  waiting %d s" % PROBE_WAIT_S)
+            time.sleep(PROBE_WAIT_S)
+            rec["A_late_variant"] = variant_only("A after %d s" % PROBE_WAIT_S, va, ua)
+            rec["B_late_variant"] = variant_only("B after %d s" % PROBE_WAIT_S, vb, ua)
+            same = "same" if url_a == url_b else "different"
+            out("  URL A vs URL B: %s" % same)
+            # last, so it cannot disturb the sequence above: does asking for A again change A's url?
+            ok, got = attempt("PLAY %s default again" % player, lambda: play("WEB_HLS", ua, dev, default, player))
+            if ok:
+                url_a2 = stream_url(got[1])
+                rec["url_a_repeat"] = "same" if url_a2 == url_a else "different"
+                out("  URL A after a repeat PLAY vs first PLAY: %s" % rec["url_a_repeat"])
+        rec["url_a_vs_b"] = same
+
+    coexist("3. Probe A: player_tm, separate PLAY per channel (safari/WEB_HLS)", "player_tm", "probe_a")
+    coexist("4. Probe B: player_bm, separate PLAY per channel (safari/WEB_HLS)", "player_bm", "probe_b")
+
+    # -- 5. four at once
+    out("== 5. Probe C: four player_tm sessions at once ==")
+    rec = facts["probe_c"]
+    chosen = []
+    if default is not None:
+        chosen.append(default)
+    for words in (("international", "world"), ("tracker",), ("data",)):
+        got = pick(words, set(chosen))
+        if got is not None:
+            chosen.append(got)
+    for i in ids:
+        if len(chosen) >= 4:
+            break
+        if i not in chosen:
+            chosen.append(i)
+    chosen = chosen[:4]
+    out("  channels: %s" % ", ".join(str(c) for c in chosen))
+    held = []
+    for c in chosen:
+        ok, got = attempt("PLAY %s" % c, lambda: play("WEB_HLS", SAFARI_UA, safari_device_info(True), c))
+        u = stream_url(got[1]) if ok else None
+        out("  PLAY %s: %s" % (c, "HTTP %s, url %s" % (got[0], url_kind(u)) if ok else "no session"))
+        held.append((c, u))
+    vars_ = []
+    for c, u in held:
+        if u is None:
+            out("  %s: no url" % c)
+            vars_.append((c, None))
+            continue
+        ms, vs, vu = check_pair("%s" % c, u, SAFARI_UA)
+        rec["ch%s" % c] = {"master": ms, "variant": vs}
+        vars_.append((c, vu))
+    out("  waiting %d s" % PROBE_WAIT_S)
+    time.sleep(PROBE_WAIT_S)
+    for c, vu in vars_:
+        rec.setdefault("ch%s" % c, {})["variant_late"] = variant_only("%s after %d s" % (c, PROBE_WAIT_S), vu, SAFARI_UA)
+
+    # -- 6. summary file
+    facts["log"] = list(LINES)
+    path = os.path.join(base_dir, "multiview-probe.json")
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(facts, f, indent=1, ensure_ascii=False)
+        f.write("\n")
+    out("Send back the text above (or spike/multiview-probe.json). It holds no tokens or links.")
+    return facts
+
+
 # --- Main ------------------------------------------------------------------------------------
 
 def main():
@@ -1685,7 +1999,8 @@ def main():
                     "report whether a FairPlay HLS stream is offered. Reads JSON and manifest text only.",
         usage="python3 stream_check.py [--live] [--save-urls] <F1 TV page URL or numeric contentId>\n"
               "       python3 stream_check.py --dump-catalogue\n"
-              "       python3 stream_check.py --dump-multiview <content URL or id>")
+              "       python3 stream_check.py --dump-multiview <content URL or id>\n"
+              "       python3 stream_check.py --probe-multiview <content URL or id>")
     parser.add_argument("content", nargs="?",
                         help="e.g. https://f1tv.formula1.com/detail/1000009999/some-title or 1000009999 "
                              "(not needed with --dump-catalogue)")
@@ -1697,6 +2012,10 @@ def main():
                         help="record sanitised CONTENT/PLAY player_tm (multiview) responses for the given "
                              "contentId or page URL, plus one old archive race, in multiview-fixtures/ "
                              "(zipped to multiview-fixtures.zip) next to this script.")
+    parser.add_argument("--probe-multiview", action="store_true",
+                        help="probe which CONTENT/PLAY request shape returns all feeds, and whether several "
+                             "separate play sessions work at once. Prints statuses/counts/ids only (no tokens "
+                             "or links) and writes multiview-probe.json next to this script.")
     parser.add_argument("--save-urls", action="store_true",
                         help="also write the UNMASKED signed stream URLs to stream_urls_PRIVATE.txt next to "
                              "this script, for a local playback test. Never printed, never in the result file; "
@@ -1740,6 +2059,14 @@ def main():
         return 1
     add_secret(token)
     add_secret(raw.strip())
+
+    if args.probe_multiview:
+        try:
+            probe_multiview(content_id, token)
+        except KeyboardInterrupt:
+            out("Interrupted.")
+            return 1
+        return 0
 
     if args.dump_multiview:
         try:
