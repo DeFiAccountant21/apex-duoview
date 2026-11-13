@@ -1101,10 +1101,11 @@ final class MultiviewController {
         return start.seconds...livePoint
     }
 
-    /// Faster than 1× runs into the live point, where there's nothing more to play: back to
-    /// normal speed there, with Android's note.
+    /// At the live point the speed menu hides, so any speed but 1× goes back to normal there,
+    /// with Android's note: faster runs into the live point, where there's nothing more to play,
+    /// and slower (0.5× picked behind live, then LIVE) would be stuck with no menu to change it.
     private func dropSpeedAtLiveEdge() {
-        guard isLive, rate > 1, behindLive != nil, isAtLiveEdge else { return }
+        guard isLive, rate != 1, behindLive != nil, isAtLiveEdge else { return }
         setRate(1)
         notice = Self.caughtUpNotice
         noticeAt = Date()

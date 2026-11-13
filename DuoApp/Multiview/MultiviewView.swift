@@ -343,10 +343,13 @@ struct MultiviewView: View {
         let posture = layout.input.posture
         let feedCount = layout.feedCount
         let usable = layout.usableOptions
+        let half = mainHalf(layout)
         return MultiviewControls(
             controller: controller,
             visible: controlsShown || controlsPinned,
             canSwitchLayout: usable.count > 1,
+            mainHalfLeading: half.leading,
+            mainHalfTrailing: half.trailing,
             scrubbing: $scrubbing,
             onShow: { showControls() },
             // A control used, even from a menu that outlived the fade: the controls are up again.
@@ -355,6 +358,22 @@ struct MultiviewView: View {
                 controller.cycleLayout(posture: posture, feedCount: feedCount, usable: usable)
             },
             onFeeds: { openEditor(slot: nil) })
+    }
+
+    /// Book posture: how much of the controls' width (the safe area, the space the layout engine
+    /// and `input.foldFrame` use) lies outside the screen half that holds the main feed, on each
+    /// side. The bottom panel and the handle stay in that half, off the fold region. A main feed
+    /// across the fold counts as on the side its centre is. Zero in every other posture.
+    private func mainHalf(_ layout: Arrangement) -> (leading: CGFloat, trailing: CGFloat) {
+        let input = layout.input
+        guard input.posture == .book, let fold = input.foldFrame,
+              let main = layout.tiles.first(where: { $0.entry.slot == 0 && $0.frame.visible })
+        else { return (0, 0) }
+        let mainMidX = main.frame.rect.midX - input.origin.x
+        if mainMidX <= fold.midX {
+            return (0, max(input.screen.width - fold.minX, 0))
+        }
+        return (max(fold.maxX, 0), 0)
     }
 
     /// 4 s after the last use, unless held up. A new use, or a change of state, cancels this

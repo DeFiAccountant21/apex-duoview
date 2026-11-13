@@ -22,6 +22,11 @@ struct MultiviewControls: View {
     let controller: MultiviewController
     let visible: Bool
     let canSwitchLayout: Bool
+    /// Extra room on the leading and trailing sides for the bottom panel and the handle, in the
+    /// controls' own space: in book posture, everything but the screen half that holds the main
+    /// feed, so neither straddles the crease. Zero otherwise.
+    let mainHalfLeading: CGFloat
+    let mainHalfTrailing: CGFloat
     /// True while the scrubber is held: the controls stay up.
     @Binding var scrubbing: Bool
     let onShow: @MainActor () -> Void
@@ -43,16 +48,23 @@ struct MultiviewControls: View {
                         onFeeds: onFeeds)
                     Spacer(minLength: 0)
                     MultiviewPlaybackBar(controller: controller, scrubbing: $scrubbing, onInteraction: onInteraction)
+                        .padding(.leading, mainHalfLeading)
+                        .padding(.trailing, mainHalfTrailing)
                 }
                 .opacity(visible ? 1 : 0)
                 .allowsHitTesting(visible)
                 .accessibilityHidden(!visible)
 
+                // Top centre (of the main half in book posture), well clear of Close: a second tap
+                // on it, once the controls are up, never lands on Close.
                 VStack(spacing: 0) {
                     HStack(spacing: 0) {
+                        Spacer(minLength: 0)
                         MultiviewControlsHandle(onShow: onShow)
                         Spacer(minLength: 0)
                     }
+                    .padding(.leading, mainHalfLeading)
+                    .padding(.trailing, mainHalfTrailing)
                     Spacer(minLength: 0)
                 }
                 .opacity(visible ? 0 : 1)
@@ -68,7 +80,9 @@ struct MultiviewControls: View {
 
 // MARK: - Top bar
 
-/// Close and the title on the leading side; "Switch layout" and "Feeds" on the trailing side.
+/// Close and the title on the leading side; "Switch layout" and "Feeds" on the trailing side,
+/// kept 56 pt in from the edge so the top-right tile's speaker stays reachable while the controls
+/// are held up (paused, loading).
 struct MultiviewTopBar: View {
     let controller: MultiviewController
     let canSwitchLayout: Bool
@@ -123,9 +137,13 @@ struct MultiviewTopBar: View {
                 .fixedSize()
             }
         }
-        .padding(.horizontal, 12)
+        .padding(.leading, 12)
+        .padding(.trailing, Self.speakerClearance)
         .padding(.top, 8)
     }
+
+    /// The tile speaker's 44 pt hit area, plus room.
+    static let speakerClearance: CGFloat = 56
 }
 
 /// A control's look: white condensed text on a dark capsule, in a 44 pt high hit area.
@@ -147,8 +165,7 @@ struct MultiviewChromeLabel: View {
     }
 }
 
-/// While the controls are hidden: a small "•••" at the top edge that brings them back. In the
-/// top-leading corner, where no tile has a button of its own.
+/// While the controls are hidden: a small "•••" at the top edge that brings them back.
 struct MultiviewControlsHandle: View {
     let onShow: @MainActor () -> Void
 
@@ -165,7 +182,6 @@ struct MultiviewControlsHandle: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .padding(.leading, 12)
         .accessibilityLabel("Show controls")
     }
 }
@@ -286,6 +302,8 @@ struct MultiviewPlaybackBar: View {
         }
         .menuStyle(.button)
         .buttonStyle(.borderless)
+        // Opening the menu counts as a use: the 4 s start again (a Menu has no open callback).
+        .simultaneousGesture(TapGesture().onEnded { onInteraction() })
         .accessibilityLabel("Speed \(MultiviewClock.speedText(current))")
     }
 
@@ -324,6 +342,7 @@ struct MultiviewPlaybackBar: View {
         }
         .menuStyle(.button)
         .buttonStyle(.borderless)
+        .simultaneousGesture(TapGesture().onEnded { onInteraction() })
         .accessibilityLabel("Audio language, \(chosenName)")
     }
 }
@@ -363,6 +382,11 @@ struct MultiviewScrubber: View {
                 .monospacedDigit()
                 .foregroundStyle(Theme.textPrimary)
                 .accessibilityHidden(true)
+        }
+        // Removed mid-drag (the timeline went away, a refresh): the controls aren't held up.
+        .onDisappear {
+            preview = nil
+            scrubbing = false
         }
     }
 
@@ -433,8 +457,8 @@ enum MultiviewClock {
         return "\(minutes):\(twoDigits(secs))"
     }
 
-    /// "1×", "0.75×", "2×".
+    /// "1×", "0.75×", "2×", whatever the locale: a fixed format (no locale), like `SyncPolicy`.
     static func speedText(_ speed: Double) -> String {
-        "\(speed.formatted())×"
+        String(format: "%g", speed) + "×"
     }
 }
