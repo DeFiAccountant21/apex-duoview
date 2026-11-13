@@ -261,6 +261,25 @@ import Foundation
         }
     }
 
+    @Test func bookOnePerScreenWithFourFeeds() {
+        let (s, f) = Self.referenceGeometry(.book)
+        let two = LayoutEngine.frames(screen: s, foldFrame: f, posture: .book, feedCount: 2, optionID: "book.perScreen")
+        for n in [3, 4] {
+            let frames = LayoutEngine.frames(screen: s, foldFrame: f, posture: .book, feedCount: n, optionID: "book.perScreen")
+            #expect(frames.count == n)
+            #expect(Array(frames.prefix(2)) == two, "n=\(n)")
+            for hidden in frames.dropFirst(2) {
+                #expect(hidden.visible == false && hidden.rect == frames[0].rect, "n=\(n)")
+            }
+        }
+        #expect(LayoutEngine.optionIDs(posture: .book, feedCount: 3) == ["book.oneLeftTwoRight", "book.perScreen", "book.across"])
+        #expect(LayoutEngine.optionIDs(posture: .book, feedCount: 4) == ["book.twoPerScreen", "book.perScreen", "book.across"])
+        #expect(LayoutEngine.usableOptionIDs(screen: s, foldFrame: f, posture: .book, feedCount: 3) == ["book.oneLeftTwoRight", "book.perScreen", "book.across"])
+        #expect(LayoutEngine.usableOptionIDs(screen: s, foldFrame: f, posture: .book, feedCount: 4) == ["book.twoPerScreen", "book.perScreen", "book.across"])
+        // Defaults unchanged.
+        #expect(LayoutEngine.frames(screen: s, foldFrame: f, posture: .book, feedCount: 4, optionID: nil).filter(\.visible).count == 4)
+    }
+
     @Test func wrongOrientationOrOutsideFoldBehavesAsFlat() {
         let screen = CGSize(width: 951, height: 669)
         let horizontal = CGRect(x: 0, y: 314, width: 951, height: 40)

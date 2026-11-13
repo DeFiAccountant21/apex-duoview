@@ -106,8 +106,8 @@ Percentages are the share of the whole screen showing video.
 |---|---|---|---|
 | 1 | Full screen · 78% | **Across the fold** · 78% (owner's pick); ⟳ one screen · 17% | Main above the hinge · 38% (beta.3 timing and map below) |
 | 2 | Main full width + one below · 82%; ⟳ two equal, stacked · 59% | One per screen · 35%; ⟳ across the fold · 78% | Main above, one below, both full width · 76% |
-| 3 | Main full width + two below · 86%; ⟳ three equal (two over one) · 58% | Main alone on the left, two stacked on the right · 52%; ⟳ across the fold · 78% | Main above, two stacked below · 65%; ⟳ two side by side below · 57% |
-| 4 | Main full width + three below · 91%; ⟳ main + one beside + two below · 86%; ⟳ 2 × 2 grid · 77% | Two per screen · 70%; ⟳ across the fold · 78% | Main above, three below (two over one) · 66% |
+| 3 | Main full width + two below · 86%; ⟳ three equal (two over one) · 58% | Main alone on the left, two stacked on the right · 52%; ⟳ one per screen (the other feed out of sight) · 35%; ⟳ across the fold · 78% | Main above, two stacked below · 65%; ⟳ two side by side below · 57% |
+| 4 | Main full width + three below · 91%; ⟳ main + one beside + two below · 86%; ⟳ 2 × 2 grid · 77% | Two per screen · 70%; ⟳ one per screen (the other two out of sight) · 35%; ⟳ across the fold · 78% | Main above, three below (two over one) · 66% |
 
 - **Closed (outer screen):** the main feed fills the screen whatever the count; swipe left/right
   to make another feed the main one. The others keep playing silently, out of sight.
@@ -127,6 +127,8 @@ Percentages are the share of the whole screen showing video.
 - **⟳ Switch layout** in the controls cycles the layouts for the current posture and feed count
   (hidden when there is only one). The choice is remembered per posture and feed count, across
   sessions.
+  In book with three or four feeds, ⟳ also offers "one per screen": the main feed and the second
+  one, one on each screen, the others playing out of sight (owner, 2026-11-13).
 - **Tap a feed** to swap it into the main spot: the two trade places, so tapping the old main
   feed puts them back. The sound stays with the feed that has it. Swapping changes where a feed
   sits, not which four you have. **Press and hold a feed, then drag it onto another**, to trade

@@ -46,8 +46,10 @@ public enum LayoutEngine {
             switch n {
             case 1: return ["book.across", "book.oneSide"]
             case 2: return ["book.perScreen", "book.across"]
-            case 3: return ["book.oneLeftTwoRight", "book.across"]
-            default: return ["book.twoPerScreen", "book.across"]
+            // "One per screen" with 3 or 4 feeds: the first two show, the rest play out of sight
+            // (owner, 2026-11-13).
+            case 3: return ["book.oneLeftTwoRight", "book.perScreen", "book.across"]
+            default: return ["book.twoPerScreen", "book.perScreen", "book.across"]
             }
         case .laptop:
             switch n {
@@ -305,7 +307,12 @@ public enum LayoutEngine {
             let main = one(whole)
             return (0..<n).map { TileFrame(rect: main, visible: $0 == 0) }
         case "book.oneSide": rects = s().map { [one($0.0)] }
-        case "book.perScreen": rects = s().map { [one($0.0), one($0.1)] }
+        case "book.perScreen":
+            // Slots 0 and 1, one per screen; with 3 or 4 feeds the others are hidden under the main
+            // tile, as in "across".
+            guard n >= 2, let halves = s() else { return nil }
+            let pair = [one(halves.0), one(halves.1)]
+            return (0..<n).map { $0 < 2 ? TileFrame(rect: pair[$0]) : TileFrame(rect: pair[0], visible: false) }
         case "book.oneLeftTwoRight": rects = s().map { [one($0.0)] + column($0.1, 2) }
         case "book.twoPerScreen": rects = s().map { column($0.0, 2) + column($0.1, 2) }
         case "laptop.mainUp": rects = h().map { [one($0.0)] }
