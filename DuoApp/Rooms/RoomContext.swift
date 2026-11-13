@@ -15,6 +15,7 @@ enum Route: Hashable {
 }
 
 /// What every room needs from the root: the model and the actions only the root can do.
+@MainActor
 struct RoomContext {
     let model: AppModel
     /// Plays one feed of a session. Task 11 wires the player behind this.
