@@ -29,12 +29,12 @@ struct CollectionView: View {
         }
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
-        .task(id: attempt) { await load() }
+        .task(id: attempt) { if !state.isLoaded { await load() } }
         .refreshable { await load() }
     }
 
     private func load() async {
-        if let result = await LoadState.run({ try await context.model.catalogue.collection(pageId: pageId) }) {
+        if let result = await LoadState.run(keeping: state, { try await context.model.catalogue.collection(pageId: pageId) }) {
             state = result
         }
     }

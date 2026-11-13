@@ -17,7 +17,7 @@ struct RowView: View {
                     .accessibilityAddTraits(.isHeader)
                 ScrollView(.horizontal, showsIndicators: false) {
                     LazyHStack(alignment: .top, spacing: 12) {
-                        ForEach(items) { item in
+                        ForEach(Array(items.enumerated()), id: \.offset) { _, item in
                             TileView(item: item, style: style, now: now)
                         }
                     }

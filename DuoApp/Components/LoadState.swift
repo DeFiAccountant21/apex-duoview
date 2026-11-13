@@ -12,6 +12,22 @@ enum LoadState<Value> {
         return nil
     }
 
+    /// True once a value has loaded (also when that value is itself nil).
+    var isLoaded: Bool {
+        if case .loaded = self { return true }
+        return false
+    }
+
+    /// Runs a refresh of a load that may already have content. Returns nil (leave the state alone)
+    /// when cancelled, and also when the refresh failed but `current` already holds content: a
+    /// failed refresh never replaces what is on screen.
+    @MainActor
+    static func run(keeping current: LoadState<Value>, _ operation: () async throws -> Value) async -> LoadState<Value>? {
+        guard let result = await run(operation) else { return nil }
+        if case .failed = result, current.isLoaded { return nil }
+        return result
+    }
+
     /// Runs one load. Returns nil when the task was cancelled (leave the state alone then).
     @MainActor
     static func run(_ operation: () async throws -> Value) async -> LoadState<Value>? {

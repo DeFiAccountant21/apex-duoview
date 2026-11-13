@@ -24,7 +24,7 @@ struct PaddockRoom: View {
             }
             .navigationTitle("Paddock")
             .roomChrome(context)
-            .task(id: attempt) { await load() }
+            .task(id: attempt) { if !state.isLoaded { await load() } }
             .refreshable { await load() }
         }
     }
@@ -35,7 +35,7 @@ struct PaddockRoom: View {
     }
 
     private func load() async {
-        if let result = await LoadState.run({ try await context.model.catalogue.home() }) {
+        if let result = await LoadState.run(keeping: state, { try await context.model.catalogue.home() }) {
             state = result
         }
     }

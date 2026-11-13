@@ -37,6 +37,7 @@ struct DetailView: View {
                 Text(item.title)
                     .font(.title2.bold())
 
+                // Signed out, the play button itself reads "Sign in to watch." and opens sign-in.
                 if !context.isSignedIn {
                     Button {
                         context.onSignIn()
@@ -48,14 +49,17 @@ struct DetailView: View {
                 }
 
                 LoadStateView(state: state, retry: retry) { detail in
-                    feeds(detail)
+                    // No per-feed play buttons while signed out.
+                    if context.isSignedIn {
+                        feeds(detail)
+                    }
                 }
             }
             .padding()
         }
         .navigationTitle(item.title)
         .navigationBarTitleDisplayMode(.inline)
-        .task(id: attempt) { await load() }
+        .task(id: attempt) { if !state.isLoaded { await load() } }
     }
 
     private func retry() {
@@ -64,11 +68,13 @@ struct DetailView: View {
     }
 
     private func load() async {
-        guard let result = await LoadState.run({ try await context.model.catalogue.video(contentId: item.contentId) })
+        let contentId = item.contentId
+        guard let result = await LoadState.run(
+            keeping: state, { try await context.model.catalogue.video(contentId: contentId) })
         else { return }
         state = result
         // A single feed plays straight away (once, and only when signed in).
-        if case .loaded(let detail) = result, detail.channels.count == 1, context.isSignedIn, !autoPlayed {
+        if case .loaded(let detail) = result, !Task.isCancelled, detail.channels.count == 1, context.isSignedIn, !autoPlayed {
             autoPlayed = true
             play(detail, detail.channels[0])
         }

@@ -47,7 +47,7 @@ struct ArchiveRoom: View {
             }
             .navigationTitle("Archive")
             .roomChrome(context)
-            .task(id: attempt) { await load() }
+            .task(id: attempt) { if !races.isLoaded { await load() } }
             .refreshable { await load() }
         }
     }
@@ -58,7 +58,7 @@ struct ArchiveRoom: View {
     }
 
     private func load() async {
-        if let result = await LoadState.run({ try await context.model.catalogue.archiveRaces() }) {
+        if let result = await LoadState.run(keeping: races, { try await context.model.catalogue.archiveRaces() }) {
             races = result
         }
     }

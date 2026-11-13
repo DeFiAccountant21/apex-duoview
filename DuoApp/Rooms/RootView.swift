@@ -12,6 +12,7 @@ struct RootView: View {
     private enum ActiveSheet: Identifiable {
         case settings
         case signIn
+        case plan
         var id: Self { self }
     }
 
@@ -24,48 +25,73 @@ struct RootView: View {
             onSettings: { sheet = .settings })
     }
 
+    /// The one sheet binding. Dismissing the plan sheet any way at all counts as "seen".
+    private var sheetBinding: Binding<ActiveSheet?> {
+        Binding(
+            get: { sheet },
+            set: { newValue in
+                if newValue == nil, sheet == .plan { planDismissed = true }
+                sheet = newValue
+            })
+    }
+
     var body: some View {
-        Group {
-            if case .signingIn = model.auth {
-                ProgressView("Signing in")
-            } else {
-                rooms
-            }
-        }
-        .sheet(item: $sheet) { active in
-            switch active {
-            case .settings:
-                SettingsPlaceholder(
-                    model: model,
-                    onSignIn: { self.sheet = .signIn },
-                    onSignOut: { signOutAndClearWebData(model) })
-            case .signIn:
-                NavigationStack {
-                    SignInView(model: model)
-                        .toolbar {
-                            ToolbarItem(placement: .cancellationAction) {
-                                Button("Close") { self.sheet = nil }
-                            }
-                        }
+        // The rooms stay mounted in every auth state, so signing in never resets navigation or
+        // reloads them; "Signing in" is only an overlay.
+        rooms
+            .overlay(alignment: .top) {
+                if case .signingIn = model.auth {
+                    ProgressView("Signing in")
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(.regularMaterial, in: Capsule())
+                        .padding(.top, 8)
+                        .allowsHitTesting(false)
                 }
             }
-        }
-        .alert(
-            "Playback", isPresented: Binding(
-                get: { playbackNotice != nil },
-                set: { if !$0 { playbackNotice = nil } })
-        ) {
-            Button("OK") { playbackNotice = nil }
-        } message: {
-            Text(playbackNotice ?? "")
-        }
-        .onChange(of: model.auth) { _, auth in
-            if case .signedIn = auth {
-                if sheet == .signIn { sheet = nil }
-                return
+            .sheet(item: sheetBinding) { active in
+                switch active {
+                case .settings:
+                    SettingsPlaceholder(
+                        model: model,
+                        onSignIn: { self.sheet = .signIn },
+                        onSignOut: { signOutAndClearWebData(model) })
+                case .signIn:
+                    NavigationStack {
+                        SignInView(model: model)
+                            .toolbar {
+                                ToolbarItem(placement: .cancellationAction) {
+                                    Button("Close") { self.sheet = nil }
+                                }
+                            }
+                    }
+                case .plan:
+                    PlanSheet { signOutAndClearWebData(model) }
+                }
             }
-            planDismissed = false
-        }
+            .alert(
+                "Playback", isPresented: Binding(
+                    get: { playbackNotice != nil },
+                    set: { if !$0 { playbackNotice = nil } })
+            ) {
+                Button("OK") { playbackNotice = nil }
+            } message: {
+                Text(playbackNotice ?? "")
+            }
+            .onChange(of: model.auth) { _, auth in
+                if case .signedIn(let account) = auth {
+                    if !account.hasVideoPlan && !planDismissed {
+                        // Replaces the sign-in sheet in the same binding, so there is no second
+                        // presentation racing the dismissal.
+                        sheet = .plan
+                    } else if sheet == .signIn {
+                        sheet = nil
+                    }
+                    return
+                }
+                planDismissed = false
+                if sheet == .plan { sheet = nil }
+            }
     }
 
     private var rooms: some View {
@@ -81,17 +107,5 @@ struct RootView: View {
             }
         }
         .tabViewStyle(.sidebarAdaptable)
-        .sheet(isPresented: planSheetBinding) {
-            PlanSheet { signOutAndClearWebData(model) }
-        }
-    }
-
-    private var planSheetBinding: Binding<Bool> {
-        Binding(
-            get: {
-                guard case .signedIn(let account) = model.auth else { return false }
-                return !account.hasVideoPlan && !planDismissed
-            },
-            set: { if !$0 { planDismissed = true } })
     }
 }

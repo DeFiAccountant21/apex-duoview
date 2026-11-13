@@ -39,7 +39,7 @@ struct RaceWeekendRoom: View {
             .onAppear { bookmarks = context.model.recents.all() }
             // Re-runs "Live now" every 60 s while the room is visible; cancelled when it goes.
             .task(id: liveAttempt) { await liveLoop() }
-            .task(id: weekendAttempt) { await loadWeekend() }
+            .task(id: weekendAttempt) { if !weekend.isLoaded { await loadWeekend() } }
             .refreshable {
                 bookmarks = context.model.recents.all()
                 await loadLive()
@@ -60,7 +60,7 @@ struct RaceWeekendRoom: View {
                     .accessibilityAddTraits(.isHeader)
                 ScrollView(.horizontal, showsIndicators: false) {
                     LazyHStack(alignment: .top, spacing: 12) {
-                        ForEach(bookmarks, id: \.contentId) { bookmark in
+                        ForEach(Array(bookmarks.enumerated()), id: \.offset) { _, bookmark in
                             TileView(
                                 title: bookmark.title,
                                 subtitle: Self.timeLeft(bookmark),
@@ -137,15 +137,15 @@ struct RaceWeekendRoom: View {
 
     private func loadLive() async {
         now = Date()
-        guard let result = await LoadState.run({ try await context.model.catalogue.liveNow() }) else { return }
         // A failed refresh keeps what is already showing.
-        if case .failed = result, live.value != nil { return }
+        guard let result = await LoadState.run(keeping: live, { try await context.model.catalogue.liveNow() })
+        else { return }
         live = result
     }
 
     private func loadWeekend() async {
         let catalogue = context.model.catalogue
-        let result = await LoadState<WeekendInfo?>.run {
+        let result = await LoadState<WeekendInfo?>.run(keeping: weekend) {
             let now = Date()
             let year = Calendar.current.component(.year, from: now)
             var meetings = try await catalogue.calendar(season: year)
@@ -208,7 +208,7 @@ private struct ScheduleView: View {
             }
             if allDays.indices.contains(selected) {
                 VStack(spacing: 8) {
-                    ForEach(allDays[selected]) { item in
+                    ForEach(Array(allDays[selected].enumerated()), id: \.offset) { _, item in
                         ScheduleRow(item: item, now: now)
                     }
                 }

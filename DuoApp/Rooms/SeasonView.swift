@@ -17,7 +17,7 @@ struct SeasonView: View {
             if hasWeekends {
                 LoadStateView(state: weekends, retry: retry) { meetings in
                     LazyVStack(spacing: 0) {
-                        ForEach(meetings) { meeting in
+                        ForEach(Array(meetings.enumerated()), id: \.offset) { _, meeting in
                             NavigationLink(value: Route.weekend(meeting)) {
                                 MeetingRow(meeting: meeting)
                             }
@@ -31,7 +31,7 @@ struct SeasonView: View {
                 LoadStateView(state: videos, retry: retry) { items in
                     let now = Date()
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 12, alignment: .top)], spacing: 16) {
-                        ForEach(items) { item in
+                        ForEach(Array(items.enumerated()), id: \.offset) { _, item in
                             TileView(item: item, now: now)
                         }
                     }
@@ -41,7 +41,9 @@ struct SeasonView: View {
         }
         .navigationTitle(String(season))
         .navigationBarTitleDisplayMode(.inline)
-        .task(id: attempt) { await load() }
+        .task(id: attempt) {
+            if !(hasWeekends ? weekends.isLoaded : videos.isLoaded) { await load() }
+        }
         .refreshable { await load() }
     }
 
@@ -54,10 +56,10 @@ struct SeasonView: View {
     private func load() async {
         let catalogue = context.model.catalogue
         if hasWeekends {
-            if let result = await LoadState.run({ try await catalogue.calendar(season: season) }) {
+            if let result = await LoadState.run(keeping: weekends, { try await catalogue.calendar(season: season) }) {
                 weekends = result
             }
-        } else if let result = await LoadState.run({ try await catalogue.seasonVideos(season: season) }) {
+        } else if let result = await LoadState.run(keeping: videos, { try await catalogue.seasonVideos(season: season) }) {
             videos = result
         }
     }
@@ -111,7 +113,7 @@ struct WeekendView: View {
         }
         .navigationTitle(meeting.name)
         .navigationBarTitleDisplayMode(.inline)
-        .task(id: attempt) { await load() }
+        .task(id: attempt) { if !state.isLoaded { await load() } }
         .refreshable { await load() }
     }
 
@@ -121,7 +123,7 @@ struct WeekendView: View {
     }
 
     private func load() async {
-        if let result = await LoadState.run({ try await context.model.catalogue.weekend(meeting) }) {
+        if let result = await LoadState.run(keeping: state, { try await context.model.catalogue.weekend(meeting) }) {
             state = result
         }
     }
