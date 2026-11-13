@@ -14,8 +14,14 @@ import SwiftUI
 /// trade places; on the closed layout a horizontal swipe changes the main feed; each tile's
 /// speaker button moves the sound; a "Pick a feed" tile opens the feeds editor on its slot.
 ///
-/// Feeds: the top bar's "Feeds" opens the feeds editor (a sheet). With fewer than four feeds the
+/// Feeds: the controls' "Feeds" opens the feeds editor (a sheet). With fewer than four feeds the
 /// once-only "fewer feeds" question shows, never over the editor.
+///
+/// Controls (`MultiviewControls`): up when the multiview opens, hidden after 4 s without use, and
+/// held up while paused, loading, scrubbing or showing an error. A tap on a tile keeps its job
+/// (swap, unfreeze, pick a feed), so it never shows the controls: a tap on the black background
+/// shows or hides them, and while hidden the "•••" handle at the top edge brings them back. A
+/// tile tap, drag or swipe while they show only restarts the 4 s.
 ///
 /// Touches on a tile are UIKit gesture recognizers (`TileTouchSurface`); SwiftUI's tap and
 /// long-press-then-drag on the same tile stopped both from firing.
@@ -37,11 +43,19 @@ struct MultiviewView: View {
     /// True from opening the editor until its sheet has finished closing: the "fewer feeds"
     /// question waits for that, so it is never presented over the editor or during its dismissal.
     @State private var editorShowing = false
+    /// The controls are up (they are also held up while `controlsPinned`).
+    @State private var controlsShown = true
+    /// Bumped by every use while the controls show: restarts the hide timer.
+    @State private var controlsTouch = 0
+    /// The scrubber is held.
+    @State private var scrubbing = false
 
     /// How long a press is held before the tile lifts and follows the finger.
     static let holdBeforeDrag: Double = 0.35
     /// How far a horizontal swipe on the closed layout goes before it changes the main feed.
     static let swipeDistance: CGFloat = 60
+    /// The controls hide this long after the last use.
+    static let controlsHideDelay: Double = 4
 
     private struct EditorRequest: Identifiable {
         let id = UUID()
@@ -65,6 +79,13 @@ struct MultiviewView: View {
         let entry: TileEntry
         let frame: TileFrame
         var id: TileKey { entry.key }
+    }
+
+    /// What restarts the hide timer.
+    private struct HideTimer: Equatable {
+        var touch: Int
+        var shown: Bool
+        var pinned: Bool
     }
 
     private struct TileDrag: Equatable {
@@ -113,7 +134,11 @@ struct MultiviewView: View {
             GeometryReader { proxy in
                 let layout = arrangement(screen: proxy.size, insets: insets)
                 ZStack(alignment: .topLeading) {
+                    // Only the background, never the tiles above it: its tap shows or hides the
+                    // controls.
                     Color.black
+                        .onTapGesture { toggleControls() }
+                        .accessibilityHidden(true)
                     if let rect = layout.reserved {
                         ReservedArea()
                             .frame(width: rect.width, height: rect.height)
@@ -127,10 +152,9 @@ struct MultiviewView: View {
                 .frame(width: proxy.size.width, height: proxy.size.height)
                 // Frames glide; the drag itself isn't part of this value, so it tracks the finger.
                 .animation(.snappy, value: layout.placement)
-                .overlay(alignment: .topLeading) {
-                    topBar(layout)
-                        .padding(.top, insets.top)
-                        .padding(.leading, insets.leading)
+                .overlay {
+                    controls(layout)
+                        .padding(insets)
                 }
             }
             .ignoresSafeArea()
@@ -141,6 +165,13 @@ struct MultiviewView: View {
             FeedsEditor(controller: controller, startSlot: request.slot)
         }
         .fewerFeedsPrompt(controller, enabled: !editorShowing)
+        .task(id: HideTimer(touch: controlsTouch, shown: controlsShown, pinned: controlsPinned)) {
+            await hideControlsLater()
+        }
+        // Paused, loading or an error: up, and they stay up until that ends (then 4 s more).
+        .onChange(of: controlsPinned) { _, pinned in
+            if pinned { controlsShown = true }
+        }
         .statusBarHidden(true)
         // The cover reads the fold too: the root's reader sits under the cover, and may not see
         // a change while the cover is up. Both write the same full-screen values; `FoldState`
@@ -237,6 +268,7 @@ struct MultiviewView: View {
         let key = entry.key
         switch event {
         case .began:
+            noteInteraction()
             raised = key
             drag = TileDrag(key: key, translation: .zero)
         case .moved(let translation):
@@ -245,6 +277,7 @@ struct MultiviewView: View {
         case .ended(let point):
             // Hidden tiles share the main tile's frame: only the visible ones are drop targets.
             let target = layout.tiles.first { $0.frame.visible && $0.id != key && $0.frame.rect.contains(point) }
+            noteInteraction()
             withAnimation(.snappy) {
                 drag = nil
                 if let target { controller.moveFeed(from: entry.slot, to: target.entry.slot) }
@@ -257,6 +290,7 @@ struct MultiviewView: View {
     /// The closed layout: a horizontal swipe makes the next (left) or previous (right) feed the
     /// main one, wrapping. The pan is only enabled on the closed layout.
     private func swiped(_ translation: CGSize) {
+        noteInteraction()
         let dx = translation.width
         let dy = translation.height
         guard abs(dx) > Self.swipeDistance, abs(dx) > abs(dy) else { return }
@@ -272,14 +306,13 @@ struct MultiviewView: View {
         controller.makeMain(slot: slot)
     }
 
-    /// Without controls yet (Task 10), a tap on a "Pick a feed" tile opens the feeds editor on
-    /// that slot; any other tap resumes what is paused, brings frozen feeds back, or makes the
-    /// tapped feed the main one.
+    /// A tap on a "Pick a feed" tile opens the feeds editor on that slot; any other tap brings
+    /// frozen feeds back, or makes the tapped feed the main one. Play and pause are the
+    /// controls' (a tap no longer resumes a paused multiview).
     private func tapped(slot: Int) {
+        noteInteraction()
         if controller.slots.indices.contains(slot), controller.slots[slot] == nil {
             openEditor(slot: slot)
-        } else if controller.isPaused {
-            controller.play()
         } else if controller.othersFrozen {
             controller.unfreezeOthers()
         } else if slot > 0 {
@@ -294,64 +327,60 @@ struct MultiviewView: View {
         editor = EditorRequest(slot: slot)
     }
 
-    // MARK: Chrome
+    // MARK: Controls
 
-    /// Close, "Switch layout" when this screen has more than one layout for these feeds, and
-    /// "Feeds" (the feeds editor). (Task 10 moves them into the full controls.)
-    private func topBar(_ layout: Arrangement) -> some View {
-        HStack(spacing: 8) {
-            if controller.errorText == nil {
-                Button {
-                    controller.close()
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.title)
-                        .symbolRenderingMode(.palette)
-                        .foregroundStyle(.white, .black.opacity(0.5))
-                }
-                .accessibilityLabel("Close")
-                if layout.usableOptions.count > 1 {
-                    Button {
-                        controller.cycleLayout(
-                            posture: layout.input.posture, feedCount: layout.feedCount,
-                            usable: layout.usableOptions)
-                    } label: {
-                        Label("Switch layout", systemImage: "arrow.triangle.2.circlepath")
-                            .font(.footnote.bold())
-                            .fontWidth(.condensed)
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 12)
-                            .frame(minHeight: 32)
-                            .background(Color.black.opacity(0.5), in: Capsule())
-                            .frame(minHeight: 44)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                }
-                if !controller.channels.isEmpty {
-                    Button {
-                        openEditor(slot: nil)
-                    } label: {
-                        chromeLabel("Feeds", systemImage: "rectangle.grid.2x2")
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-        .padding(12)
+    /// Held up: paused, loading, an error, or the scrubber in hand.
+    private var controlsPinned: Bool {
+        controller.isPaused || controller.isLoading || controller.errorText != nil || scrubbing
     }
 
-    /// A top-bar button's look: white condensed text on a dark capsule, in a 44 pt high hit area.
-    private func chromeLabel(_ title: String, systemImage: String) -> some View {
-        Label(title, systemImage: systemImage)
-            .font(.footnote.bold())
-            .fontWidth(.condensed)
-            .foregroundStyle(.white)
-            .padding(.horizontal, 12)
-            .frame(minHeight: 32)
-            .background(Color.black.opacity(0.5), in: Capsule())
-            .frame(minHeight: 44)
-            .contentShape(Rectangle())
+    /// The controls, inside the safe area. Plain values and closures: the layout types are this
+    /// view's own.
+    private func controls(_ layout: Arrangement) -> some View {
+        let posture = layout.input.posture
+        let feedCount = layout.feedCount
+        let usable = layout.usableOptions
+        return MultiviewControls(
+            controller: controller,
+            visible: controlsShown || controlsPinned,
+            canSwitchLayout: usable.count > 1,
+            scrubbing: $scrubbing,
+            onShow: { showControls() },
+            onInteraction: { noteInteraction() },
+            onSwitchLayout: {
+                controller.cycleLayout(posture: posture, feedCount: feedCount, usable: usable)
+            },
+            onFeeds: { openEditor(slot: nil) })
+    }
+
+    /// 4 s after the last use, unless held up. A new use, or a change of state, cancels this
+    /// wait and starts another.
+    private func hideControlsLater() async {
+        guard controlsShown, !controlsPinned else { return }
+        try? await Task.sleep(for: .seconds(Self.controlsHideDelay))
+        guard !Task.isCancelled, !controlsPinned else { return }
+        withAnimation(.easeOut(duration: 0.2)) { controlsShown = false }
+    }
+
+    /// The handle: the controls come back for another 4 s.
+    private func showControls() {
+        controlsShown = true
+        controlsTouch += 1
+    }
+
+    /// A tap on the background: shows the controls, or hides them unless they are held up.
+    private func toggleControls() {
+        if controlsShown, !controlsPinned {
+            withAnimation(.easeOut(duration: 0.2)) { controlsShown = false }
+        } else {
+            showControls()
+        }
+    }
+
+    /// A tile touch or a control used while the controls show: they stay another 4 s. Hidden,
+    /// they stay hidden.
+    private func noteInteraction() {
+        if controlsShown { controlsTouch += 1 }
     }
 
     @ViewBuilder

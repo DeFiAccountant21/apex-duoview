@@ -39,6 +39,11 @@ final class MultiviewController {
     /// How far ahead a sync seek aims at first, in seconds of wall time; learned per feed after.
     static let initialLead: Double = 0.5
     static let maximumLead: Double = 3
+    /// This close to the live point counts as live: no speed menu, and faster than 1× drops back.
+    static let liveEdgeSlack: Double = 10
+    /// How long a notice stays up, as Android's status line.
+    static let noticeDuration: TimeInterval = 6
+    static let caughtUpNotice = "Caught up to live, so back to normal speed."
 
     /// True from the moment `open` is called until `close()`: the full-screen cover follows it.
     private(set) var isPresented = false
@@ -61,6 +66,25 @@ final class MultiviewController {
     private(set) var othersFrozen = false
     /// Why a feed other than the main one stopped, by channel id; its tile shows it.
     private(set) var feedProblems: [Int: String] = [:]
+    /// The session's title, for the controls.
+    private(set) var title = ""
+    /// The main feed's place on its own timeline, in seconds. Read on the 0.5 s tick; set at once
+    /// by a seek, and left alone while the main feed is seeking.
+    private(set) var position: Double = 0
+    /// What the scrubber spans, in the main feed's seconds: 0 to the duration for a replay; for a
+    /// live session the rewind window, up to the live point. nil until the main feed is ready
+    /// (and while the window is unknown).
+    private(set) var timeline: ClosedRange<Double>?
+    /// The main feed is a live stream. Known once it is ready.
+    private(set) var isLive = false
+    /// How far behind the live point the main feed is, in seconds; nil when not live or unknown.
+    private(set) var behindLive: Double?
+    /// One short line for the viewer ("Caught up to live…"); clears itself after 6 s.
+    private(set) var notice: String?
+    /// The audio choices (commentary languages, Track FX) of the feed with the sound.
+    private(set) var audioOptions: [MultiviewAudioOption] = []
+    /// The chosen one of `audioOptions`, by id.
+    private(set) var selectedAudioOption: Int?
     /// Observed, so a tile picks up a player created after it appeared (a swap or a refresh).
     private var players: [Int: AVPlayer] = [:]
     /// Bumped when a layout choice is stored: the store isn't observed, this makes views re-read it.
@@ -107,6 +131,7 @@ final class MultiviewController {
     @ObservationIgnored private var tickTask: Task<Void, Never>?
     @ObservationIgnored private var ticks = 0
     @ObservationIgnored private var appTokens: [NSObjectProtocol] = []
+    @ObservationIgnored private var noticeAt: Date?
 
     init(coordinator: PlayCoordinator, store: MultiviewStore, recents: RecentsStore, history: WatchHistory) {
         self.coordinator = coordinator
@@ -157,6 +182,7 @@ final class MultiviewController {
         var showing = item
         if showing.title.isEmpty { showing.title = detail.title }
         currentItem = showing
+        title = showing.title
         defaultChannelId = (detail.channels.first(where: \.isDefault) ?? detail.channels.first)?.id
         resetSlots()
         feedURLs = [:]
@@ -220,6 +246,7 @@ final class MultiviewController {
         generation += 1
         teardownAll()
         currentItem = nil
+        title = ""
         defaultChannelId = nil
         feedURLs = [:]
         resetSlots()
@@ -240,6 +267,7 @@ final class MultiviewController {
     private func dismiss() {
         teardownAll()
         currentItem = nil
+        title = ""
         feedURLs = [:]
         resetSlots()
         isLoading = false
@@ -591,6 +619,33 @@ final class MultiviewController {
             seek(feed, toSeconds: time.seconds + shift, purpose: .move)
         }
         steadySince = Date()
+        // The scrubber stays where it was let go, not where the main feed was a moment ago.
+        position = target
+        refreshLiveDistance()
+    }
+
+    /// The red LIVE button: every feed back to the live point together (by the main feed's
+    /// shift, as any seek), then the tick's sync pass lines them up. Like Android's `goLive`, it
+    /// only moves: a paused multiview stays paused.
+    func goLive() {
+        updateTimeline()
+        guard isLive, let window = timeline else { return }
+        seek(toSeconds: window.upperBound)
+    }
+
+    /// The viewer tapped the notice away.
+    func dismissNotice() {
+        notice = nil
+        noticeAt = nil
+    }
+
+    /// Chooses one of `audioOptions` for the feed with the sound: that feed's item only.
+    func selectAudioOption(_ id: Int) {
+        guard let channelId = audioChannelId, let feed = feeds[channelId], let group = feed.audioGroup,
+              group.options.indices.contains(id) else { return }
+        feed.item.select(group.options[id], in: group)
+        // Shown at once; the item's own selection may report the change a moment later.
+        selectedAudioOption = id
     }
 
     /// One speed for every feed. A paused feed keeps it for when it plays.
@@ -697,6 +752,8 @@ final class MultiviewController {
     /// main feed is unlimited, the others are capped to their tile.
     private func applyRoles() {
         for feed in feeds.values { applyRole(feed) }
+        // Every change of the feed with the sound comes through here.
+        publishAudioOptions()
     }
 
     private func applyRole(_ feed: MultiviewFeed) {
@@ -753,6 +810,7 @@ final class MultiviewController {
         case .readyToPlay:
             guard !feed.ready else { return }
             feed.ready = true
+            loadAudioGroup(feed)
             place(feed)
             maybeStart()
         case .failed:
@@ -878,6 +936,8 @@ final class MultiviewController {
         steadySince = Date()
         struggle.reset()
         for feed in feeds.values { updatePlayback(feed) }
+        // The scrubber shows at once, not a tick later.
+        updateTimeline()
     }
 
     private func shouldPlay(_ feed: MultiviewFeed) -> Bool {
@@ -971,6 +1031,8 @@ final class MultiviewController {
         if !started {
             maybeStart()
         } else if !refreshing {
+            updateTimeline()
+            dropSpeedAtLiveEdge()
             followMain()
             sync()
             if ticks % Self.sampleEveryTicks == 0 { sampleDroppedFrames() }
@@ -983,6 +1045,108 @@ final class MultiviewController {
             // Paused ticks leave the watch history alone (it counts time).
             save(recordHistory: mainFeed?.player.timeControlStatus == .playing)
         }
+        if let noticeAt, now.timeIntervalSince(noticeAt) >= Self.noticeDuration { dismissNotice() }
+    }
+
+    // MARK: The controls' view of the timeline
+
+    /// The live point is close enough (or not known): the speed menu hides there.
+    var isAtLiveEdge: Bool {
+        isLive && (behindLive ?? 0) <= Self.liveEdgeSlack
+    }
+
+    /// Reads the main feed's place, the scrubber's span and, live, the distance to the live point.
+    /// Only values that changed are written, so the controls redraw only when they must.
+    private func updateTimeline() {
+        guard let main = mainFeed, main.ready else { return }
+        // While the main feed seeks, its time may still read the old place: the scrubber keeps the
+        // target. A seek that never answers stops counting after `seekTimeout`.
+        let seeking = main.seekStartedAt.map { Date().timeIntervalSince($0) < Self.seekTimeout } ?? false
+        let now = main.player.currentTime()
+        if !seeking, now.isNumeric, now.seconds.isFinite, position != now.seconds { position = now.seconds }
+        let duration = main.item.duration
+        let live = duration.isIndefinite
+        if isLive != live { isLive = live }
+        var span: ClosedRange<Double>?
+        if live {
+            span = Self.liveWindow(main.item)
+        } else if duration.isNumeric, duration.seconds.isFinite, duration.seconds > 0 {
+            span = 0...duration.seconds
+        }
+        if timeline != span { timeline = span }
+        refreshLiveDistance()
+    }
+
+    private func refreshLiveDistance() {
+        var behind: Double?
+        if isLive, let window = timeline { behind = max(window.upperBound - position, 0) }
+        if behindLive != behind { behindLive = behind }
+    }
+
+    /// A live stream's rewind window, ending at the live point: the seekable range's end less the
+    /// offset AVPlayer keeps from live (the configured one, else its recommendation). Correct
+    /// whether or not the seekable end already leaves that offset out: a place past the live
+    /// point counts as live. nil while the window is unknown or too short to scrub.
+    private static func liveWindow(_ item: AVPlayerItem) -> ClosedRange<Double>? {
+        guard let range = item.seekableTimeRanges.last?.timeRangeValue else { return nil }
+        let start = range.start
+        let end = range.end
+        guard start.isNumeric, end.isNumeric, start.seconds.isFinite, end.seconds.isFinite else { return nil }
+        var offset = item.configuredTimeOffsetFromLive
+        if !offset.isNumeric { offset = item.recommendedTimeOffsetFromLive }
+        let back = offset.isNumeric && offset.seconds.isFinite ? max(offset.seconds, 0) : 0
+        // A window shorter than the offset keeps its whole length.
+        let livePoint = end.seconds - back > start.seconds + 1 ? end.seconds - back : end.seconds
+        guard livePoint > start.seconds + 1 else { return nil }
+        return start.seconds...livePoint
+    }
+
+    /// Faster than 1× runs into the live point, where there's nothing more to play: back to
+    /// normal speed there, with Android's note.
+    private func dropSpeedAtLiveEdge() {
+        guard isLive, rate > 1, behindLive != nil, isAtLiveEdge else { return }
+        setRate(1)
+        notice = Self.caughtUpNotice
+        noticeAt = Date()
+    }
+
+    // MARK: Audio language
+
+    /// Loads a feed's audible options once, when it is ready. AVFoundation answers on its own
+    /// queue: the group goes over to the main actor in a box, with the feed's identity.
+    private func loadAudioGroup(_ feed: MultiviewFeed) {
+        guard !feed.audioGroupRequested else { return }
+        feed.audioGroupRequested = true
+        let channelId = feed.channelId
+        let itemID = feed.itemID
+        feed.item.asset.loadMediaSelectionGroup(for: .audible) { @Sendable [weak self] group, _ in
+            let box = MediaSelectionGroupBox(group)
+            Task { @MainActor [weak self] in
+                self?.audioGroupLoaded(channelId: channelId, itemID: itemID, box: box)
+            }
+        }
+    }
+
+    private func audioGroupLoaded(channelId: Int, itemID: ObjectIdentifier, box: MediaSelectionGroupBox) {
+        guard let feed = liveFeed(channelId, itemID) else { return }
+        feed.audioGroup = box.group
+        publishAudioOptions()
+    }
+
+    /// The menu's choices: the options of the feed with the sound, and the one its item plays.
+    private func publishAudioOptions() {
+        var options: [MultiviewAudioOption] = []
+        var selected: Int?
+        if let channelId = audioChannelId, let feed = feeds[channelId], let group = feed.audioGroup {
+            let current = feed.item.currentMediaSelection.selectedMediaOption(in: group)
+            for (index, option) in group.options.enumerated() {
+                let name = option.displayName
+                options.append(MultiviewAudioOption(id: index, name: name.isEmpty ? "Track \(index + 1)" : name))
+                if let current, option == current { selected = index }
+            }
+        }
+        if audioOptions != options { audioOptions = options }
+        if selectedAudioOption != selected { selectedAudioOption = selected }
     }
 
     /// The others follow the main feed. If something outside the app paused the main one or the
@@ -1301,9 +1465,17 @@ final class MultiviewController {
         frozenAt = nil
         lastStallAt = nil
         struggle.reset()
+        // The controls forget the stopped players' timeline and audio choices.
+        position = 0
+        timeline = nil
+        isLive = false
+        behindLive = nil
+        audioOptions = []
+        selectedAudioOption = nil
     }
 
     private func teardownAll() {
+        dismissNotice()
         teardownFeeds()
         tickTask?.cancel()
         tickTask = nil
@@ -1321,6 +1493,25 @@ final class MultiviewController {
             return unavailableMessage
         }
         return PlayerController.message(for: error)
+    }
+}
+
+/// One audio choice of the feed with the sound, as the controls' menu lists it: plain values.
+struct MultiviewAudioOption: Identifiable, Equatable, Sendable {
+    /// The option's index in its feed's audible selection group.
+    let id: Int
+    /// AVFoundation's display name ("English", "Track FX", …).
+    let name: String
+}
+
+/// Carries a loaded selection group from AVFoundation's callback queue to the main actor, which
+/// alone reads it from then on. Unchecked so it compiles whether or not the SDK marks the group
+/// Sendable.
+private final class MediaSelectionGroupBox: @unchecked Sendable {
+    let group: AVMediaSelectionGroup?
+
+    init(_ group: AVMediaSelectionGroup?) {
+        self.group = group
     }
 }
 
@@ -1360,6 +1551,9 @@ private final class MultiviewFeed {
     var measureLead = false
     /// The access log's dropped-frame count at the last sample.
     var droppedTotal: Int?
+    /// The stream's audible options (languages, Track FX), once loaded.
+    var audioGroup: AVMediaSelectionGroup?
+    var audioGroupRequested = false
     var statusObservation: NSKeyValueObservation?
     var tokens: [NSObjectProtocol] = []
 
