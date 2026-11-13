@@ -23,7 +23,7 @@ struct ArchiveRoom: View {
                         RowView(title: "Popular races from the archive", items: items, now: Date())
                     }
                     Text("Seasons")
-                        .heading()
+                        .sectionLabel()
                         .padding(.horizontal)
                         .accessibilityAddTraits(.isHeader)
                     LazyVStack(spacing: 0) {

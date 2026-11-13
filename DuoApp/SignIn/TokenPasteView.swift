@@ -43,6 +43,7 @@ struct TokenPasteView: View {
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
+                .tint(Theme.accent)
                 .controlSize(.large)
                 Spacer()
             }

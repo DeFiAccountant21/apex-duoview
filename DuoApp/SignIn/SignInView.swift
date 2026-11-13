@@ -30,6 +30,7 @@ struct SignInView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
+            .tint(Theme.accent)
             .controlSize(.large)
 
             Button("Paste a sign-in instead") {

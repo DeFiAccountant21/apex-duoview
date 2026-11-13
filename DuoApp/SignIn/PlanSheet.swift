@@ -8,7 +8,7 @@ struct PlanSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("No video plan on this account")
-                .font(.title2).bold().fontWidth(.condensed)
+                .heading(.title2)
             Text("A free F1 TV account can't play video.")
             Text("If you have US F1 TV Premium through Apple TV, link your Apple account on F1 TV's website first, then sign in again.")
             Spacer()
@@ -18,6 +18,7 @@ struct PlanSheet: View {
                 Text("OK").frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
+            .tint(Theme.accent)
             .controlSize(.large)
             Button("Sign out") {
                 dismiss()

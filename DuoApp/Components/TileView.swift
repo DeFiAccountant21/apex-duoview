@@ -15,12 +15,13 @@ struct TileView: View {
     let route: Route
     var progress: Double?
     var dimmed = false
+    var live = false
 
     @Environment(\.horizontalSizeClass) private var sizeClass
 
     init(
         title: String, subtitle: String, picturePath: String?, style: TileStyle = .wide,
-        route: Route, progress: Double? = nil, dimmed: Bool = false
+        route: Route, progress: Double? = nil, dimmed: Bool = false, live: Bool = false
     ) {
         self.title = title
         self.subtitle = subtitle
@@ -29,6 +30,7 @@ struct TileView: View {
         self.route = route
         self.progress = progress
         self.dimmed = dimmed
+        self.live = live
     }
 
     init(item: CatalogItem, style: TileStyle = .wide, now: Date) {
@@ -36,7 +38,7 @@ struct TileView: View {
             title: item.title,
             subtitle: item.subtitle(now: now, calendar: .current),
             picturePath: item.picturePath, style: style, route: .forItem(item),
-            dimmed: item.isUpcoming(now: now))
+            dimmed: item.isUpcoming(now: now), live: item.isLive)
     }
 
     private var width: CGFloat {
@@ -116,5 +118,10 @@ struct TileView: View {
         }
         .frame(width: width, height: height)
         .clipped()
+        .overlay(alignment: .topLeading) {
+            if live {
+                Text("LIVE").liveBadge().padding(6)
+            }
+        }
     }
 }

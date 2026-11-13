@@ -35,7 +35,7 @@ struct SettingsView: View {
     // MARK: Account
 
     private var accountSection: some View {
-        Section("Account") {
+        Section {
             switch model.auth {
             case .signedIn(let account):
                 LabeledContent("Signed in", value: account.tier)
@@ -50,6 +50,8 @@ struct SettingsView: View {
             case .signedOut:
                 Button("Sign in", action: onSignIn)
             }
+        } header: {
+            Text("Account").sectionLabel()
         }
     }
 
@@ -64,7 +66,7 @@ struct SettingsView: View {
             LabeledContent("Screen", value: Self.sizeText(fold.rootSize))
             LabeledContent("Source", value: fold.source == .fake ? "Simulated" : "Device")
         } header: {
-            Text("Fold")
+            Text("Fold").sectionLabel()
         } footer: {
             Text("Hinge is what the device reports, even while simulating. Fold is the fold's "
                 + "frame in screen points from the top-left corner. With a vertical fold in "
@@ -75,8 +77,10 @@ struct SettingsView: View {
     // MARK: About
 
     private var aboutSection: some View {
-        Section("About") {
+        Section {
             Text(versionText)
+        } header: {
+            Text("About").sectionLabel()
         }
     }
 
@@ -132,7 +136,7 @@ struct SettingsView: View {
                 .accessibilityHint("Opens in Safari")
             }
         } header: {
-            Text("Credits and licences")
+            Text("Credits and licences").sectionLabel()
         }
     }
 
@@ -146,6 +150,7 @@ struct SettingsView: View {
                 set: { on in
                     if on { fake.start() } else { fake.stop() }
                 }))
+            .tint(Theme.accent)
             Picker("Posture", selection: Binding(
                 get: { fold.posture },
                 set: { fake.setPosture($0) })
@@ -172,10 +177,11 @@ struct SettingsView: View {
                     Text("180°").accessibilityHidden(true)
                 }
                 .accessibilityValue(Self.angleText(fold.hingeAngle ?? FakeFoldProvider.defaultAngle))
+                .tint(Theme.accent)
             }
             .disabled(!fake.isActive)
         } header: {
-            Text("Debug")
+            Text("Debug").sectionLabel()
         } footer: {
             Text("Simulating replaces the device's fold readings until you turn it off.")
         }

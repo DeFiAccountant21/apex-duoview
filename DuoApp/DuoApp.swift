@@ -10,7 +10,8 @@ struct DuoApp: App {
         WindowGroup {
             RootView(model: model)
                 .preferredColorScheme(.dark)
-                .tint(Theme.accent)
+                .tint(Theme.textPrimary)
+                .foregroundStyle(Theme.textPrimary)
                 .task { await model.restore() }
                 .onChange(of: scenePhase) { _, phase in
                     guard phase == .active else { return }

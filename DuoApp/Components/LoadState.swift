@@ -87,7 +87,7 @@ struct LoadFailedView: View {
                 .multilineTextAlignment(.center)
             Button("Try again", action: retry)
                 .buttonStyle(.bordered)
-                .tint(Theme.accent)
+                .tint(Theme.textPrimary)
         }
         .frame(maxWidth: .infinity)
         .padding()

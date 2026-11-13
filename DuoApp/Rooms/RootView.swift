@@ -101,15 +101,17 @@ struct RootView: View {
     private var rooms: some View {
         TabView {
             Tab("Race Weekend", systemImage: "flag.checkered") {
-                RaceWeekendRoom(context: context)
+                RaceWeekendRoom(context: context).tint(Theme.textPrimary)
             }
             Tab("Paddock", systemImage: "person.2") {
-                PaddockRoom(context: context)
+                PaddockRoom(context: context).tint(Theme.textPrimary)
             }
             Tab("Archive", systemImage: "clock.arrow.circlepath") {
-                ArchiveRoom(context: context)
+                ArchiveRoom(context: context).tint(Theme.textPrimary)
             }
         }
         .tabViewStyle(.sidebarAdaptable)
+        // Red selection in the tab bar and sidebar; each room sets its content back to silver.
+        .tint(Theme.accent)
     }
 }

@@ -77,7 +77,7 @@ struct RaceWeekendRoom: View {
         if !bookmarks.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Continue watching")
-                    .heading()
+                    .sectionLabel()
                     .padding(.horizontal)
                     .accessibilityAddTraits(.isHeader)
                 ScrollView(.horizontal, showsIndicators: false) {

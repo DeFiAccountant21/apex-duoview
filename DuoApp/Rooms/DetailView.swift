@@ -45,6 +45,7 @@ struct DetailView: View {
                         Text(AppModel.signInPrompt).frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
+                    .tint(Theme.accent)
                     .controlSize(.large)
                 }
 
@@ -101,8 +102,8 @@ struct DetailView: View {
             } label: {
                 Label("Play", systemImage: "play.fill").frame(maxWidth: .infinity)
             }
-            .buttonStyle(.bordered)
-            .tint(Theme.textPrimary)
+            .buttonStyle(.borderedProminent)
+            .tint(Theme.accent)
             .controlSize(.large)
         } else {
             VStack(spacing: 8) {
@@ -126,7 +127,7 @@ private struct ChannelRow: View {
                         .fill(Color(hex: channel.teamColorHex) ?? .gray)
                         .frame(width: 5, height: 32)
                 } else {
-                    Image(systemName: "play.fill").foregroundStyle(Theme.accent).frame(width: 5)
+                    Image(systemName: "play.fill").foregroundStyle(Theme.textPrimary).frame(width: 5)
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text(channel.displayTitle).rowTitle()
