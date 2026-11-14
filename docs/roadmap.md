@@ -147,7 +147,7 @@ What 0.95 to 0.99.9 added, and where it lands here:
 | Android | What it does | Here |
 |---|---|---|
 | 0.95 | While watching live, offers the next live programme when one starts | beta.3 (moved from beta.2 on 2026-11-13: needs a live session to test) |
-| 0.96–0.98 | Before a live session plays, the feed picker asks "From the start" or "Watch live"; from the start really starts at the beginning; the pit circle works when joining live | landed in beta.2 |
+| 0.96–0.98 | Before a live session plays, the feed picker asks "From the start" or "Watch live"; from the start really starts at the beginning; the pit circle works when joining live | the live choice and from the start landed in beta.2; the pit circle comes with the map in beta.3 |
 | 0.99.4 | Records live timing to disk from the moment a session starts, so the map has the whole session even when joined late | beta.3, adapted: iOS can't start a recording by alarm in the background, so it records while the app is open or playing, plus F1's archive once the session ends |
 | 0.99.5 | Playback speed 0.5× to 2× for every feed together | landed in beta.2 (multiview; the single feed keeps Apple's own speed menu) |
 | 0.99.9 | Sped-up multiview stays smooth; when the phone can't keep up, only the main feed keeps its picture | landed in beta.2 (the speed that struggled is remembered; Android's frame thinning isn't needed on iOS) |
