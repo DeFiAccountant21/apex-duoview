@@ -153,6 +153,55 @@ import Library
         try s.renamePreset(id: a.id, to: "RACE")
     }
 
+    @Test func fullStoreChecksNameBeforeCount() throws {
+        let (s, _) = Self.make()
+        for i in 0..<8 { _ = try s.savePreset(name: "P\(i)", picks: [], layouts: [:]) }
+        // A name already taken says so, even when there is no room left.
+        #expect(throws: PresetError.duplicateName) { try s.savePreset(name: "p3", picks: [], layouts: [:]) }
+        #expect(throws: PresetError.emptyName) { try s.savePreset(name: " ", picks: [], layouts: [:]) }
+        #expect(throws: PresetError.full) { try s.savePreset(name: "New", picks: [], layouts: [:]) }
+        #expect(s.presets.count == 8)
+    }
+
+    @Test func renameUpdateDeletePersist() throws {
+        let mem = MemoryStore()
+        let a = MultiviewStore(store: mem)
+        let race = try a.savePreset(name: "Race", picks: [.worldFeed], layouts: ["flat.1": "x"])
+        let quali = try a.savePreset(name: "Quali", picks: [.data], layouts: [:])
+        try a.renamePreset(id: race.id, to: "Sunday")
+        try a.updatePreset(id: race.id, picks: [.tracker, nil], layouts: ["book.2": "book.perScreen"])
+        a.deletePreset(id: quali.id)
+
+        let b = MultiviewStore(store: mem)
+        #expect(b.presets.count == 1)
+        let kept = try #require(b.presets.first)
+        #expect(kept.id == race.id)
+        #expect(kept.name == "Sunday")
+        #expect(kept.picks == [.tracker, nil])
+        #expect(kept.layouts == ["book.2": "book.perScreen"])
+    }
+
+    @Test func oneCorruptPresetKeepsTheOthers() throws {
+        let mem = MemoryStore()
+        let a = MultiviewStore(store: mem)
+        let first = try a.savePreset(name: "First", picks: [.worldFeed, nil], layouts: ["flat.2": "x"])
+        let second = try a.savePreset(name: "Second", picks: [.data], layouts: [:])
+        // Between the two: an object with wrong types, a null and a string.
+        let stored = try #require(mem.data(forKey: "multiview.presets"))
+        var elements = try #require(try JSONSerialization.jsonObject(with: stored) as? [Any])
+        #expect(elements.count == 2)
+        elements.insert(["id": 5, "name": ["no"], "picks": "none"] as [String: Any], at: 1)
+        elements.insert(NSNull(), at: 2)
+        elements.insert("garbage", at: 3)
+        mem.set(try JSONSerialization.data(withJSONObject: elements), forKey: "multiview.presets")
+
+        let b = MultiviewStore(store: mem)
+        #expect(b.presets == [first, second])
+        // The good ones can still be changed.
+        try b.renamePreset(id: second.id, to: "Later")
+        #expect(MultiviewStore(store: mem).presets.map(\.name) == ["First", "Later"])
+    }
+
     @Test func renamingMissingPresetIsNotFound() {
         let (s, _) = Self.make()
         #expect(throws: PresetError.notFound) { try s.renamePreset(id: UUID(), to: "X") }

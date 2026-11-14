@@ -1,7 +1,9 @@
 import Foundation
 import F1TV
 
-/// The drivers offered for "My driver": the onboard feeds of the latest race F1 TV lists.
+/// The drivers offered for "My driver": the onboard feeds of this season's newest race that has
+/// them, or, when this season has none, of the newest race in F1 TV's archive. These helpers order
+/// the races and pick the drivers; the app fetches the races.
 public enum DriverChoice {
     /// The race that ran last: the latest start date, or without dates the latest year. The
     /// archive's own order is "most watched", not newest.

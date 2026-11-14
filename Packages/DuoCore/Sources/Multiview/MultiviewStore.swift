@@ -41,7 +41,7 @@ public enum PresetError: Error, Equatable {
 
 /// Persisted multiview memory: default and last-used feeds, named presets, layout choices, the
 /// "fewer feeds" preference and the viewer's driver. Stored as JSON; unreadable data falls back to
-/// starting values.
+/// starting values, and an unreadable preset is left out on its own (the others stay).
 public final class MultiviewStore: @unchecked Sendable {
     public static let maxPresets = 8
     public static let maxNameLength = 30
@@ -202,7 +202,11 @@ public final class MultiviewStore: @unchecked Sendable {
         return name
     }
 
-    private func loadPresets() -> [Preset] { read([Preset].self, Self.presetsKey) ?? [] }
+    /// Each preset is read on its own: one that can't be read is left out, not the whole list.
+    /// The next change to the presets writes the list without it.
+    private func loadPresets() -> [Preset] {
+        read([Lossy<Preset>].self, Self.presetsKey)?.compactMap(\.value) ?? []
+    }
 
     private func loadLayouts() -> [String: String] { read([String: String].self, Self.layoutsKey) ?? [:] }
 
@@ -211,7 +215,18 @@ public final class MultiviewStore: @unchecked Sendable {
         return try? JSONDecoder().decode(T.self, from: data)
     }
 
+    /// A value that can't be encoded leaves the stored one as it was (never removes the key).
     private func write<T: Encodable>(_ value: T, _ key: String) {
-        store.set(try? JSONEncoder().encode(value), forKey: key)
+        guard let data = try? JSONEncoder().encode(value) else { return }
+        store.set(data, forKey: key)
+    }
+}
+
+/// One element of a stored list: nil when it can't be read, so the rest of the list still is.
+private struct Lossy<Value: Decodable>: Decodable {
+    let value: Value?
+
+    init(from decoder: any Decoder) throws {
+        value = try? decoder.singleValueContainer().decode(Value.self)
     }
 }
