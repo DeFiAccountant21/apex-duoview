@@ -29,8 +29,8 @@ struct RootView: View {
     private var context: RoomContext {
         RoomContext(
             model: model,
-            onPlay: { item, channel in
-                Task { await model.playback.play(item: item, channel: channel) }
+            onPlay: { item, channel, fromStart in
+                Task { await model.playback.play(item: item, channel: channel, fromStart: fromStart) }
             },
             onSignIn: { sheet = .signIn },
             onSettings: { showSettings() })

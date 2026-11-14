@@ -28,6 +28,8 @@ struct PlayerCover: View {
                 PlayerView(controller: controller, player: player).ignoresSafeArea()
             }
             if controller.isLoading {
+                // Covers a ready picture until playback starts ("From the start" seeks first).
+                Color.black.ignoresSafeArea()
                 ProgressView().controlSize(.large).tint(.white)
             }
             if let text = controller.errorText {

@@ -18,8 +18,8 @@ enum Route: Hashable {
 @MainActor
 struct RoomContext {
     let model: AppModel
-    /// Plays one feed of a session, full screen.
-    let onPlay: @MainActor (CatalogItem, Channel) -> Void
+    /// Plays one feed of a session, full screen; `true` starts a live session from its start.
+    let onPlay: @MainActor (CatalogItem, Channel, Bool) -> Void
     let onSignIn: @MainActor () -> Void
     let onSettings: @MainActor () -> Void
 

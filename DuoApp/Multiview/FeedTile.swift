@@ -34,6 +34,9 @@ struct FeedTile: View {
         return ZStack {
             Color.black
             FeedPlayerLayer(controller: controller, channelId: id, player: controller.player(for: id))
+                // Nothing shows before the feeds start together: not a live-edge frame before
+                // "From the start" has sought, nor a frame before a resume's seek.
+                .opacity(controller.isLoading ? 0 : 1)
             if let problem {
                 note(problem)
             } else if controller.isFrozen(channelId: id) {

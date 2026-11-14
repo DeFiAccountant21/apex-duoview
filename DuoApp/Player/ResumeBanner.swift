@@ -15,6 +15,12 @@ struct ResumeBanner: View {
         return age >= 0 && age < maxAge
     }
 
+    /// The line under the title: the place, after "Multiview · " for a multiview bookmark (Resume
+    /// opens multiview again).
+    static func detailText(_ bookmark: WatchBookmark) -> String {
+        bookmark.multiview ? "Multiview · \(positionText(bookmark))" : positionText(bookmark)
+    }
+
     /// "Live", or "at 1:23:45" (under an hour "at 23:45").
     static func positionText(_ bookmark: WatchBookmark) -> String {
         if bookmark.live { return "Live" }
@@ -30,7 +36,7 @@ struct ResumeBanner: View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(bookmark.title).rowTitle(.subheadline).lineLimit(2)
-                Text(Self.positionText(bookmark)).font(.caption).monospacedDigit().foregroundStyle(Theme.textSecondary)
+                Text(Self.detailText(bookmark)).font(.caption).monospacedDigit().foregroundStyle(Theme.textSecondary)
             }
             Spacer(minLength: 8)
             Button("Resume", action: onResume)

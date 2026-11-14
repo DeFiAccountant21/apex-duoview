@@ -47,6 +47,11 @@ final class MultiviewController {
     /// How long a notice stays up, as Android's status line.
     static let noticeDuration: TimeInterval = 6
     static let caughtUpNotice = "Caught up to live, so back to normal speed."
+    /// "From the start" waits this long for the main feed's seekable range, then starts live.
+    static let beginningWait: TimeInterval = 10
+    /// A picture-in-picture stop out of the app closes the multiview only if, this long after it,
+    /// no restore came and the app is still in the background.
+    static let stopSettleDelay: Duration = .seconds(1)
 
     /// True from the moment `open` is called until `close()`: the full-screen cover follows it.
     private(set) var isPresented = false
@@ -67,6 +72,10 @@ final class MultiviewController {
     /// The phone couldn't keep up: every feed but the main one and the one with the sound is
     /// paused on its last frame.
     private(set) var othersFrozen = false
+    /// The others are frozen because this phone already struggled at this speed (or slower) with
+    /// this many feeds, this run (Android 0.99.9). Only a slower speed brings them back: a tap
+    /// on a tile swaps it as usual, and the 30 s rule doesn't apply.
+    private(set) var speedHeld = false
     /// Why a feed other than the main one stopped, by channel id; its tile shows it.
     private(set) var feedProblems: [Int: String] = [:]
     /// The session's title, for the controls.
@@ -138,14 +147,23 @@ final class MultiviewController {
     @ObservationIgnored private var ticks = 0
     @ObservationIgnored private var appTokens: [NSObjectProtocol] = []
     @ObservationIgnored private var noticeAt: Date?
+    /// The speeds this phone couldn't keep every feed smooth at: kept for the app's run (this
+    /// controller lives as long as the app model), never saved, never reset by a close.
+    @ObservationIgnored private var struggledSpeeds = StruggledSpeeds()
+    /// "From the start": since when the main feed has waited, ready, for its seekable range.
+    @ObservationIgnored private var beginningWaitSince: Date?
     /// The feed picture in picture shows, while it does.
     @ObservationIgnored private var pictureInPictureChannelId: Int?
     /// Each tile's player layer, by channel id: registered by the tile's view as it is made, and
     /// dropped when it goes. Weak: the view owns its layer.
     @ObservationIgnored private var playerLayers: [Int: WeakPlayerLayer] = [:]
-    /// One picture-in-picture controller per tile layer, made when that feed first has the sound.
-    /// Only the one on the feed with the sound may start automatically.
-    @ObservationIgnored private var pictureInPictureControllers: [Int: AVPictureInPictureController] = [:]
+    /// The one picture-in-picture controller, on the layer of the feed with the sound (the source),
+    /// and that feed's channel id. Remade when the sound moves or the layer changes.
+    @ObservationIgnored private var pictureInPictureController: AVPictureInPictureController?
+    @ObservationIgnored private var pictureInPictureSourceId: Int?
+    /// A picture-in-picture stop out of the app, waiting to see whether a restore or the app's
+    /// return follows before it counts as the window's close button.
+    @ObservationIgnored private var pendingStopTask: Task<Void, Never>?
     /// AVKit holds its delegate weakly: this keeps it.
     @ObservationIgnored private let pictureInPictureDelegate: MultiviewPictureInPictureDelegate
 
@@ -187,6 +205,49 @@ final class MultiviewController {
 
     // MARK: Opening
 
+    /// Resume on a multiview bookmark: the session's feeds, then the usual opening (one fresh
+    /// multiview PLAY, the last-used feeds) at the saved place. A live session resumes at the live
+    /// edge, as in beta.1.
+    func resume(_ bookmark: WatchBookmark, catalogue: Catalogue) async {
+        if isPresented, errorText == nil, currentItem?.contentId == bookmark.contentId { return }
+        generation += 1
+        let mine = generation
+        // Keep the place in anything open, then drop it.
+        save()
+        teardownAll()
+        currentItem = nil
+        resetSlots()
+        feedURLs = [:]
+        title = bookmark.title
+        errorText = nil
+        isLoading = true
+        isPresented = true
+        let detail: VideoDetail
+        do {
+            detail = try await catalogue.video(contentId: bookmark.contentId)
+        } catch is CancellationError {
+            if generation == mine { dismiss() }
+            return
+        } catch {
+            guard generation == mine else { return }
+            isLoading = false
+            errorText = Self.message(for: error)
+            return
+        }
+        guard generation == mine else { return }
+        let item = CatalogItem(
+            contentId: bookmark.contentId,
+            title: detail.title.isEmpty ? bookmark.title : detail.title,
+            picturePath: bookmark.picturePath)
+        let start = ResumePlan.make(
+            bookmark: bookmark,
+            availableChannelIds: [bookmark.channelId],
+            defaultChannelId: bookmark.channelId,
+            isLiveNow: bookmark.live,
+            durationMs: bookmark.durationMs).start
+        await open(item: item, detail: detail, startAt: start)
+    }
+
     /// Sends one multiview PLAY for the session, fills the slots from the last-used picks and
     /// starts every filled slot together at `startAt`.
     func open(item: CatalogItem, detail: VideoDetail, startAt: Start) async {
@@ -206,8 +267,10 @@ final class MultiviewController {
         feedURLs = [:]
         errorText = nil
         isPaused = false
-        rate = 1
+        // The speed chosen last time (Android 0.99.5); a live-edge start drops it to 1×.
+        rate = store.speed
         pendingStart = startAt
+        beginningWaitSince = nil
         lastRefreshAt = nil
         isLoading = true
         isPresented = true
@@ -311,8 +374,9 @@ final class MultiviewController {
         // A feed that stopped can't take the main spot (it has no player to keep the others in step).
         guard slot > 0, slots.indices.contains(slot), let id = slots[slot]?.id, canBeMain(channelId: id),
               !refreshing, errorText == nil else { return }
-        // Choosing a feed counts as the tap that brings frozen feeds back.
-        if othersFrozen { unfreezeOthers() }
+        // Choosing a feed counts as the tap that brings frozen feeds back (held ones are frozen
+        // again once the slots have changed).
+        if othersFrozen { bringBackFrozen() }
         slots.swapAt(0, slot)
         picks.swapAt(0, slot)
         slotsChanged()
@@ -329,7 +393,7 @@ final class MultiviewController {
             guard let id = slots[incoming]?.id, canBeMain(channelId: id) else { return }
         }
         // Like a tap, handling a feed brings frozen feeds back.
-        if othersFrozen { unfreezeOthers() }
+        if othersFrozen { bringBackFrozen() }
         slots.swapAt(from, to)
         picks.swapAt(from, to)
         slotsChanged()
@@ -344,9 +408,11 @@ final class MultiviewController {
               !refreshing, errorText == nil else { return }
         // Brought back first, so a frozen feed taking the sound is lined up again before it plays
         // on; the feed that had the sound kept playing and needs nothing.
-        if othersFrozen { unfreezeOthers() }
+        if othersFrozen { bringBackFrozen() }
         audioChannelId = channelId
         applyRoles()
+        // Held at this speed: the others (now including the feed that had the sound) freeze again.
+        updateSpeedHold(announce: false)
     }
 
     /// Whether this feed can take the main spot: it has a player that hasn't reached its end.
@@ -399,7 +465,7 @@ final class MultiviewController {
     /// feed into it; emptying the slot with the sound moves the sound to the main feed.
     func setFeed(_ channel: Channel?, at slot: Int) {
         guard slots.indices.contains(slot), currentItem != nil, !refreshing, errorText == nil else { return }
-        if othersFrozen { unfreezeOthers() }
+        if othersFrozen { bringBackFrozen() }
         if let channel {
             guard let id = channel.id, feedURLs[id] != nil,
                   let chosen = channels.first(where: { $0.id == id }) else { return }
@@ -535,7 +601,7 @@ final class MultiviewController {
     /// with the others. Never a PLAY.
     private func replacePicks(_ wanted: [FeedPick?]) {
         guard currentItem != nil, !refreshing, errorText == nil else { return }
-        if othersFrozen { unfreezeOthers() }
+        if othersFrozen { bringBackFrozen() }
         var newPicks = Array(wanted.prefix(Self.slotCount))
         while newPicks.count < Self.slotCount { newPicks.append(nil) }
         let newSlots = FeedPick.resolve(newPicks, in: channels)
@@ -577,6 +643,9 @@ final class MultiviewController {
         steadySince = Date()
         placeWaiting()
         maybeStart()
+        // Held at this speed: the others freeze again (or come back, if the number of feeds
+        // changed to one this speed never struggled with).
+        updateSpeedHold(announce: false)
         store.lastUsed = picks
     }
 
@@ -669,19 +738,34 @@ final class MultiviewController {
         selectedAudioOption = id
     }
 
-    /// One speed for every feed. A paused feed keeps it for when it plays.
-    func setRate(_ newRate: Double) {
+    /// One speed for every feed. A paused feed keeps it for when it plays. The viewer's choice is
+    /// kept for the next multiview (`remember`); a speed this phone already struggled with goes
+    /// straight to one picture, and a slower one brings the others back.
+    func setRate(_ newRate: Double, remember: Bool = true) {
         guard newRate.isFinite, newRate > 0 else { return }
         rate = newRate
+        if remember { store.speed = newRate }
         for feed in feeds.values {
             feed.player.defaultRate = Float(newRate)
             setRunningRate(feed, newRate)
         }
         steadySince = Date()
+        updateSpeedHold(announce: true)
     }
 
-    /// Brings frozen feeds back (a tap, or 30 s without a stall), in step with the main feed.
+    /// The tap on a tile: brings frozen feeds back in step with the main feed. Not while they are
+    /// held for the speed; only a slower speed brings those back.
     func unfreezeOthers() {
+        guard !speedHeld else {
+            showNotice(Self.heldNotice(rate))
+            return
+        }
+        bringBackFrozen()
+    }
+
+    /// Brings frozen feeds back (a tap, a slot change, 30 s without a stall, or a slower speed
+    /// after a hold), lined up with the main feed.
+    private func bringBackFrozen() {
         guard othersFrozen else { return }
         // The feed with the sound kept playing in step: only the frozen ones are lined up again.
         let frozen = otherFeeds.filter { isFrozen($0) }
@@ -911,10 +995,30 @@ final class MultiviewController {
             ? .live
             : .replay(durationMs: duration.isNumeric ? Int64((duration.seconds * 1_000).rounded()) : 0)
         let start = pendingStart.resolved(for: timeline)
-        if case .position(let ms) = start, ms > 0 {
+        switch start {
+        case .position(let ms) where ms > 0:
             seek(feed, toSeconds: Double(ms) / 1_000, purpose: .start)
-        } else {
-            // The live edge, or the beginning: AVPlayer starts there on its own.
+        case .beginning:
+            // From the start of a live session (Android 0.98): the stream's start is known only
+            // once its seekable range is in. Until then the tick tries again; nothing plays and
+            // the spinner stays. The others then line up with this moment, as at any start.
+            if let target = PlayerController.beginningSeconds(of: feed.item, sessionStart: currentItem?.start) {
+                beginningWaitSince = nil
+                seek(feed, toSeconds: target, purpose: .start)
+            } else {
+                let since = beginningWaitSince ?? Date()
+                beginningWaitSince = since
+                if Date().timeIntervalSince(since) >= Self.beginningWait {
+                    // Never known: live, rather than a spinner for ever.
+                    beginningWaitSince = nil
+                    placed(feed)
+                }
+            }
+        default:
+            // The live edge, or the beginning of a replay: AVPlayer starts there on its own. At the
+            // live edge a kept speed goes back to 1× (no speed is offered there), without changing
+            // the kept one.
+            if timeline == .live, rate != 1 { setRate(1, remember: false) }
             placed(feed)
         }
     }
@@ -957,6 +1061,8 @@ final class MultiviewController {
         isLoading = false
         steadySince = Date()
         struggle.reset()
+        // A speed this phone already struggled with starts with one picture: before anything plays.
+        updateSpeedHold(announce: true)
         for feed in feeds.values { updatePlayback(feed) }
         // The scrubber shows at once, not a tick later.
         updateTimeline()
@@ -1051,6 +1157,8 @@ final class MultiviewController {
             }
         }
         if !started {
+            // "From the start" may still wait for the main feed's seekable range.
+            if let main = mainFeed, main.ready, !main.positioned { place(main) }
             maybeStart()
         } else if !refreshing {
             updateTimeline()
@@ -1061,9 +1169,11 @@ final class MultiviewController {
                 followMain()
                 sync()
                 if ticks % Self.sampleEveryTicks == 0 { sampleDroppedFrames() }
-                if othersFrozen {
+                // Keeps the hold right after anything that brought the others back.
+                updateSpeedHold(announce: false)
+                if othersFrozen, !speedHeld {
                     let quietSince = max(frozenAt ?? now, lastStallAt ?? .distantPast)
-                    if now.timeIntervalSince(quietSince) >= Self.unfreezeAfter { unfreezeOthers() }
+                    if now.timeIntervalSince(quietSince) >= Self.unfreezeAfter { bringBackFrozen() }
                 }
             }
         }
@@ -1134,9 +1244,9 @@ final class MultiviewController {
     /// and slower (0.5× picked behind live, then LIVE) would be stuck with no menu to change it.
     private func dropSpeedAtLiveEdge() {
         guard isLive, rate != 1, behindLive != nil, isAtLiveEdge else { return }
+        // As Android: kept as the speed from now on.
         setRate(1)
-        notice = Self.caughtUpNotice
-        noticeAt = Date()
+        showNotice(Self.caughtUpNotice)
     }
 
     // MARK: Audio language
@@ -1322,12 +1432,51 @@ final class MultiviewController {
     /// the one with the sound keep playing.
     private func freezeIfStruggling(_ now: Date) {
         guard !othersFrozen, !isInPictureInPicture, struggle.shouldFreezeOthers(at: now) else { return }
+        freezeOthers(now)
+        // Sped up: this speed is remembered for the app's run, and the others stay frozen until a
+        // slower speed (Android 0.99.9).
+        guard rate > 1 else { return }
+        struggledSpeeds.record(speed: rate, feedCount: slotFeeds.count)
+        if struggledSpeeds.holds(speed: rate, feedCount: slotFeeds.count) {
+            speedHeld = true
+            showNotice(Self.heldNotice(rate))
+        }
+    }
+
+    private func freezeOthers(_ now: Date) {
         othersFrozen = true
         frozenAt = now
         for feed in otherFeeds where isFrozen(feed) {
             feed.measureLead = false
             updatePlayback(feed)
         }
+    }
+
+    /// Holds the others frozen while the speed is one this phone already struggled with for this
+    /// many feeds, and brings them back (lined up again) once it isn't. Not before the start, nor
+    /// in picture in picture (the others are paused there anyway).
+    private func updateSpeedHold(announce: Bool) {
+        guard started, !refreshing, !isInPictureInPicture else { return }
+        if struggledSpeeds.holds(speed: rate, feedCount: slotFeeds.count) {
+            let entering = !speedHeld
+            speedHeld = true
+            if !othersFrozen { freezeOthers(Date()) }
+            if entering, announce { showNotice(Self.heldNotice(rate)) }
+        } else if speedHeld {
+            speedHeld = false
+            bringBackFrozen()
+        }
+    }
+
+    /// The note for a hold. The speed is written as the controls write it ("1.5×").
+    static func heldNotice(_ rate: Double) -> String {
+        "This phone can't keep every feed smooth at \(String(format: "%g", rate))×, so the others pause. "
+            + "A slower speed brings them back."
+    }
+
+    private func showNotice(_ text: String) {
+        notice = text
+        noticeAt = Date()
     }
 
     // MARK: Expired links
@@ -1453,6 +1602,11 @@ final class MultiviewController {
     }
 
     private func becameActive() {
+        // A picture-in-picture stop just before coming back was the way back, not the close button.
+        if pendingStopTask != nil {
+            cancelPendingStop()
+            endPictureInPicture()
+        }
         guard resumeOnActive else { return }
         resumeOnActive = false
         play()
@@ -1476,29 +1630,28 @@ final class MultiviewController {
         updatePictureInPictureSource()
     }
 
-    /// Points picture in picture at the feed with the sound: its layer's controller (made the
-    /// first time) is the only one that may start automatically when the app leaves the
-    /// foreground. Controllers whose layer went away are dropped. Never while picture in picture
-    /// is showing a feed: the source can't move then. Touches only unobserved state.
+    /// Points picture in picture at the feed with the sound: one controller, on that feed's layer,
+    /// which may start automatically when the app leaves the foreground. When the sound moves, the
+    /// layer goes or the multiview closes, the old controller is switched off and dropped (a new
+    /// one is made for the new source). Never while picture in picture is showing a feed: the
+    /// source can't move then. Touches only unobserved state.
     private func updatePictureInPictureSource() {
         guard !isInPictureInPicture else { return }
-        for (id, pip) in pictureInPictureControllers where playerLayers[id]?.layer !== pip.playerLayer {
-            pip.canStartPictureInPictureAutomaticallyFromInline = false
-            pictureInPictureControllers[id] = nil
-        }
         let source = isPresented && currentItem != nil ? audioChannelId : nil
-        if let id = source, pictureInPictureControllers[id] == nil, let layer = playerLayers[id]?.layer,
-           AVPictureInPictureController.isPictureInPictureSupported(),
-           let pip = AVPictureInPictureController(playerLayer: layer) {
-            pip.delegate = pictureInPictureDelegate
-            pictureInPictureControllers[id] = pip
+        let layer = source.flatMap { playerLayers[$0]?.layer }
+        if let pip = pictureInPictureController,
+           pictureInPictureSourceId != source || layer == nil || pip.playerLayer !== layer {
+            pip.canStartPictureInPictureAutomaticallyFromInline = false
+            pictureInPictureController = nil
+            pictureInPictureSourceId = nil
         }
-        for (id, pip) in pictureInPictureControllers {
-            let automatic = id == source
-            if pip.canStartPictureInPictureAutomaticallyFromInline != automatic {
-                pip.canStartPictureInPictureAutomaticallyFromInline = automatic
-            }
-        }
+        guard pictureInPictureController == nil, let id = source, let layer,
+              AVPictureInPictureController.isPictureInPictureSupported(),
+              let pip = AVPictureInPictureController(playerLayer: layer) else { return }
+        pip.delegate = pictureInPictureDelegate
+        pip.canStartPictureInPictureAutomaticallyFromInline = true
+        pictureInPictureController = pip
+        pictureInPictureSourceId = id
     }
 
     /// The feed picture in picture shows, while it shows one that still has a player.
@@ -1506,9 +1659,10 @@ final class MultiviewController {
         pictureInPictureChannelId.flatMap { feeds[$0] }
     }
 
-    /// Which feed a picture-in-picture controller belongs to.
+    /// Which feed a picture-in-picture controller belongs to: the source's, if it is the one kept.
     private func pictureInPictureChannel(_ source: ObjectIdentifier) -> Int? {
-        pictureInPictureControllers.first { ObjectIdentifier($0.value) == source }?.key
+        guard let pip = pictureInPictureController, ObjectIdentifier(pip) == source else { return nil }
+        return pictureInPictureSourceId
     }
 
     /// Picture in picture is about to show the feed with the sound: the others pause.
@@ -1524,21 +1678,31 @@ final class MultiviewController {
         }
     }
 
-    /// It didn't start after all: everything as before (today's background handling).
+    /// It didn't start after all. Out of the app, nothing is lined up or played in the background:
+    /// the feeds stay paused where they are, and coming back starts them (`becameActive`), after
+    /// which the sync pass lines them up. In the app, everything as before.
     fileprivate func pictureInPictureFailed(_ source: ObjectIdentifier) {
         guard isInPictureInPicture, pictureInPictureChannel(source) == pictureInPictureChannelId else { return }
+        guard UIApplication.shared.applicationState == .active else {
+            isInPictureInPicture = false
+            pictureInPictureChannelId = nil
+            for feed in feeds.values {
+                feed.measureLead = false
+                if feed.player.rate != 0 { feed.player.pause() }
+            }
+            resumeOnActive = started && !isPaused
+            updatePictureInPictureSource()
+            return
+        }
         // A feed the system paused here is not the viewer's pause.
         endPictureInPicture(adoptingWindowPause: false)
-        if UIApplication.shared.applicationState != .active {
-            // The system pauses the players out here; coming back starts them again.
-            resumeOnActive = started && !isPaused
-        }
     }
 
     /// The viewer is coming back to the app (the window's restore button, or the app brought
     /// forward): the cover shows again and every feed lines up with the one that kept playing.
     /// Answers whether the multiview is there to come back to.
     fileprivate func pictureInPictureRestore(_ source: ObjectIdentifier) -> Bool {
+        cancelPendingStop()
         guard currentItem != nil else { return false }
         if !isPresented { isPresented = true }
         if isInPictureInPicture, pictureInPictureChannel(source) == pictureInPictureChannelId {
@@ -1547,11 +1711,33 @@ final class MultiviewController {
         return true
     }
 
-    /// Picture in picture ended without a restore. In the background that is the window's close
-    /// button: the same as closing the multiview (saved first, at the window's moment). Otherwise
-    /// the app came forward: carry on as after a restore.
+    /// Picture in picture ended without a restore. In the app: the app came forward, so carry on
+    /// as after a restore. In the background it may be the window's close button, or the app on
+    /// its way forward with the restore or the return a moment behind: it counts as the close
+    /// button (the same as closing the multiview, saved first at the window's moment) only if,
+    /// a second later, neither came and the app is still in the background.
     fileprivate func pictureInPictureDidStop(_ source: ObjectIdentifier) {
         guard isInPictureInPicture, pictureInPictureChannel(source) == pictureInPictureChannelId else { return }
+        guard UIApplication.shared.applicationState == .background else {
+            cancelPendingStop()
+            endPictureInPicture()
+            return
+        }
+        pendingStopTask?.cancel()
+        pendingStopTask = Task { [weak self] in
+            do {
+                try await Task.sleep(for: Self.stopSettleDelay)
+            } catch {
+                return
+            }
+            self?.pictureInPictureStopSettled()
+        }
+    }
+
+    /// A second after a stop in the background, with no restore since.
+    private func pictureInPictureStopSettled() {
+        pendingStopTask = nil
+        guard isInPictureInPicture else { return }
         if UIApplication.shared.applicationState == .background {
             close()
         } else {
@@ -1559,11 +1745,17 @@ final class MultiviewController {
         }
     }
 
+    private func cancelPendingStop() {
+        pendingStopTask?.cancel()
+        pendingStopTask = nil
+    }
+
     /// Drops picture-in-picture state, stopping a window that is still up, without touching the
     /// players: for teardowns, which stop them anyway.
     private func leavePictureInPicture() {
+        cancelPendingStop()
         guard isInPictureInPicture else { return }
-        if let id = pictureInPictureChannelId, let pip = pictureInPictureControllers[id], pip.isPictureInPictureActive {
+        if let pip = pictureInPictureController, pip.isPictureInPictureActive {
             pip.stopPictureInPicture()
         }
         isInPictureInPicture = false
@@ -1605,6 +1797,8 @@ final class MultiviewController {
             updatePlayback(feed)
         }
         for feed in others { place(feed) }
+        // Held at this speed: the others freeze again (they finish lining up, paused).
+        updateSpeedHold(announce: false)
     }
 
     // MARK: Saving
@@ -1633,7 +1827,8 @@ final class MultiviewController {
             positionMs: positionMs,
             durationMs: durationMs,
             live: live,
-            savedAt: Date()))
+            savedAt: Date(),
+            multiview: true))
         if recordHistory {
             history.record(contentId: item.contentId, positionMs: positionMs, durationMs: durationMs)
         }
@@ -1650,9 +1845,12 @@ final class MultiviewController {
         mainPlacedAt = nil
         steadySince = nil
         othersFrozen = false
+        // The hold goes with the feeds; the speeds that struggled are kept for the app's run.
+        speedHeld = false
         frozenAt = nil
         lastStallAt = nil
         struggle.reset()
+        beginningWaitSince = nil
         // The controls forget the stopped players' timeline and audio choices.
         position = 0
         timeline = nil

@@ -1,8 +1,11 @@
 import F1TV
+import Library
 import SwiftUI
 
 /// A session's picture, title and feeds. One feed plays straight away; otherwise the default feed
 /// comes first, then the onboards with number, driver and a bar in the team colour.
+/// A live session on air for more than a minute asks "From the start" or "Watch live" before
+/// anything plays, a feed or multiview (Android 0.97).
 struct DetailView: View {
     let item: CatalogItem
     let context: RoomContext
@@ -10,6 +13,8 @@ struct DetailView: View {
     @State private var state: LoadState<VideoDetail> = .loading
     @State private var attempt = 0
     @State private var autoPlayed = false
+    /// What waits for "From the start" or "Watch live".
+    @State private var liveChoice: LiveChoice?
 
     /// A tile's item, or just what a bookmark remembers.
     init(item: CatalogItem, context: RoomContext) {
@@ -63,6 +68,15 @@ struct DetailView: View {
         .navigationTitle(item.title)
         .navigationBarTitleDisplayMode(.inline)
         .task(id: attempt) { if !state.isLoaded { await load() } }
+        .confirmationDialog(
+            Text(item.title),
+            isPresented: Binding(get: { liveChoice != nil }, set: { if !$0 { liveChoice = nil } }),
+            titleVisibility: .hidden,
+            presenting: liveChoice
+        ) { choice in
+            Button("From the start") { choose(choice, fromStart: true) }
+            Button("Watch live") { choose(choice, fromStart: false) }
+        }
     }
 
     private func retry() {
@@ -76,11 +90,18 @@ struct DetailView: View {
             keeping: state, { try await context.model.catalogue.video(contentId: contentId) })
         else { return }
         state = result
-        // A single feed plays straight away (once, and only when signed in).
+        // A single feed plays straight away (once, and only when signed in); live and well under
+        // way, the choice of where to start comes up instead.
         if case .loaded(let detail) = result, !Task.isCancelled, detail.channels.count == 1, context.isSignedIn, !autoPlayed {
             autoPlayed = true
             play(detail, detail.channels[0])
         }
+    }
+
+    /// Whether starting now asks "From the start" or "Watch live": a live session on air for more
+    /// than a minute (or with no known start). Checked at the tap, as the minute moves.
+    private var asksWhereToStart: Bool {
+        LiveStart.asks(isLive: item.isLive, sessionStart: item.start, now: Date())
     }
 
     private func play(_ detail: VideoDetail, _ channel: Channel) {
@@ -88,9 +109,28 @@ struct DetailView: View {
             context.onSignIn()
             return
         }
+        if asksWhereToStart {
+            liveChoice = .feed(detail, channel)
+        } else {
+            startFeed(detail, channel, fromStart: false)
+        }
+    }
+
+    private func startFeed(_ detail: VideoDetail, _ channel: Channel, fromStart: Bool) {
         var playing = item
         if playing.title.isEmpty { playing.title = detail.title }
-        context.onPlay(playing, channel)
+        context.onPlay(playing, channel, fromStart)
+    }
+
+    /// The viewer chose where to start: nothing has played before this.
+    private func choose(_ choice: LiveChoice, fromStart: Bool) {
+        liveChoice = nil
+        switch choice {
+        case .feed(let detail, let channel):
+            startFeed(detail, channel, fromStart: fromStart)
+        case .multiview(let detail):
+            startMultiview(detail, fromStart: fromStart)
+        }
     }
 
     /// Multiview for sessions with two feeds or more: the button for accounts that have it, a
@@ -117,11 +157,19 @@ struct DetailView: View {
     }
 
     private func watchMultiview(_ detail: VideoDetail) {
+        if asksWhereToStart {
+            liveChoice = .multiview(detail)
+        } else {
+            startMultiview(detail, fromStart: false)
+        }
+    }
+
+    private func startMultiview(_ detail: VideoDetail, fromStart: Bool) {
         var titled = item
         if titled.title.isEmpty { titled.title = detail.title }
         let playing = titled
         let model = context.model
-        Task { await model.openMultiview(item: playing, detail: detail) }
+        Task { await model.openMultiview(item: playing, detail: detail, fromStart: fromStart) }
     }
 
     @ViewBuilder
@@ -145,6 +193,12 @@ struct DetailView: View {
             }
         }
     }
+}
+
+/// A start waiting for "From the start" or "Watch live": one feed, or multiview.
+private enum LiveChoice {
+    case feed(VideoDetail, Channel)
+    case multiview(VideoDetail)
 }
 
 private struct ChannelRow: View {

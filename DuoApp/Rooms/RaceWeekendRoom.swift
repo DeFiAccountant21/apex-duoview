@@ -43,6 +43,9 @@ struct RaceWeekendRoom: View {
             .onChange(of: context.model.playback.isPresented) { _, presented in
                 if !presented { bookmarks = context.model.recents.all() }
             }
+            .onChange(of: context.model.multiview.isPresented) { _, presented in
+                if !presented { bookmarks = context.model.recents.all() }
+            }
             // Re-runs "Live now" every 60 s while the room is visible; cancelled when it goes.
             .task(id: liveAttempt) { await liveLoop() }
             .task(id: weekendAttempt) { if !weekend.isLoaded { await loadWeekend() } }
@@ -56,16 +59,18 @@ struct RaceWeekendRoom: View {
 
     // MARK: Resume banner
 
-    /// The latest bookmark, when it is under 3 days old, signed in, nothing is playing and the
-    /// banner hasn't been dismissed this run.
+    /// The latest bookmark, when it is under 3 days old, signed in, nothing is playing (single
+    /// feed or multiview) and the banner hasn't been dismissed this run. A multiview bookmark
+    /// resumes multiview.
     @ViewBuilder
     private var resumeBanner: some View {
-        let playback = context.model.playback
-        if context.isSignedIn, !playback.isPresented, !playback.isInPictureInPicture, !playback.resumeBannerDismissed,
-           let latest = bookmarks.first, ResumeBanner.isFresh(latest) {
+        let model = context.model
+        let playback = model.playback
+        if context.isSignedIn, !playback.isPresented, !playback.isInPictureInPicture, !model.multiview.isPresented,
+           !playback.resumeBannerDismissed, let latest = bookmarks.first, ResumeBanner.isFresh(latest) {
             ResumeBanner(
                 bookmark: latest,
-                onResume: { Task { await playback.resume(latest) } },
+                onResume: { Task { await model.resume(latest) } },
                 onDismiss: { playback.resumeBannerDismissed = true })
         }
     }

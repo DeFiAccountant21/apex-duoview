@@ -316,7 +316,7 @@ struct MultiviewView: View {
         noteInteraction()
         if controller.slots.indices.contains(slot), controller.slots[slot] == nil {
             openEditor(slot: slot)
-        } else if controller.othersFrozen {
+        } else if controller.othersFrozen, !controller.speedHeld {
             controller.unfreezeOthers()
         } else if slot > 0 {
             controller.makeMain(slot: slot)

@@ -44,6 +44,9 @@ final class PlayerController {
     /// Bumped by every start, resume and close, so a slow answer for something superseded is dropped.
     @ObservationIgnored private var generation = 0
     @ObservationIgnored private var stopTask: Task<Void, Never>?
+    /// "From the start" of a live session: waits for the item's seekable range, seeks to the
+    /// start, then plays. Cancelled by any teardown.
+    @ObservationIgnored private var beginningTask: Task<Void, Never>?
 
     @ObservationIgnored private var timeObserver: Any?
     @ObservationIgnored private var observedPlayer: AVPlayer?
@@ -56,6 +59,10 @@ final class PlayerController {
     @ObservationIgnored private let pictureInPictureDelegate: PlayerPictureInPictureDelegate
 
     static let saveInterval: Double = 5
+    /// "From the start" checks for the seekable range this often, this many times (10 s), then
+    /// plays live.
+    static let beginningPoll: Duration = .milliseconds(250)
+    static let beginningAttempts = 40
 
     init(coordinator: PlayCoordinator, recents: RecentsStore, history: WatchHistory, catalogue: Catalogue) {
         self.coordinator = coordinator
@@ -73,10 +80,13 @@ final class PlayerController {
     // MARK: Starting
 
     /// Plays from a tile: a replay with a recent bookmark for this feed resumes there, any other
-    /// replay starts at 0, and a live session at the live edge.
-    func play(item: CatalogItem, channel: Channel) async {
+    /// replay starts at 0, and a live session at the live edge, or at its start when the viewer
+    /// chose "From the start" (`fromStart`).
+    func play(item: CatalogItem, channel: Channel, fromStart: Bool = false) async {
         var start: Start = item.isLive ? .liveEdge : .position(0)
-        if let bookmark = recents.all().first(where: { $0.contentId == item.contentId && $0.channelId == channel.id }) {
+        if fromStart {
+            start = .beginning
+        } else if let bookmark = recents.all().first(where: { $0.contentId == item.contentId && $0.channelId == channel.id }) {
             start = ResumePlan.make(
                 bookmark: bookmark,
                 availableChannelIds: [channel.id],
@@ -313,14 +323,25 @@ final class PlayerController {
               ObjectIdentifier(item) == itemID else { return }
         switch item.status {
         case .readyToPlay:
-            isLoading = false
-            guard !canSave else { return }
+            guard !canSave else {
+                isLoading = false
+                return
+            }
+            // "From the start" is under way: the spinner stays until its seek lands.
+            guard beginningTask == nil else { return }
             let duration = item.duration
             let timeline: Timeline = duration.isIndefinite
                 ? .live
                 : .replay(durationMs: duration.isNumeric ? Int64((duration.seconds * 1_000).rounded()) : 0)
             let start = pendingStart.resolved(for: timeline)
             pendingStart = .position(0)
+            if start == .beginning {
+                // A live session from its start (Android 0.98): nothing plays, and the spinner
+                // stays over the picture, until the seek to the start lands.
+                startFromBeginning(itemID: itemID)
+                return
+            }
+            isLoading = false
             if case .position(let ms) = start, ms > 0 {
                 let target = CMTime(value: CMTimeValue(ms), timescale: 1_000)
                 player.seek(to: target, toleranceBefore: .zero, toleranceAfter: .zero) { @Sendable [weak self] _ in
@@ -341,6 +362,68 @@ final class PlayerController {
         default:
             break
         }
+    }
+
+    /// Tries now, then every 250 ms for 10 s, to seek to the session's start: the item's seekable
+    /// range is often, but not always, in when it reports ready.
+    private func startFromBeginning(itemID: ObjectIdentifier) {
+        beginningTask?.cancel()
+        beginningTask = Task { [weak self] in
+            var attempt = 0
+            while true {
+                guard let done = self?.tryStartFromBeginning(
+                    itemID: itemID, giveUp: attempt >= Self.beginningAttempts), !done else { return }
+                attempt += 1
+                do {
+                    try await Task.sleep(for: Self.beginningPoll)
+                } catch {
+                    return
+                }
+            }
+        }
+    }
+
+    /// One try: true when finished (sought, gave up and played live, or the item is gone).
+    private func tryStartFromBeginning(itemID: ObjectIdentifier, giveUp: Bool) -> Bool {
+        guard itemID == currentItemID, let player, let item = player.currentItem,
+              ObjectIdentifier(item) == itemID else { return true }
+        if let seconds = Self.beginningSeconds(of: item, sessionStart: currentItem?.start) {
+            let target = CMTime(seconds: seconds, preferredTimescale: 600)
+            player.seek(to: target, toleranceBefore: .zero, toleranceAfter: .zero) { @Sendable [weak self] _ in
+                Task { @MainActor [weak self] in
+                    // Dropped if the item was replaced or closed while seeking.
+                    guard let self, self.currentItemID == itemID, let current = self.player else { return }
+                    self.isLoading = false
+                    self.canSave = true
+                    current.play()
+                }
+            }
+            return true
+        }
+        guard giveUp else { return false }
+        // The range never came: live, rather than a spinner for ever.
+        isLoading = false
+        canSave = true
+        player.play()
+        return true
+    }
+
+    /// Where "From the start" begins in this item, in seconds on its timeline, once its seekable
+    /// range is known (nil until then): the session's start within what the stream keeps, by
+    /// program date, else the earliest moment it keeps (`LiveStart.beginning`).
+    static func beginningSeconds(of item: AVPlayerItem, sessionStart: Date?) -> Double? {
+        let ranges = item.seekableTimeRanges.map(\.timeRangeValue)
+        guard let first = ranges.first, let last = ranges.last else { return nil }
+        let start = first.start
+        let end = last.end
+        guard start.isNumeric, end.isNumeric, start.seconds.isFinite, end.seconds.isFinite,
+              end.seconds > start.seconds else { return nil }
+        let now = item.currentTime()
+        return LiveStart.beginning(
+            seekable: start.seconds...end.seconds,
+            current: now.isNumeric ? now.seconds : .nan,
+            currentDate: item.currentDate(),
+            sessionStart: sessionStart)
     }
 
     private func feedStopped(reason: String) {
@@ -385,6 +468,8 @@ final class PlayerController {
     }
 
     private func teardownPlayback() {
+        beginningTask?.cancel()
+        beginningTask = nil
         removeObservers()
         player?.pause()
         player?.replaceCurrentItem(with: nil)
