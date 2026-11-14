@@ -1617,9 +1617,10 @@ final class MultiviewController {
         appTokens.append(center.addObserver(
             forName: AVAudioSession.interruptionNotification, object: nil, queue: .main
         ) { @Sendable [weak self] note in
-            let raw = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt
-            let began = raw.flatMap(AVAudioSession.InterruptionType.init(rawValue:)) == .began
-            guard began else { return }
+            // The raw value is read directly: iOS 27 deprecates the InterruptionType enum, but
+            // the notification and its key still arrive. 1 is "began".
+            let began: UInt = 1
+            guard note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt == began else { return }
             MainActor.assumeIsolated { self?.audioInterruptedAt = Date() }
         })
     }

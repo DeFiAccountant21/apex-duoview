@@ -47,8 +47,9 @@ Nothing yet.
 
 Built and reviewed, but not yet tried by the owner:
 
-- Builds 5 to 9 (controls, picture in picture, resume and live start, clean-up, final fixes):
-  the build and the simulator check for each.
+- Builds 5 to 10 (controls, picture in picture, resume and live start, clean-up, final fixes):
+  the simulator check for each (build 9 compiled on the Mac; build 10 only clears its one
+  warning).
 - Picture in picture: leaving the app, coming back by the window and by the app icon, the
   window's close button, and another app taking over picture in picture.
 - Resume of a multiview session after closing the app, and the banner showing the right moment
