@@ -186,9 +186,6 @@ struct SettingsView: View {
                 .tint(Theme.accent)
             }
             .disabled(!fake.isActive)
-            NavigationLink("Multiview probe") {
-                MultiviewProbeView(model: model)
-            }
         } header: {
             Text("Debug").sectionLabel()
         } footer: {

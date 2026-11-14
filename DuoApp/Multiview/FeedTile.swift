@@ -90,8 +90,13 @@ struct FeedTile: View {
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+        // One element, so the action `MultiviewView` adds (the editor on this slot) lands on it.
+        // Hidden while the multiview loads, when the tile is blank.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Pick a feed")
         // A tap opens the feeds editor on this slot.
-        .accessibilityAddTraits(showsPickPrompt ? .isButton : AccessibilityTraits())
+        .accessibilityAddTraits(.isButton)
+        .accessibilityHidden(!showsPickPrompt)
     }
 
     private func note(_ text: String) -> some View {

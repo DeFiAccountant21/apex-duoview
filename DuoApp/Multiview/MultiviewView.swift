@@ -234,6 +234,10 @@ struct MultiviewView: View {
             slot: entry.slot,
             isVisible: visible,
             showsPickPrompt: !controller.isLoading)
+            // VoiceOver's activate does what a tap does (the touch surface over the tile is UIKit's
+            // and not an accessibility element). On the tile itself, so the speaker button
+            // above keeps its own action.
+            .accessibilityAction { tapped(slot: entry.slot) }
             .frame(width: rect.width, height: rect.height)
             .overlay {
                 TileTouchSurface(

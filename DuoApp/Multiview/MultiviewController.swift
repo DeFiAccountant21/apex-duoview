@@ -167,6 +167,9 @@ final class MultiviewController {
     /// A picture-in-picture stop out of the app, waiting to see whether a restore or the app's
     /// return follows before it counts as the window's close button.
     @ObservationIgnored private var pendingStopTask: Task<Void, Never>?
+    /// Background time asked for while that stop waits, so iOS doesn't suspend the app before the
+    /// decision lands. `.invalid` when none is held.
+    @ObservationIgnored private var stopBackgroundTask: UIBackgroundTaskIdentifier = .invalid
     /// When that stop came, and when another app last took the sound (an audio interruption
     /// began). Another app's picture in picture taking over interrupts this app's audio; the
     /// window's close button doesn't.
@@ -1017,8 +1020,10 @@ final class MultiviewController {
                 let since = beginningWaitSince ?? Date()
                 beginningWaitSince = since
                 if Date().timeIntervalSince(since) >= Self.beginningWait {
-                    // Never known: live, rather than a spinner for ever.
+                    // Never known: live, rather than a spinner for ever. At the live edge a kept
+                    // speed goes back to 1× without changing the kept one, as below.
                     beginningWaitSince = nil
+                    if rate != 1 { setRate(1, remember: false) }
                     placed(feed)
                 }
             }
@@ -1445,7 +1450,7 @@ final class MultiviewController {
         // slower speed (Android 0.99.9).
         guard rate > 1 else { return }
         struggledSpeeds.record(speed: rate, feedCount: slotFeeds.count)
-        if struggledSpeeds.holds(speed: rate, feedCount: slotFeeds.count) { speedHeld = true }
+        if struggledSpeeds.holds(speed: rate, feedCount: slotFeeds.count) { startSpeedHold() }
     }
 
     private func freezeOthers(_ now: Date) {
@@ -1464,12 +1469,26 @@ final class MultiviewController {
     private func updateSpeedHold() {
         guard started, !refreshing, !isInPictureInPicture else { return }
         if struggledSpeeds.holds(speed: rate, feedCount: slotFeeds.count) {
-            speedHeld = true
+            startSpeedHold()
             if !othersFrozen { freezeOthers(Date()) }
         } else if speedHeld {
             speedHeld = false
             bringBackFrozen()
         }
+    }
+
+    /// A hold starts (written only on the change, so the views don't redraw on every tick): one
+    /// notice each time, as Android's 0.99.9 message.
+    private func startSpeedHold() {
+        guard !speedHeld else { return }
+        speedHeld = true
+        showNotice(Self.heldSpeedNotice(rate))
+    }
+
+    /// The note for a hold. The speed is written as the controls write it ("1.5×").
+    static func heldSpeedNotice(_ rate: Double) -> String {
+        "This phone can't keep every feed smooth at \(MultiviewClock.speedText(rate)). "
+            + "Pick a slower speed to bring them back."
     }
 
     private func showNotice(_ text: String) {
@@ -1740,6 +1759,7 @@ final class MultiviewController {
         }
         pendingStopTask?.cancel()
         pictureInPictureStoppedAt = Date()
+        beginStopBackgroundTask()
         pendingStopTask = Task { [weak self] in
             do {
                 try await Task.sleep(for: Self.stopSettleDelay)
@@ -1754,6 +1774,8 @@ final class MultiviewController {
     /// it was the close button, unless another app took the sound around the stop: that is
     /// another app's picture in picture taking over, which leaves the multiview where it is.
     private func pictureInPictureStopSettled() {
+        // The decision is made here, whichever way it goes: the background time goes back after.
+        defer { endStopBackgroundTask() }
         let stoppedAt = pictureInPictureStoppedAt
         pendingStopTask = nil
         pictureInPictureStoppedAt = nil
@@ -1779,6 +1801,36 @@ final class MultiviewController {
         pendingStopTask?.cancel()
         pendingStopTask = nil
         pictureInPictureStoppedAt = nil
+        endStopBackgroundTask()
+    }
+
+    /// Asks iOS for background time while a stop waits its second, so the app isn't suspended
+    /// before the decision. One at a time. If the time runs out first, the stop counts as the
+    /// window's close button.
+    private func beginStopBackgroundTask() {
+        guard stopBackgroundTask == .invalid else { return }
+        stopBackgroundTask = UIApplication.shared.beginBackgroundTask(withName: "Picture in picture stop") {
+            @Sendable [weak self] in
+            MainActor.assumeIsolated { self?.stopBackgroundTaskExpired() }
+        }
+    }
+
+    /// No time left to wait: a stop still waiting is settled as the close button, without the
+    /// check for another app's picture in picture.
+    private func stopBackgroundTaskExpired() {
+        guard stopBackgroundTask != .invalid else { return }
+        if pendingStopTask != nil, isInPictureInPicture { close() }
+        // `close()` already did both (through the teardown); otherwise they happen here.
+        cancelPendingStop()
+        endStopBackgroundTask()
+    }
+
+    /// Gives the background time back, once.
+    private func endStopBackgroundTask() {
+        let task = stopBackgroundTask
+        guard task != .invalid else { return }
+        stopBackgroundTask = .invalid
+        UIApplication.shared.endBackgroundTask(task)
     }
 
     /// Drops picture-in-picture state, stopping a window that is still up, without touching the
