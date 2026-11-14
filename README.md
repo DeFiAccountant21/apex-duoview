@@ -14,12 +14,14 @@ at once, a live track map, timing and team radio, all kept in sync with the pict
 
 ## Status
 
-**v1.0-beta.1 — Foundation** is released (2026-11-13, pre-release; see the
-[changelog](CHANGELOG.md)). It signs in with your F1 TV account, lets you browse Race Weekend,
-Paddock and the archive, plays one feed at a time with your choice of commentary, remembers where
-you stopped and resumes there, and reads the phone's fold: half-open like a book, Settings sits on
-the right-hand screen. Tested in the iPhone Duo simulator; the real Duo comes in beta.7.
-Next: **v1.0-beta.2 — Multiview and fold**.
+**v1.0-beta.2 — Multiview and fold** is released (2026-11-14, pre-release; see the
+[changelog](CHANGELOG.md)). On top of beta.1 (sign in with your F1 TV account, browse Race
+Weekend, Paddock and the archive, one feed with your choice of commentary, resume where you
+stopped), it plays four feeds at once in step, fitted to every fold of the phone, with your
+favourite driver's onboard, sound from any feed, drag to rearrange, presets, picture in picture
+and resume. Some of it is not yet tested by hand: the changelog lists what is still to check.
+Tested in the iPhone Duo simulator; the real Duo comes in beta.7.
+Next: **v1.0-beta.3**.
 
 What has been checked so far, on a 2026 race replay with a Premium account: F1 TV returns all 26
 feeds of a race (world feed, F1 Live, every onboard, data channels) in a format the iPhone's own
