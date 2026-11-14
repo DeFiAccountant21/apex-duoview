@@ -124,9 +124,9 @@ import Library
 
     @Test func ninthPresetIsRefused() throws {
         let (s, _) = Self.make()
-        for i in 0..<8 { _ = try s.savePreset(name: "P\(i)", picks: [], layouts: [:]) }
+        for i in 0..<MultiviewStore.maxPresets { _ = try s.savePreset(name: "P\(i)", picks: [], layouts: [:]) }
         #expect(throws: PresetError.full) { try s.savePreset(name: "P9", picks: [], layouts: [:]) }
-        #expect(s.presets.count == 8)
+        #expect(s.presets.count == MultiviewStore.maxPresets)
     }
 
     @Test func emptyAndWhitespaceNamesRefused() {
@@ -155,12 +155,12 @@ import Library
 
     @Test func fullStoreChecksNameBeforeCount() throws {
         let (s, _) = Self.make()
-        for i in 0..<8 { _ = try s.savePreset(name: "P\(i)", picks: [], layouts: [:]) }
+        for i in 0..<MultiviewStore.maxPresets { _ = try s.savePreset(name: "P\(i)", picks: [], layouts: [:]) }
         // A name already taken says so, even when there is no room left.
         #expect(throws: PresetError.duplicateName) { try s.savePreset(name: "p3", picks: [], layouts: [:]) }
         #expect(throws: PresetError.emptyName) { try s.savePreset(name: " ", picks: [], layouts: [:]) }
         #expect(throws: PresetError.full) { try s.savePreset(name: "New", picks: [], layouts: [:]) }
-        #expect(s.presets.count == 8)
+        #expect(s.presets.count == MultiviewStore.maxPresets)
     }
 
     @Test func renameUpdateDeletePersist() throws {
@@ -187,13 +187,13 @@ import Library
         let first = try a.savePreset(name: "First", picks: [.worldFeed, nil], layouts: ["flat.2": "x"])
         let second = try a.savePreset(name: "Second", picks: [.data], layouts: [:])
         // Between the two: an object with wrong types, a null and a string.
-        let stored = try #require(mem.data(forKey: "multiview.presets"))
+        let stored = try #require(mem.data(forKey: MultiviewStore.presetsKey))
         var elements = try #require(try JSONSerialization.jsonObject(with: stored) as? [Any])
         #expect(elements.count == 2)
         elements.insert(["id": 5, "name": ["no"], "picks": "none"] as [String: Any], at: 1)
         elements.insert(NSNull(), at: 2)
         elements.insert("garbage", at: 3)
-        mem.set(try JSONSerialization.data(withJSONObject: elements), forKey: "multiview.presets")
+        mem.set(try JSONSerialization.data(withJSONObject: elements), forKey: MultiviewStore.presetsKey)
 
         let b = MultiviewStore(store: mem)
         #expect(b.presets == [first, second])

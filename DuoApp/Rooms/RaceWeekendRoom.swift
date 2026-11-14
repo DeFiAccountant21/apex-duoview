@@ -43,6 +43,10 @@ struct RaceWeekendRoom: View {
             .onChange(of: context.model.playback.isPresented) { _, presented in
                 if !presented { bookmarks = context.model.recents.all() }
             }
+            // Picture in picture with the cover hidden: the window's close saves the place.
+            .onChange(of: context.model.playback.isInPictureInPicture) { _, inWindow in
+                if !inWindow { bookmarks = context.model.recents.all() }
+            }
             .onChange(of: context.model.multiview.isPresented) { _, presented in
                 if !presented { bookmarks = context.model.recents.all() }
             }

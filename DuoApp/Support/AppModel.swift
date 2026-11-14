@@ -116,9 +116,11 @@ final class AppModel {
     /// Opens a session's multiview where its bookmark left off (a live one at the live edge, or at
     /// its start when the viewer chose "From the start").
     /// The two players share one play session, so the single-feed one closes first, also when only
-    /// its picture in picture is showing (never two windows at once).
+    /// its picture in picture is showing (never two windows at once), and its stop() lands before
+    /// the multiview's PLAY, which it would otherwise end.
     func openMultiview(item: CatalogItem, detail: VideoDetail, fromStart: Bool = false) async {
         if playback.isPresented || playback.isInPictureInPicture { playback.close() }
+        await playback.waitForStop()
         let start: Start = fromStart ? .beginning : multiview.resumeStart(for: item)
         await multiview.open(item: item, detail: detail, startAt: start)
     }
@@ -129,6 +131,8 @@ final class AppModel {
     func resume(_ bookmark: WatchBookmark) async {
         if bookmark.multiview, case .signedIn(let account) = auth, account.hasMultiview {
             if playback.isPresented || playback.isInPictureInPicture { playback.close() }
+            // The single-feed player's stop() must land before the multiview's PLAY.
+            await playback.waitForStop()
             await multiview.resume(bookmark, catalogue: catalogue)
         } else {
             await playback.resume(bookmark)

@@ -193,6 +193,12 @@ final class PlayerController {
         }
     }
 
+    /// Waits until the stop() of every close() so far has landed on the shared play session. The
+    /// multiview waits for this before its PLAY, or the player's stop could end that PLAY.
+    func waitForStop() async {
+        if let stopTask { await stopTask.value }
+    }
+
     /// The cover went away by itself (the root's binding): closes, unless picture in picture is
     /// what hid it, which keeps the player.
     func coverDismissed() {
@@ -372,10 +378,10 @@ final class PlayerController {
             var attempt = 0
             while true {
                 guard let done = self?.tryStartFromBeginning(
-                    itemID: itemID, giveUp: attempt >= Self.beginningAttempts), !done else { return }
+                    itemID: itemID, giveUp: attempt >= PlayerController.beginningAttempts), !done else { return }
                 attempt += 1
                 do {
-                    try await Task.sleep(for: Self.beginningPoll)
+                    try await Task.sleep(for: PlayerController.beginningPoll)
                 } catch {
                     return
                 }

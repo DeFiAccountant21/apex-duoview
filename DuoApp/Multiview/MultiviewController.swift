@@ -196,6 +196,8 @@ final class MultiviewController {
         tickTask?.cancel()
         for feed in feeds.values { feed.removeObservers() }
         for token in appTokens { NotificationCenter.default.removeObserver(token) }
+        // Background time still held for a picture-in-picture stop goes back.
+        if stopBackgroundTask != .invalid { UIApplication.shared.endBackgroundTask(stopBackgroundTask) }
     }
 
     /// The player showing this feed; nil while it loads or after it stopped.
@@ -1257,8 +1259,9 @@ final class MultiviewController {
     /// and slower (0.5× picked behind live, then LIVE) would be stuck with no menu to change it.
     private func dropSpeedAtLiveEdge() {
         guard isLive, rate != 1, behindLive != nil, isAtLiveEdge else { return }
-        // As Android: kept as the speed from now on.
-        setRate(1)
+        // Not remembered, as on the two start paths: a speed kept for replays (1.5×, say) stays
+        // the next multiview's speed.
+        setRate(1, remember: false)
         showNotice(Self.caughtUpNotice)
     }
 
@@ -1762,10 +1765,12 @@ final class MultiviewController {
         beginStopBackgroundTask()
         pendingStopTask = Task { [weak self] in
             do {
-                try await Task.sleep(for: Self.stopSettleDelay)
+                try await Task.sleep(for: MultiviewController.stopSettleDelay)
             } catch {
                 return
             }
+            // Cancelled after waking (settled already, or a restore came): nothing more to do.
+            guard !Task.isCancelled else { return }
             self?.pictureInPictureStopSettled()
         }
     }
@@ -1805,8 +1810,8 @@ final class MultiviewController {
     }
 
     /// Asks iOS for background time while a stop waits its second, so the app isn't suspended
-    /// before the decision. One at a time. If the time runs out first, the stop counts as the
-    /// window's close button.
+    /// before the decision. One at a time. If the time runs out first, the decision is made then,
+    /// with what is known so far.
     private func beginStopBackgroundTask() {
         guard stopBackgroundTask == .invalid else { return }
         stopBackgroundTask = UIApplication.shared.beginBackgroundTask(withName: "Picture in picture stop") {
@@ -1815,14 +1820,19 @@ final class MultiviewController {
         }
     }
 
-    /// No time left to wait: a stop still waiting is settled as the close button, without the
-    /// check for another app's picture in picture.
+    /// No time left to wait: a stop still waiting is settled now rather than after its second,
+    /// the check for another app's picture in picture included (an interruption that already
+    /// came counts). Settling gives the background time back; with no stop waiting, it goes
+    /// back here. Synchronous, so it is back before the expiry handler returns.
     private func stopBackgroundTaskExpired() {
         guard stopBackgroundTask != .invalid else { return }
-        if pendingStopTask != nil, isInPictureInPicture { close() }
-        // `close()` already did both (through the teardown); otherwise they happen here.
-        cancelPendingStop()
-        endStopBackgroundTask()
+        guard let pending = pendingStopTask else {
+            cancelPendingStop()
+            return
+        }
+        // The wait would settle it a second time.
+        pending.cancel()
+        pictureInPictureStopSettled()
     }
 
     /// Gives the background time back, once.
