@@ -52,6 +52,9 @@ final class MultiviewController {
     /// A picture-in-picture stop out of the app closes the multiview only if, this long after it,
     /// no restore came and the app is still in the background.
     static let stopSettleDelay: Duration = .seconds(1)
+    /// An audio interruption this long before a picture-in-picture stop (or any time after it,
+    /// before the decision) counts as another app taking over.
+    static let takeoverWindow: TimeInterval = 1
 
     /// True from the moment `open` is called until `close()`: the full-screen cover follows it.
     private(set) var isPresented = false
@@ -164,6 +167,14 @@ final class MultiviewController {
     /// A picture-in-picture stop out of the app, waiting to see whether a restore or the app's
     /// return follows before it counts as the window's close button.
     @ObservationIgnored private var pendingStopTask: Task<Void, Never>?
+    /// When that stop came, and when another app last took the sound (an audio interruption
+    /// began). Another app's picture in picture taking over interrupts this app's audio; the
+    /// window's close button doesn't.
+    @ObservationIgnored private var pictureInPictureStoppedAt: Date?
+    @ObservationIgnored private var audioInterruptedAt: Date?
+    /// Another app's picture in picture took over the window: the multiview stays, paused, and
+    /// coming back lines every feed up with the one that was in the window.
+    @ObservationIgnored private var pictureInPictureTakenOver = false
     /// AVKit holds its delegate weakly: this keeps it.
     @ObservationIgnored private let pictureInPictureDelegate: MultiviewPictureInPictureDelegate
 
@@ -412,7 +423,7 @@ final class MultiviewController {
         audioChannelId = channelId
         applyRoles()
         // Held at this speed: the others (now including the feed that had the sound) freeze again.
-        updateSpeedHold(announce: false)
+        updateSpeedHold()
     }
 
     /// Whether this feed can take the main spot: it has a player that hasn't reached its end.
@@ -645,7 +656,7 @@ final class MultiviewController {
         maybeStart()
         // Held at this speed: the others freeze again (or come back, if the number of feeds
         // changed to one this speed never struggled with).
-        updateSpeedHold(announce: false)
+        updateSpeedHold()
         store.lastUsed = picks
     }
 
@@ -750,16 +761,13 @@ final class MultiviewController {
             setRunningRate(feed, newRate)
         }
         steadySince = Date()
-        updateSpeedHold(announce: true)
+        updateSpeedHold()
     }
 
     /// The tap on a tile: brings frozen feeds back in step with the main feed. Not while they are
-    /// held for the speed; only a slower speed brings those back.
+    /// held for the speed (the view doesn't offer it then); only a slower speed brings those back.
     func unfreezeOthers() {
-        guard !speedHeld else {
-            showNotice(Self.heldNotice(rate))
-            return
-        }
+        guard !speedHeld else { return }
         bringBackFrozen()
     }
 
@@ -1062,7 +1070,7 @@ final class MultiviewController {
         steadySince = Date()
         struggle.reset()
         // A speed this phone already struggled with starts with one picture: before anything plays.
-        updateSpeedHold(announce: true)
+        updateSpeedHold()
         for feed in feeds.values { updatePlayback(feed) }
         // The scrubber shows at once, not a tick later.
         updateTimeline()
@@ -1170,7 +1178,7 @@ final class MultiviewController {
                 sync()
                 if ticks % Self.sampleEveryTicks == 0 { sampleDroppedFrames() }
                 // Keeps the hold right after anything that brought the others back.
-                updateSpeedHold(announce: false)
+                updateSpeedHold()
                 if othersFrozen, !speedHeld {
                     let quietSince = max(frozenAt ?? now, lastStallAt ?? .distantPast)
                     if now.timeIntervalSince(quietSince) >= Self.unfreezeAfter { bringBackFrozen() }
@@ -1437,10 +1445,7 @@ final class MultiviewController {
         // slower speed (Android 0.99.9).
         guard rate > 1 else { return }
         struggledSpeeds.record(speed: rate, feedCount: slotFeeds.count)
-        if struggledSpeeds.holds(speed: rate, feedCount: slotFeeds.count) {
-            speedHeld = true
-            showNotice(Self.heldNotice(rate))
-        }
+        if struggledSpeeds.holds(speed: rate, feedCount: slotFeeds.count) { speedHeld = true }
     }
 
     private func freezeOthers(_ now: Date) {
@@ -1454,24 +1459,17 @@ final class MultiviewController {
 
     /// Holds the others frozen while the speed is one this phone already struggled with for this
     /// many feeds, and brings them back (lined up again) once it isn't. Not before the start, nor
-    /// in picture in picture (the others are paused there anyway).
-    private func updateSpeedHold(announce: Bool) {
+    /// in picture in picture (the others are paused there anyway). Their tiles say "Paused to keep
+    /// the main feed smooth", as for any freeze.
+    private func updateSpeedHold() {
         guard started, !refreshing, !isInPictureInPicture else { return }
         if struggledSpeeds.holds(speed: rate, feedCount: slotFeeds.count) {
-            let entering = !speedHeld
             speedHeld = true
             if !othersFrozen { freezeOthers(Date()) }
-            if entering, announce { showNotice(Self.heldNotice(rate)) }
         } else if speedHeld {
             speedHeld = false
             bringBackFrozen()
         }
-    }
-
-    /// The note for a hold. The speed is written as the controls write it ("1.5×").
-    static func heldNotice(_ rate: Double) -> String {
-        "This phone can't keep every feed smooth at \(String(format: "%g", rate))×, so the others pause. "
-            + "A slower speed brings them back."
     }
 
     private func showNotice(_ text: String) {
@@ -1592,6 +1590,16 @@ final class MultiviewController {
         ) { @Sendable [weak self] _ in
             MainActor.assumeIsolated { self?.becameActive() }
         })
+        // Only the moment matters (it tells another app's picture in picture from the close
+        // button); the players' own pause and the return handle the rest.
+        appTokens.append(center.addObserver(
+            forName: AVAudioSession.interruptionNotification, object: nil, queue: .main
+        ) { @Sendable [weak self] note in
+            let raw = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt
+            let began = raw.flatMap(AVAudioSession.InterruptionType.init(rawValue:)) == .began
+            guard began else { return }
+            MainActor.assumeIsolated { self?.audioInterruptedAt = Date() }
+        })
     }
 
     private func enteredBackground() {
@@ -1606,6 +1614,12 @@ final class MultiviewController {
         if pendingStopTask != nil {
             cancelPendingStop()
             endPictureInPicture()
+        }
+        // Another app's picture in picture took the window: back here, every feed lines up with
+        // the one that was in it and plays on (its pause was that app's doing, not the viewer's).
+        if pictureInPictureTakenOver {
+            pictureInPictureTakenOver = false
+            endPictureInPicture(adoptingWindowPause: false)
         }
         guard resumeOnActive else { return }
         resumeOnActive = false
@@ -1724,6 +1738,7 @@ final class MultiviewController {
             return
         }
         pendingStopTask?.cancel()
+        pictureInPictureStoppedAt = Date()
         pendingStopTask = Task { [weak self] in
             do {
                 try await Task.sleep(for: Self.stopSettleDelay)
@@ -1734,26 +1749,40 @@ final class MultiviewController {
         }
     }
 
-    /// A second after a stop in the background, with no restore since.
+    /// A second after a stop in the background, with no restore since. Still in the background,
+    /// it was the close button, unless another app took the sound around the stop: that is
+    /// another app's picture in picture taking over, which leaves the multiview where it is.
     private func pictureInPictureStopSettled() {
+        let stoppedAt = pictureInPictureStoppedAt
         pendingStopTask = nil
+        pictureInPictureStoppedAt = nil
         guard isInPictureInPicture else { return }
-        if UIApplication.shared.applicationState == .background {
-            close()
-        } else {
+        guard UIApplication.shared.applicationState == .background else {
             endPictureInPicture()
+            return
         }
+        if let stoppedAt, let interrupted = audioInterruptedAt,
+           interrupted >= stoppedAt.addingTimeInterval(-Self.takeoverWindow) {
+            // Nothing is lined up or played out here: the feeds stay paused (the one in the window
+            // was paused with it), and the return (`becameActive`) lines them up.
+            pictureInPictureTakenOver = true
+            for feed in feeds.values where feed.player.rate != 0 { feed.player.pause() }
+            return
+        }
+        close()
     }
 
     private func cancelPendingStop() {
         pendingStopTask?.cancel()
         pendingStopTask = nil
+        pictureInPictureStoppedAt = nil
     }
 
     /// Drops picture-in-picture state, stopping a window that is still up, without touching the
     /// players: for teardowns, which stop them anyway.
     private func leavePictureInPicture() {
         cancelPendingStop()
+        pictureInPictureTakenOver = false
         guard isInPictureInPicture else { return }
         if let pip = pictureInPictureController, pip.isPictureInPictureActive {
             pip.stopPictureInPicture()
@@ -1768,6 +1797,7 @@ final class MultiviewController {
     /// reference is the main feed when in place, else any feed in place: here, that one), then
     /// plays with it. Slot 0 stays the sync reference from then on.
     private func endPictureInPicture(adoptingWindowPause: Bool = true) {
+        pictureInPictureTakenOver = false
         guard isInPictureInPicture else { return }
         let shown = pictureInPictureFeed
         isInPictureInPicture = false
@@ -1798,7 +1828,7 @@ final class MultiviewController {
         }
         for feed in others { place(feed) }
         // Held at this speed: the others freeze again (they finish lining up, paused).
-        updateSpeedHold(announce: false)
+        updateSpeedHold()
     }
 
     // MARK: Saving
