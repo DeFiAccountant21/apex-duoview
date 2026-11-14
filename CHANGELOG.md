@@ -4,14 +4,16 @@ Versions follow the standard in [docs/roadmap.md](docs/roadmap.md).
 
 ## Unreleased
 
-Everything below is for **v1.0-beta.2 — Multiview and fold**.
+Nothing yet.
+
+## v1.0-beta.2 — Multiview and fold (2026-11-14)
 
 - **Multiview.** On a session with two or more feeds, Premium accounts get a "Watch multiview"
   button: four feeds play at once, in step, from one F1 TV request. Other accounts see
   "Multiview needs F1 TV Premium".
 - **Fit to the screen for every fold.** Flat, half-open like a book, half-open like a laptop and
   closed each get their own layouts for one to four feeds, using as much of the screen as the
-  16:9 picture allows and never putting a feed in the fold. "Switch layout" (⟳) goes through the
+  16:9 picture allows and keeping feeds out of the fold unless you pick the layout that spans it. "Switch layout" (⟳) goes through the
   other layouts for that fold and feed count, including one feed per screen when half-open, and
   remembers your choice. Folding and unfolding glides the feeds to their new places without
   restarting them. Closed, you swipe left or right to change the feed.
@@ -24,16 +26,17 @@ Everything below is for **v1.0-beta.2 — Multiview and fold**.
   Settings › Multiview › My driver changes it. The feeds editor changes any spot, clears all,
   resets to default, and saves up to 8 named presets of feeds and layouts. The last feeds you
   used come back next time.
-- **Fewer than four feeds.** Removing a feed asks once whether to keep four spots or fit the rest
-  to the screen, and remembers the answer (Settings › Multiview › When a feed is missing).
+- **Fewer than four feeds.** When there are fewer than four (a feed removed, a remembered feed
+  missing from this session, or a session with fewer feeds), the app asks once whether to keep
+  four spots or fit the rest to the screen, and remembers the answer (Settings › Multiview › When a feed is missing).
 - **Controls.** Play and pause, one timeline for every feed, speed from 0.5× to 2× (kept between
-  videos), commentary language or Track FX for the feed with the sound, and LIVE during live
+  videos; catching up to live goes back to 1× for that video), commentary language or Track FX for the feed with the sound, and LIVE during live
   sessions. They fade after a few seconds; tap "•••" or the space around the feeds to bring them
   back.
 - **When the phone can't keep up,** the other feeds pause with "Paused to keep the main feed
   smooth" and come back in step. A speed that was too much is remembered while the app is open.
 - **Picture in picture** for multiview (the feed you're listening to) and for a single feed.
-- **Resume** reopens multiview at the same moment.
+- **Resume** reopens multiview at the same moment; its banner reads "Multiview · …".
 - **Live sessions** ask "From the start" or "Watch live" before playing, and "From the start"
   starts at the start (Android 0.97–0.98).
 - The multiview request identifies as the Android web player, which is how F1 TV returns every
@@ -44,11 +47,20 @@ Everything below is for **v1.0-beta.2 — Multiview and fold**.
 
 Built and reviewed, but not yet tried by the owner:
 
-- Builds 5 to 8 (controls, picture in picture, resume and live start, clean-up): the build and
-  the simulator check for each.
+- Builds 5 to 9 (controls, picture in picture, resume and live start, clean-up, final fixes):
+  the build and the simulator check for each.
 - Picture in picture: leaving the app, coming back by the window and by the app icon, the
   window's close button, and another app taking over picture in picture.
-- Resume of a multiview session after closing the app.
+- Resume of a multiview session after closing the app, and the banner showing the right moment
+  after a single feed's picture in picture is closed.
+- Picture in picture for a single feed, started from the player's button (the player hides, the
+  window brings it back), and "Watch multiview" pressed while that window is open.
+- Picture in picture when the feed with the sound is hidden (closed phone, across the fold, one
+  feed per screen).
+- The commentary language menu and the timeline scrubber in multiview.
+- Expired links: after a long pause (past the stream links' expiry), a swap or preset asks F1 TV
+  once for fresh links and carries on. If it doesn't, the feed shows "This feed stopped" or
+  multiview ends with an error; closing and resuming recovers.
 - Speed kept between videos; a speed that struggled being remembered; the note it shows.
 - The feeds editor's preset row (the menu and the tap sharing one row).
 - VoiceOver on the feeds.

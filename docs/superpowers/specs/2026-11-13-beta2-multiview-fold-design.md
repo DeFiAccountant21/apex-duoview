@@ -327,3 +327,6 @@ From the owner's simulator check of the Task 7 build:
 - **The tracker runs slightly ahead of the race video.** Left as it is for beta.2 (owner's choice);
   looked at again in beta.3, when the timing map arrives (Android delays its map about 7 s and lets
   the viewer fine-tune it).
+- **Picture in picture shows the feed with the sound** (not necessarily the main one), so the
+  sound carries on without a break; on return every feed resumes in step. (Controller ruling
+  during Task 11, listed in the beta.2 notes for the owner to confirm.)
