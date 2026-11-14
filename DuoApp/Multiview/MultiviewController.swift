@@ -1616,7 +1616,8 @@ final class MultiviewController {
             endPictureInPicture()
         }
         // Another app's picture in picture took the window: back here, every feed lines up with
-        // the one that was in it and plays on (its pause was that app's doing, not the viewer's).
+        // the one that was in it (its pause was that app's doing, not the viewer's), and
+        // `resumeOnActive` plays them all below.
         if pictureInPictureTakenOver {
             pictureInPictureTakenOver = false
             endPictureInPicture(adoptingWindowPause: false)
@@ -1764,9 +1765,11 @@ final class MultiviewController {
         if let stoppedAt, let interrupted = audioInterruptedAt,
            interrupted >= stoppedAt.addingTimeInterval(-Self.takeoverWindow) {
             // Nothing is lined up or played out here: the feeds stay paused (the one in the window
-            // was paused with it), and the return (`becameActive`) lines them up.
+            // was paused with it). The return (`becameActive`) lines the others up with it, then
+            // plays them all, that one included.
             pictureInPictureTakenOver = true
             for feed in feeds.values where feed.player.rate != 0 { feed.player.pause() }
+            resumeOnActive = started && !isPaused
             return
         }
         close()
